@@ -64,7 +64,9 @@ export default function MembersPage() {
   }, []);
 
   function setPhone(val: string) {
-    const code = val.replace(/\D/g, "").slice(-4);
+    const digits = val.replace(/\D/g, "");
+    if (digits.length > 10) return;
+    const code = digits.length === 10 ? digits.slice(-4) : "";
     setForm(f => ({ ...f, phone: val, code }));
   }
 
