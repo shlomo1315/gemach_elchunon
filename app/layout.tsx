@@ -1,26 +1,17 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import Sidebar from "@/components/Sidebar";
+import AuthGuard from "@/components/AuthGuard";
 
 export const metadata: Metadata = {
-  title: 'גמ"ח אייזנבלט',
-  description: 'מערכת ניהול גמ"ח אייזנבלט',
+  title: 'גמ"ח חסדי אהרן',
+  description: 'מערכת ניהול גמ"ח חסדי אהרן',
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="he" dir="rtl">
       <body>
-        <div style={{ display: "flex", minHeight: "100vh" }}>
-          <Sidebar />
-          <main style={{ flex: 1, padding: "1.5rem", overflowX: "auto" }}>
-            {children}
-          </main>
-        </div>
+        <AuthGuard>{children}</AuthGuard>
       </body>
     </html>
   );

@@ -33,9 +33,6 @@ export default function MemberDetail() {
   if (loading) return <Loading />;
   if (!member) return <Empty text="חבר לא נמצא" />;
 
-  // יתרה רצה
-  let running = 0;
-
   return (
     <div>
       <PageTitle
@@ -79,13 +76,10 @@ export default function MemberDetail() {
                   <th>אופן</th>
                   <th>תאריך</th>
                   <th>הערות</th>
-                  <th>יתרה מצטברת</th>
                 </tr>
               </thead>
               <tbody>
-                {txns.map((t, i) => {
-                  running += t.type === "משיכה" ? -t.amount : t.amount;
-                  return (
+                {txns.map((t, i) => (
                     <tr key={t.id}>
                       <td>{i + 1}</td>
                       <td><Badge type={t.type} /></td>
@@ -95,10 +89,8 @@ export default function MemberDetail() {
                       <td>{t.method || "—"}</td>
                       <td>{t.heb_date || gdate(t.greg_date) || "—"}</td>
                       <td style={{ color: "#7a8699" }}>{t.notes}</td>
-                      <td style={{ fontWeight: 700 }}>{ils(running)}</td>
                     </tr>
-                  );
-                })}
+                  ))}
               </tbody>
             </table>
           </div>

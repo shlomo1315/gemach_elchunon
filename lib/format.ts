@@ -23,6 +23,21 @@ export function gdate(d: string | null | undefined): string {
   }
 }
 
+// המרת תאריך לועזי לעברי באמצעות Intl
+export function toHebrewDate(dateStr: string): string {
+  if (!dateStr) return "";
+  try {
+    const d = new Date(dateStr + "T12:00:00");
+    return d.toLocaleDateString("he-IL-u-ca-hebrew", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  } catch {
+    return "";
+  }
+}
+
 export const TXN_TYPES = ["הפקדה", "משיכה"] as const;
 export const TXN_METHODS = [
   "העברה בנקאית",
