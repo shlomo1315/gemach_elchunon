@@ -51,7 +51,7 @@ export default function Sidebar() {
       <div style={{ borderTop: "1px solid rgba(255,255,255,.15)", paddingTop: "0.9rem", marginTop: "0.5rem" }}>
         {displayName && (
           <div style={{ fontSize: ".75rem", opacity: 0.65, marginBottom: 8, padding: "0 0.25rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            👤 {displayName}
+            {displayName}
           </div>
         )}
         <button onClick={logout} style={{
