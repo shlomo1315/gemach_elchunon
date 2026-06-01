@@ -35,6 +35,34 @@ function KpiCard({ label, value, icon, color, sub }: {
   );
 }
 
+// המרת מספר לאותיות גימטריה (16 → ט״ז, 786 → תשפ״ו)
+function gematria(num: number): string {
+  const ones = ["", "א", "ב", "ג", "ד", "ה", "ו", "ז", "ח", "ט"];
+  const tens = ["", "י", "כ", "ל", "מ", "נ", "ס", "ע", "פ", "צ"];
+  const hundreds = ["", "ק", "ר", "ש", "ת", "תק", "תר", "תש", "תת", "תתק"];
+  let n = num % 1000; // לשנה — מוותרים על האלפים (5786 → 786)
+  let s = hundreds[Math.floor(n / 100)];
+  n %= 100;
+  if (n === 15) s += "טו";
+  else if (n === 16) s += "טז";
+  else { s += tens[Math.floor(n / 10)]; s += ones[n % 10]; }
+  // הוספת גרש/גרשיים
+  if (s.length === 1) return s + "׳";
+  return s.slice(0, -1) + "״" + s.slice(-1);
+}
+
+// תאריך עברי מלא באותיות (ט״ז בסיון תשפ״ו)
+function hebrewDateLetters(d: Date): string {
+  try {
+    const parts = new Intl.DateTimeFormat("en-u-ca-hebrew", { day: "numeric", month: "numeric", year: "numeric" }).formatToParts(d);
+    const day = Number(parts.find(p => p.type === "day")?.value || 0);
+    const year = Number(parts.find(p => p.type === "year")?.value || 0);
+    const month = new Intl.DateTimeFormat("he-u-ca-hebrew", { month: "long" }).format(d);
+    if (!day || !year) return "";
+    return `${gematria(day)} ב${month} ${gematria(year)}`;
+  } catch { return ""; }
+}
+
 function initials(name: string) {
   return name.split(" ").filter(Boolean).map(w => w[0]).slice(0, 2).join("").toUpperCase();
 }
@@ -260,12 +288,7 @@ export default function Dashboard() {
   const name = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
   const dayOfWeek = now.toLocaleDateString("he-IL", { weekday: "long" });
   // תאריך עברי באותיות גימטריה (ט״ז בסיון תשפ״ו)
-  let hebDate = "";
-  try {
-    hebDate = new Intl.DateTimeFormat("he-IL-u-ca-hebrew", {
-      day: "numeric", month: "long", year: "numeric", numberingSystem: "hebr",
-    }).format(now);
-  } catch { hebDate = toHebrewDate(now.toISOString().split("T")[0]); }
+  const hebDate = hebrewDateLetters(now);
   const gregDate = now.toLocaleDateString("he-IL", { day: "numeric", month: "long", year: "numeric" });
   const timeStr = now.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
 
@@ -286,18 +309,18 @@ export default function Dashboard() {
         </h1>
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.35rem 0.7rem", marginTop: 8, fontSize: ".95rem" }}>
           <span style={{ fontWeight: 800, color: "#2c3e50" }}>{dayOfWeek}</span>
-          <span style={{ color: "#cbd5e0" }}>•</span>
-          <span style={{ fontWeight: 600, color: BRAND }}>{hebDate}</span>
-          <span style={{ color: "#cbd5e0" }}>•</span>
-          <span style={{ color: "#9aa5b5" }}>{gregDate}</span>
-          <span style={{ color: "#cbd5e0" }}>•</span>
-          <span style={{ color: "#4a5568", fontWeight: 600, fontVariantNumeric: "tabular-nums", fontFamily: "ui-monospace, monospace", letterSpacing: ".5px" }} dir="ltr">{timeStr}</span>
           {parasha && (
             <>
               <span style={{ color: "#cbd5e0" }}>•</span>
               <span style={{ fontWeight: 700, color: BRAND }}>פרשת {parasha.replace(/^פרשת\s*/, "")}</span>
             </>
           )}
+          <span style={{ color: "#cbd5e0" }}>•</span>
+          <span style={{ fontWeight: 600, color: BRAND }}>{hebDate}</span>
+          <span style={{ color: "#cbd5e0" }}>•</span>
+          <span style={{ color: "#9aa5b5" }}>{gregDate}</span>
+          <span style={{ color: "#cbd5e0" }}>•</span>
+          <span style={{ color: "#4a5568", fontWeight: 600, fontVariantNumeric: "tabular-nums", fontFamily: "ui-monospace, monospace", letterSpacing: ".5px" }} dir="ltr">{timeStr}</span>
           {holidays.map(h => (
             <span key={h}>
               <span style={{ color: "#cbd5e0", marginInlineEnd: "0.7rem" }}>•</span>
