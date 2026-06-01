@@ -159,6 +159,7 @@ export default function MembersPage() {
     if (!editing) return;
     const errs: Record<string, string> = {};
     if (!editForm.name.trim()) errs.name = "יש להזין שם";
+    if (!editForm.phone.trim()) errs.phone = "יש להזין טלפון";
     setEditErr(errs);
     if (Object.keys(errs).length > 0) return;
 
@@ -345,8 +346,10 @@ export default function MembersPage() {
                 <input value={editForm.code} onChange={e => setEditForm(f => ({ ...f, code: e.target.value }))} style={inp} placeholder="1234" />
               </div>
               <div>
-                <label style={lbl}>טלפון</label>
-                <input value={editForm.phone} onChange={e => setEditPhone(e.target.value)} style={inp} dir="ltr" placeholder="050-0000000" />
+                <label style={lbl}>טלפון *</label>
+                <input value={editForm.phone} onChange={e => setEditPhone(e.target.value)}
+                  style={{ ...inp, borderColor: editErr.phone ? RED : undefined }} dir="ltr" placeholder="050-0000000" />
+                {editErr.phone && <div style={{ fontSize: ".75rem", color: RED, marginTop: 3 }}>{editErr.phone}</div>}
               </div>
               <div style={{ gridColumn: "1/-1" }}>
                 <label style={lbl}>כתובת</label>
