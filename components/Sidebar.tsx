@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, ArrowLeftRight, BarChart3, LogOut, Settings, Upload } from "lucide-react";
+import { LayoutDashboard, Users, ArrowLeftRight, BarChart3, LogOut, Settings, Upload, Sun, Moon } from "lucide-react";
 import { useAuth } from "./AuthGuard";
 
 const links = [
@@ -16,8 +16,9 @@ const links = [
 
 export default function Sidebar() {
   const path = usePathname();
-  const { user, logout } = useAuth();
+  const { user, logout, theme, toggleTheme } = useAuth();
   const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
+  const isDark = theme === "dark";
 
   return (
     <aside className="no-print" style={{
@@ -48,6 +49,38 @@ export default function Sidebar() {
           );
         })}
       </nav>
+
+      {/* מתג מצב כהה/בהיר */}
+      <button onClick={toggleTheme} title={isDark ? "מצב בהיר" : "מצב כהה"} style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
+        width: "100%", padding: "0.55rem 0.75rem", marginBottom: 4,
+        background: "rgba(255,255,255,.08)", border: "none",
+        borderRadius: 8, color: "rgba(255,255,255,.9)",
+        fontSize: ".85rem", fontWeight: 600, cursor: "pointer",
+      }}
+        onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,.18)")}
+        onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,.08)")}
+      >
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {isDark ? <Moon size={16} /> : <Sun size={16} />}
+          {isDark ? "מצב כהה" : "מצב בהיר"}
+        </span>
+        {/* מתג ויזואלי */}
+        <span style={{
+          width: 38, height: 20, borderRadius: 999, position: "relative",
+          background: isDark ? "#0e1525" : "rgba(255,255,255,.35)", transition: "background .2s",
+          flexShrink: 0,
+        }}>
+          <span style={{
+            position: "absolute", top: 2, [isDark ? "left" : "right"]: 2,
+            width: 16, height: 16, borderRadius: "50%", background: "#fff",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            transition: "all .2s",
+          }}>
+            {isDark ? <Moon size={10} color="#16513f" /> : <Sun size={10} color="#f59e0b" />}
+          </span>
+        </span>
+      </button>
 
       {/* משתמש + יציאה */}
       <div style={{ borderTop: "1px solid rgba(255,255,255,.15)", paddingTop: "0.9rem", marginTop: "0.5rem" }}>

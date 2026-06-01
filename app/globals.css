@@ -79,6 +79,27 @@ body {
   to   { opacity: 0; }
 }
 
+/* ===== מצב כהה ===== */
+html[data-theme="dark"] body {
+  background: #0e1525;
+  color: #e2e8f0;
+}
+/* היפוך מותאם של תוכן הדפים בלבד (הסרגל הצדדי נשאר ירוק) */
+html[data-theme="dark"] .app-main {
+  background: #0e1525;
+  filter: invert(1) hue-rotate(180deg);
+}
+/* החזרת צבעים אמיתיים לגרפים, תמונות ואלמנטים שאסור להפוך */
+html[data-theme="dark"] .app-main img,
+html[data-theme="dark"] .app-main .recharts-wrapper,
+html[data-theme="dark"] .app-main .recharts-surface,
+html[data-theme="dark"] .app-main .keep-color {
+  filter: invert(1) hue-rotate(180deg);
+}
+html[data-theme="dark"] .app-main {
+  transition: none;
+}
+
 @media print {
   .no-print {
     display: none !important;

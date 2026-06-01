@@ -5,8 +5,9 @@ import { supabase } from "@/lib/supabase";
 import type { User } from "@supabase/supabase-js";
 import Sidebar from "./Sidebar";
 
-type AuthCtx = { user: User | null; logout: () => void };
-export const AuthContext = createContext<AuthCtx>({ user: null, logout: () => {} });
+type Theme = "light" | "dark";
+type AuthCtx = { user: User | null; logout: () => void; theme: Theme; toggleTheme: () => void };
+export const AuthContext = createContext<AuthCtx>({ user: null, logout: () => {}, theme: "light", toggleTheme: () => {} });
 export const useAuth = () => useContext(AuthContext);
 
 const BRAND = "#1e6f5c";
@@ -131,6 +132,19 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [checking, setChecking] = useState(true);
   const [showSplash, setShowSplash] = useState(false);
+  const [theme, setTheme] = useState<Theme>("light");
+
+  useEffect(() => {
+    const saved = typeof window !== "undefined" ? localStorage.getItem("gemach_theme") : null;
+    if (saved === "dark" || saved === "light") setTheme(saved);
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    try { localStorage.setItem("gemach_theme", theme); } catch {}
+  }, [theme]);
+
+  const toggleTheme = () => setTheme(t => (t === "light" ? "dark" : "light"));
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -164,10 +178,10 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   if (!user) return <LoginPage onLogin={handleLogin} />;
 
   return (
-    <AuthContext.Provider value={{ user, logout }}>
+    <AuthContext.Provider value={{ user, logout, theme, toggleTheme }}>
       <div style={{ display: "flex", minHeight: "100vh", filter: showSplash ? "blur(5px)" : "none", transition: "filter 0.4s" }}>
         <Sidebar />
-        <main style={{ flex: 1, padding: "1.5rem", overflowX: "auto" }}>
+        <main className="app-main" style={{ flex: 1, padding: "1.5rem", overflowX: "auto" }}>
           {children}
         </main>
       </div>

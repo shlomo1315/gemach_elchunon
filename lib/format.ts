@@ -38,13 +38,13 @@ export function gematria(num: number): string {
   return s.slice(0, -1) + "״" + s.slice(-1);
 }
 
-// תאריך עברי מלא באותיות גימטריה (ט״ז בסיון תשפ״ו) מאובייקט Date
+// תאריך עברי מלא באותיות גימטריה (ט״ז בסיון תשפ״ו) מאובייקט Date — לפי שעון ירושלים
 export function hebrewDateLetters(d: Date): string {
   try {
-    const parts = new Intl.DateTimeFormat("en-u-ca-hebrew", { day: "numeric", month: "numeric", year: "numeric" }).formatToParts(d);
+    const parts = new Intl.DateTimeFormat("en-u-ca-hebrew", { day: "numeric", month: "numeric", year: "numeric", timeZone: "Asia/Jerusalem" }).formatToParts(d);
     const day = Number(parts.find(p => p.type === "day")?.value || 0);
     const year = Number(parts.find(p => p.type === "year")?.value || 0);
-    const month = new Intl.DateTimeFormat("he-u-ca-hebrew", { month: "long" }).format(d);
+    const month = new Intl.DateTimeFormat("he-u-ca-hebrew", { month: "long", timeZone: "Asia/Jerusalem" }).format(d);
     if (!day || !year) return "";
     return `${gematria(day)} ב${month} ${gematria(year)}`;
   } catch { return ""; }
