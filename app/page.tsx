@@ -9,7 +9,7 @@ import { hebTextToGregDisplay } from "@/lib/hebrewParse";
 import { Badge, Loading } from "@/components/ui";
 import type { FundSummary, Transaction, MemberBalance, Member } from "@/types";
 import { useAuth } from "@/components/AuthGuard";
-import { Users, ArrowDownCircle, ArrowUpCircle, Wallet, UserPlus, CreditCard, BarChart3, CheckCircle2 } from "lucide-react";
+import { Users, ArrowDownCircle, ArrowUpCircle, Wallet, UserPlus, CreditCard, BarChart3, CheckCircle2, Clock } from "lucide-react";
 
 type Recent = Transaction & { members: { name: string } | null };
 
@@ -257,6 +257,7 @@ export default function Dashboard() {
   const [now, setNow] = useState(new Date());
   const [parasha, setParasha] = useState("");
   const [holidays, setHolidays] = useState<string[]>([]);
+  const [zmanim, setZmanim] = useState<{ label: string; time: Date }[]>([]);
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
@@ -292,6 +293,41 @@ export default function Dashboard() {
           .map((i: any) => i.hebrew || i.title);
         setHolidays(hols);
       }).catch(() => {});
+
+    // זמני היום (מודיעין עילית) — היום ומחר, כדי למצוא את הזמן ההלכתי הבא
+    const ZMAN: [string, string][] = [
+      ["alotHaShachar", "עלות השחר"],
+      ["misheyakir", "זמן טלית ותפילין"],
+      ["sunrise", "הנץ החמה"],
+      ["sofZmanShma", "סוף זמן קריאת שמע"],
+      ["sofZmanTfilla", "סוף זמן תפילה"],
+      ["chatzot", "חצות היום"],
+      ["minchaGedola", "מנחה גדולה"],
+      ["minchaKetana", "מנחה קטנה"],
+      ["plagHaMincha", "פלג המנחה"],
+      ["sunset", "שקיעה"],
+      ["tzeit7083deg", "צאת הכוכבים"],
+    ];
+    const LAT = 31.9326, LON = 35.0413;
+    const fmt = (dt: Date) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+    const tomorrow = new Date(d); tomorrow.setDate(d.getDate() + 1);
+    Promise.all([d, tomorrow].map(day =>
+      fetch(`https://www.hebcal.com/zmanim?cfg=json&latitude=${LAT}&longitude=${LON}&tzid=Asia/Jerusalem&date=${fmt(day)}`)
+        .then(r => r.json()).catch(() => null)
+    )).then(results => {
+      const list: { label: string; time: Date }[] = [];
+      for (const res of results) {
+        const times = res?.times || {};
+        for (const [key, label] of ZMAN) {
+          if (times[key]) {
+            const t = new Date(times[key]);
+            if (!isNaN(t.getTime())) list.push({ label, time: t });
+          }
+        }
+      }
+      list.sort((a, b) => a.time.getTime() - b.time.getTime());
+      setZmanim(list);
+    }).catch(() => {});
   }, []);
 
   if (loading) return <Loading />;
@@ -302,6 +338,19 @@ export default function Dashboard() {
   const hebDate = hebrewDateLetters(now);
   const gregDate = now.toLocaleDateString("he-IL", { day: "numeric", month: "long", year: "numeric" });
   const timeStr = now.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+
+  // הזמן ההלכתי הבא
+  const nextZman = zmanim.find(z => z.time.getTime() > now.getTime());
+  let zmanCountdown = "";
+  if (nextZman) {
+    const diffMin = Math.round((nextZman.time.getTime() - now.getTime()) / 60000);
+    const h = Math.floor(diffMin / 60), m = diffMin % 60;
+    if (diffMin < 1) zmanCountdown = "עוד פחות מדקה";
+    else if (h === 0) zmanCountdown = `בעוד ${m} דקות`;
+    else if (m === 0) zmanCountdown = `בעוד ${h} שעות`;
+    else zmanCountdown = `בעוד ${h} שעות ו-${m} דקות`;
+  }
+  const zmanTime = nextZman ? nextZman.time.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", hour12: false }) : "";
 
   const pieData = [
     { name: "הפקדות", value: summary?.total_deposits || 0 },
@@ -339,6 +388,25 @@ export default function Dashboard() {
             </span>
           ))}
         </div>
+
+        {/* הזמן ההלכתי הבא */}
+        {nextZman && (
+          <div style={{
+            display: "inline-flex", alignItems: "center", gap: 10, marginTop: 12,
+            background: "linear-gradient(135deg,#f0f9f5,#eef6ff)",
+            border: "1px solid #d7e9e2", borderRadius: 12,
+            padding: "0.55rem 1rem", fontSize: ".9rem",
+          }}>
+            <Clock size={18} color={BRAND} />
+            <span style={{ color: "#4a5568" }}>
+              שים לב: <strong style={{ color: "#1a1a2e" }}>{nextZman.label}</strong> בשעה{" "}
+              <strong style={{ color: BRAND, fontVariantNumeric: "tabular-nums" }} dir="ltr">{zmanTime}</strong>
+            </span>
+            <span style={{ background: BRAND, color: "#fff", borderRadius: 999, padding: "0.15rem 0.7rem", fontSize: ".8rem", fontWeight: 700 }}>
+              {zmanCountdown}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* KPI שורה */}
