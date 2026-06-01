@@ -264,7 +264,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     // פרשת השבוע לפי לוח ארץ ישראל (geonameid=281184 = ירושלים, i=on)
-    fetch("https://www.hebcal.com/shabbat?cfg=json&geonameid=281184&i=on&lg=he&M=on")
+    fetch("https://www.hebcal.com/shabbat?cfg=json&geonameid=281184&i=on&lg=he&M=on", { cache: "no-store" })
       .then(r => r.json())
       .then(data => {
         const items: any[] = data.items || [];
