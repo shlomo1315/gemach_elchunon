@@ -230,6 +230,8 @@ export default function Dashboard() {
   const [parasha, setParasha] = useState("");
   const [holidays, setHolidays] = useState<string[]>([]);
   const [zmanim, setZmanim] = useState<{ label: string; time: Date }[]>([]);
+  const [dafBavli, setDafBavli] = useState("");
+  const [dafYerushalmi, setDafYerushalmi] = useState("");
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
@@ -264,6 +266,19 @@ export default function Dashboard() {
           .filter((i: any) => i.date === todayStr)
           .map((i: any) => i.hebrew || i.title);
         setHolidays(hols);
+      }).catch(() => {});
+
+    // הדף היומי (בבלי) + ירושלמי יומי — מתרענן לפי תאריך היום
+    const today2 = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const cleanHeb = (s: string) => String(s || "").replace(/־/g, " ").replace(/[֑-ֽֿ-ׇ]/g, "").replace(/\s+/g, " ").trim();
+    fetch(`https://www.hebcal.com/hebcal?v=1&cfg=json&lg=he&F=on&yyomi=on&start=${today2}&end=${today2}`, { cache: "no-store" })
+      .then(r => r.json())
+      .then(data => {
+        const items: any[] = data.items || [];
+        const daf = items.find(i => i.category === "dafyomi");
+        const yeru = items.find(i => i.category === "yerushalmi");
+        if (daf) setDafBavli(cleanHeb(daf.hebrew || daf.title || ""));
+        if (yeru) setDafYerushalmi(cleanHeb(yeru.hebrew || yeru.title || ""));
       }).catch(() => {});
 
     // זמני היום (מודיעין עילית) — היום ומחר, כדי למצוא את הזמן ההלכתי הבא
@@ -353,6 +368,18 @@ export default function Dashboard() {
           <span style={{ color: "#9aa5b5" }}>{gregDate}</span>
           <span style={{ color: "#cbd5e0" }}>•</span>
           <span style={{ color: "#4a5568", fontWeight: 600, fontVariantNumeric: "tabular-nums", fontFamily: "ui-monospace, monospace", letterSpacing: ".5px" }} dir="ltr">{timeStr}</span>
+          {dafBavli && (
+            <>
+              <span style={{ color: "#cbd5e0" }}>•</span>
+              <span><span style={{ color: "#9aa5b5" }}>דף יומי: </span><span style={{ fontWeight: 700, color: "#7c3aed" }}>{dafBavli}</span></span>
+            </>
+          )}
+          {dafYerushalmi && (
+            <>
+              <span style={{ color: "#cbd5e0" }}>•</span>
+              <span><span style={{ color: "#9aa5b5" }}>ירושלמי: </span><span style={{ fontWeight: 700, color: "#0891b2" }}>{dafYerushalmi}</span></span>
+            </>
+          )}
           {holidays.map(h => (
             <span key={h}>
               <span style={{ color: "#cbd5e0", marginInlineEnd: "0.7rem" }}>•</span>
