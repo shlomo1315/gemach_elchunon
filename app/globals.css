@@ -79,22 +79,22 @@ body {
   to   { opacity: 0; }
 }
 
-/* ===== מצב כהה (charcoal רך ונוח לעין) ===== */
+/* ===== מצב כהה (רך, מעודן ונוח לעין) ===== */
 html[data-theme="dark"] body {
-  background: #1b2433;
+  background: #232c3b;
   color: #e2e8f0;
 }
 /* היפוך מעודן של תוכן הדפים בלבד (הסרגל הצדדי נשאר ירוק).
-   invert(0.86) הופך לבן לאפור-פחם רך במקום שחור מוחלט. */
+   ניגודיות וריווי מופחתים נותנים מראה רך ואלגנטי במקום שחור חד. */
 html[data-theme="dark"] .app-main {
-  filter: invert(0.86) hue-rotate(180deg);
+  filter: invert(0.83) hue-rotate(180deg) brightness(1.12) contrast(0.9) saturate(0.92);
 }
 /* החזרת צבעים אמיתיים לגרפים, תמונות ואלמנטים שאסור להפוך */
 html[data-theme="dark"] .app-main img,
 html[data-theme="dark"] .app-main .recharts-wrapper,
 html[data-theme="dark"] .app-main .recharts-surface,
 html[data-theme="dark"] .app-main .keep-color {
-  filter: invert(0.86) hue-rotate(180deg);
+  filter: invert(0.83) hue-rotate(180deg);
 }
 
 @media print {
