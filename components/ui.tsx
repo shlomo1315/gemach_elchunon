@@ -1,6 +1,63 @@
 "use client";
 
 import React from "react";
+import { CheckCircle2 } from "lucide-react";
+
+// חלונית הצלחה צפה במרכז המסך עם רקע מטושטש
+export function SuccessPopup({
+  title,
+  lines,
+  onClose,
+}: {
+  title: string;
+  lines: [string, string][];
+  onClose?: () => void;
+}) {
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed", inset: 0, zIndex: 1300,
+        background: "rgba(15,23,42,0.45)", backdropFilter: "blur(6px)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: "1rem", direction: "rtl",
+        animation: "overlayOut .5s ease 1.8s forwards",
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: "#fff", borderRadius: 20,
+          boxShadow: "0 30px 80px rgba(0,0,0,.28)",
+          width: "100%", maxWidth: 460, padding: "2.5rem 2rem",
+          textAlign: "center",
+          animation: "popIn .3s cubic-bezier(.2,.9,.3,1.2), popOut .5s ease 1.8s forwards",
+        }}
+      >
+        <div style={{
+          width: 72, height: 72, borderRadius: "50%", background: "#e3f6ec",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          margin: "0 auto 1rem",
+        }}>
+          <CheckCircle2 size={42} color="#1e6f5c" />
+        </div>
+        <h2 style={{ margin: "0 0 1.25rem", fontSize: "1.35rem", fontWeight: 800, color: "#1a1a2e" }}>{title}</h2>
+        <div style={{
+          display: "grid", gridTemplateColumns: "auto 1fr", gap: "0.6rem 1rem",
+          fontSize: ".95rem", textAlign: "right",
+          background: "#f8fafc", borderRadius: 12, padding: "1rem 1.25rem",
+        }}>
+          {lines.map(([l, v]) => (
+            <div key={l} style={{ display: "contents" }}>
+              <span style={{ color: "#9aa5b5" }}>{l}</span>
+              <span style={{ fontWeight: 700, color: "#1a1a2e" }}>{v}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function Card({
   children,
