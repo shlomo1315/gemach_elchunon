@@ -340,11 +340,12 @@ export default function Dashboard() {
   if (loading) return <Loading />;
 
   const name = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
-  const dayOfWeek = now.toLocaleDateString("he-IL", { weekday: "long" });
-  // תאריך עברי באותיות גימטריה (ט״ז בסיון תשפ״ו)
+  const TZ = "Asia/Jerusalem";
+  const dayOfWeek = now.toLocaleDateString("he-IL", { weekday: "long", timeZone: TZ });
+  // תאריך עברי באותיות גימטריה (ט״ז בסיון תשפ״ו) לפי שעון ירושלים
   const hebDate = hebrewDateLetters(now);
-  const gregDate = now.toLocaleDateString("he-IL", { day: "numeric", month: "long", year: "numeric" });
-  const timeStr = now.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+  const gregDate = now.toLocaleDateString("he-IL", { day: "numeric", month: "long", year: "numeric", timeZone: TZ });
+  const timeStr = now.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false, timeZone: TZ });
 
   // הזמן ההלכתי הבא
   const nextZman = zmanim.find(z => z.time.getTime() > now.getTime());
