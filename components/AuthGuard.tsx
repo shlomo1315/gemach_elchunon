@@ -33,13 +33,12 @@ function LoginPage({ onLogin }: { onLogin: (u: User) => void }) {
     border: "1.5px solid #d8dde5", borderRadius: 10,
     fontSize: "1rem", boxSizing: "border-box",
     direction: "ltr", outline: "none",
-    transition: "border-color .15s",
   };
 
   return (
     <div style={{
       minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
-      background: `linear-gradient(135deg, ${BRAND_DARK} 0%, ${BRAND} 50%, #2ecc71 100%)`,
+      background: `linear-gradient(135deg, ${BRAND_DARK} 0%, ${BRAND} 50%, #27ae60 100%)`,
     }}>
       <div style={{
         background: "#fff", borderRadius: 20, padding: "2.5rem",
@@ -47,38 +46,25 @@ function LoginPage({ onLogin }: { onLogin: (u: User) => void }) {
         boxShadow: "0 24px 80px rgba(0,0,0,.25)",
         direction: "rtl",
       }}>
-        {/* לוגו */}
         <div style={{ textAlign: "center", marginBottom: "2rem" }}>
-          <h1 style={{ margin: 0, fontSize: "1.4rem", fontWeight: 800, color: BRAND_DARK }}>
+          <h1 style={{ margin: 0, fontSize: "1.5rem", fontWeight: 800, color: BRAND_DARK }}>
             גמ״ח חסדי אהרן
           </h1>
-          <p style={{ margin: "0.3rem 0 0", color: "#9aa5b5", fontSize: ".85rem" }}>
-            מערכת ניהול פנימית
-          </p>
+          <p style={{ margin: "0.3rem 0 0", color: "#9aa5b5", fontSize: ".85rem" }}>מערכת ניהול פנימית</p>
         </div>
 
         <form onSubmit={handleLogin}>
           <div style={{ marginBottom: "1rem" }}>
-            <label style={{ fontSize: ".82rem", fontWeight: 600, color: "#4a5568", display: "block", marginBottom: 6 }}>
-              כתובת מייל
-            </label>
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-              style={inp} placeholder="user@example.com" required autoFocus />
+            <label style={{ fontSize: ".82rem", fontWeight: 600, color: "#4a5568", display: "block", marginBottom: 6 }}>כתובת מייל</label>
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} style={inp} placeholder="user@example.com" required autoFocus />
           </div>
           <div style={{ marginBottom: "1.5rem" }}>
-            <label style={{ fontSize: ".82rem", fontWeight: 600, color: "#4a5568", display: "block", marginBottom: 6 }}>
-              סיסמה
-            </label>
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)}
-              style={inp} placeholder="••••••••" required />
+            <label style={{ fontSize: ".82rem", fontWeight: 600, color: "#4a5568", display: "block", marginBottom: 6 }}>סיסמה</label>
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} style={inp} placeholder="••••••••" required />
           </div>
 
           {error && (
-            <div style={{
-              background: "#fde8e8", color: "#c0392b", borderRadius: 8,
-              padding: "0.6rem 0.9rem", fontSize: ".85rem", marginBottom: "1rem",
-              textAlign: "center",
-            }}>
+            <div style={{ background: "#fde8e8", color: "#c0392b", borderRadius: 8, padding: "0.6rem 0.9rem", fontSize: ".85rem", marginBottom: "1rem", textAlign: "center" }}>
               {error}
             </div>
           )}
@@ -88,7 +74,6 @@ function LoginPage({ onLogin }: { onLogin: (u: User) => void }) {
             background: loading ? "#9aa5b5" : `linear-gradient(135deg, ${BRAND_DARK} 0%, ${BRAND} 100%)`,
             color: "#fff", border: "none", borderRadius: 10,
             fontSize: "1rem", fontWeight: 700, cursor: loading ? "not-allowed" : "pointer",
-            transition: "opacity .15s",
           }}>
             {loading ? "מתחבר…" : "כניסה למערכת"}
           </button>
@@ -98,34 +83,45 @@ function LoginPage({ onLogin }: { onLogin: (u: User) => void }) {
   );
 }
 
-function SplashScreen({ user, onDone }: { user: User; onDone: () => void }) {
-  const [fading, setFading] = useState(false);
+function SplashCard({ user, onDone }: { user: User; onDone: () => void }) {
+  const [visible, setVisible] = useState(true);
   const name = user.user_metadata?.full_name || user.email?.split("@")[0] || "משתמש";
 
   useEffect(() => {
-    const t1 = setTimeout(() => setFading(true), 1800);
-    const t2 = setTimeout(onDone, 2500);
+    const t1 = setTimeout(() => setVisible(false), 2200);
+    const t2 = setTimeout(onDone, 2800);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [onDone]);
 
   return (
     <div style={{
       position: "fixed", inset: 0, zIndex: 9999,
-      background: `linear-gradient(135deg, ${BRAND_DARK} 0%, ${BRAND} 60%, #2ecc71 100%)`,
       display: "flex", alignItems: "center", justifyContent: "center",
-      flexDirection: "column", gap: "1.25rem",
-      opacity: fading ? 0 : 1,
-      transition: "opacity 0.6s ease",
+      opacity: visible ? 1 : 0,
+      transition: "opacity 0.5s ease",
       pointerEvents: "none",
     }}>
-      <div style={{ color: "#fff", fontSize: "1.8rem", fontWeight: 800, textAlign: "center", letterSpacing: ".5px" }}>
-        גמ״ח חסדי אהרן
-      </div>
-      <div style={{ color: "rgba(255,255,255,.75)", fontSize: "1rem" }}>
-        ברוכים הבאים, <strong style={{ color: "#fff" }}>{name}</strong>
-      </div>
-      <div style={{ width: 48, height: 4, background: "rgba(255,255,255,.35)", borderRadius: 2, marginTop: 8, overflow: "hidden" }}>
-        <div style={{ height: "100%", background: "#fff", borderRadius: 2, animation: "splashBar 1.8s linear forwards" }} />
+      <div style={{
+        background: "#fff",
+        borderRadius: 20,
+        padding: "2.5rem 3rem",
+        boxShadow: "0 24px 80px rgba(0,0,0,.25)",
+        textAlign: "center",
+        direction: "rtl",
+        minWidth: 320,
+        animation: "modalIn 0.25s ease",
+      }}>
+        <div style={{ fontSize: "2rem", marginBottom: "0.75rem" }}>🎉</div>
+        <div style={{ fontSize: "1.3rem", fontWeight: 800, color: BRAND_DARK, marginBottom: "0.4rem" }}>
+          שלום, {name}!
+        </div>
+        <div style={{ fontSize: "1rem", color: "#4a5568", lineHeight: 1.6 }}>
+          ברוכים הבאים<br />
+          לתוכנת ניהול גמ״ח חסדי אהרן
+        </div>
+        <div style={{ marginTop: "1.25rem", height: 4, background: "#eef0f4", borderRadius: 2, overflow: "hidden" }}>
+          <div style={{ height: "100%", background: BRAND, borderRadius: 2, animation: "splashBar 2.2s linear forwards" }} />
+        </div>
       </div>
     </div>
   );
@@ -169,13 +165,13 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider value={{ user, logout }}>
-      {showSplash && <SplashScreen user={user} onDone={() => setShowSplash(false)} />}
-      <div style={{ display: "flex", minHeight: "100vh", filter: showSplash ? "blur(6px)" : "none", transition: "filter .3s" }}>
+      <div style={{ display: "flex", minHeight: "100vh", filter: showSplash ? "blur(5px)" : "none", transition: "filter 0.4s" }}>
         <Sidebar />
         <main style={{ flex: 1, padding: "1.5rem", overflowX: "auto" }}>
           {children}
         </main>
       </div>
+      {showSplash && <SplashCard user={user} onDone={() => setShowSplash(false)} />}
     </AuthContext.Provider>
   );
 }

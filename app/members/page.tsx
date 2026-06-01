@@ -63,6 +63,11 @@ export default function MembersPage() {
     setForm({ name: "", code: "", phone: "", address: "" });
   }, []);
 
+  function setPhone(val: string) {
+    const code = val.replace(/\D/g, "").slice(-4);
+    setForm(f => ({ ...f, phone: val, code }));
+  }
+
   const filtered = useMemo(() => {
     const s = q.trim();
     let list = s
@@ -99,10 +104,12 @@ export default function MembersPage() {
 
   async function addMember() {
     if (!form.name.trim()) { alert("יש להזין שם"); return; }
+    if (!form.phone.trim()) { alert("יש להזין טלפון"); return; }
     setSaving(true);
+    const code = form.phone.replace(/\D/g, "").slice(-4);
     const { error } = await supabase.from("members").insert({
       name: form.name.trim(),
-      code: form.code.trim() || null,
+      code: code || form.code.trim() || null,
       phone: form.phone.trim() || null,
       address: form.address.trim() || null,
     });
@@ -185,7 +192,7 @@ export default function MembersPage() {
                     onMouseEnter={e => (e.currentTarget.style.background = "#f4faf8")}
                     onMouseLeave={e => (e.currentTarget.style.background = "")}
                   >
-                    <td style={{ padding: "0.65rem 1rem", borderBottom: "1px solid #f0f2f5" }}>
+                    <td style={{ padding: "0.65rem 1rem", borderBottom: "1px solid #f0f2f5", textAlign: "right" as const }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <Avatar name={m.name || "?"} />
                         <div>
@@ -194,13 +201,13 @@ export default function MembersPage() {
                         </div>
                       </div>
                     </td>
-                    <td style={{ padding: "0.65rem 0.75rem", borderBottom: "1px solid #f0f2f5", fontSize: ".85rem", color: "#4a5568" }}>
+                    <td style={{ padding: "0.65rem 0.75rem", borderBottom: "1px solid #f0f2f5", textAlign: "right" as const, fontSize: ".85rem", color: "#4a5568" }}>
                       {m.code || "—"}
                     </td>
-                    <td style={{ padding: "0.65rem 0.75rem", borderBottom: "1px solid #f0f2f5", fontSize: ".85rem" }} dir="ltr">
+                    <td style={{ padding: "0.65rem 0.75rem", borderBottom: "1px solid #f0f2f5", textAlign: "right" as const, fontSize: ".85rem" }} dir="ltr">
                       {m.phone || "—"}
                     </td>
-                    <td style={{ padding: "0.65rem 0.75rem", borderBottom: "1px solid #f0f2f5", fontSize: ".82rem", color: "#7a8699" }}>
+                    <td style={{ padding: "0.65rem 0.75rem", borderBottom: "1px solid #f0f2f5", textAlign: "right" as const, fontSize: ".82rem", color: "#7a8699" }}>
                       {m.address || "—"}
                     </td>
                     <td style={{ padding: "0.65rem 0.75rem", borderBottom: "1px solid #f0f2f5", textAlign: "center" }}>
@@ -214,7 +221,7 @@ export default function MembersPage() {
                         <span style={{ color: "#cbd5e0", fontSize: ".8rem" }}>—</span>
                       )}
                     </td>
-                    <td style={{ padding: "0.65rem 0.75rem", borderBottom: "1px solid #f0f2f5" }}>
+                    <td style={{ padding: "0.65rem 0.75rem", borderBottom: "1px solid #f0f2f5", textAlign: "right" as const }}>
                       <span style={{
                         background: m.balance > 0 ? "#e3f6ec" : m.balance < 0 ? "#fde8e8" : "#f0f4f3",
                         color: m.balance > 0 ? BRAND : m.balance < 0 ? "#c0392b" : "#7a8699",
@@ -273,9 +280,10 @@ export default function MembersPage() {
                   style={inp} placeholder="1234" />
               </div>
               <div>
-                <label style={lbl}>טלפון</label>
-                <input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })}
-                  style={inp} placeholder="050-0000000" dir="ltr" />
+                <label style={lbl}>טלפון <span style={{ color: "#e05252" }}>*</span></label>
+                <input value={form.phone} onChange={e => setPhone(e.target.value)}
+                  style={inp} placeholder="050-0000000" dir="ltr" required />
+                {form.code && <div style={{ fontSize: ".75rem", color: "#1e6f5c", marginTop: 4 }}>קוד: {form.code}</div>}
               </div>
               <div style={{ gridColumn: "1 / -1" }}>
                 <label style={lbl}>כתובת</label>
