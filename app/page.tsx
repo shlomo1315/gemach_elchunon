@@ -6,10 +6,10 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { supabase } from "@/lib/supabase";
 import { ils, num, gdate, toHebrewDate, hebrewDateLetters, TXN_TYPES, TXN_METHODS } from "@/lib/format";
 import { hebTextToGregDisplay } from "@/lib/hebrewParse";
-import { Badge, Loading } from "@/components/ui";
+import { Badge, Loading, SuccessPopup } from "@/components/ui";
 import type { FundSummary, Transaction, MemberBalance, Member } from "@/types";
 import { useAuth } from "@/components/AuthGuard";
-import { Users, ArrowDownCircle, ArrowUpCircle, Wallet, UserPlus, CreditCard, BarChart3, CheckCircle2, Clock } from "lucide-react";
+import { Users, ArrowDownCircle, ArrowUpCircle, Wallet, UserPlus, CreditCard, BarChart3, Clock } from "lucide-react";
 
 type Recent = Transaction & { members: { name: string } | null };
 
@@ -652,29 +652,8 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* ===== פופ-אפ הצלחה ===== */}
-      {toast && (
-        <div style={{
-          position: "fixed", bottom: 24, left: 24, zIndex: 1200,
-          background: "#fff", borderRadius: 14, padding: "1rem 1.25rem",
-          boxShadow: "0 12px 40px rgba(0,0,0,.18)", borderRight: `4px solid ${BRAND}`,
-          minWidth: 280, maxWidth: 360, direction: "rtl",
-          animation: "toastIn .25s ease, toastOut .5s ease 1.8s forwards",
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-            <CheckCircle2 size={22} color={BRAND} />
-            <strong style={{ fontSize: ".98rem", color: "#1a1a2e" }}>{toast.title}</strong>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "0.3rem 0.75rem", fontSize: ".84rem" }}>
-            {toast.lines.map(([l, v]) => (
-              <div key={l} style={{ display: "contents" }}>
-                <span style={{ color: "#9aa5b5" }}>{l}</span>
-                <span style={{ fontWeight: 600, color: "#1a1a2e" }}>{v}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* ===== פופ-אפ הצלחה במרכז המסך ===== */}
+      {toast && <SuccessPopup title={toast.title} lines={toast.lines} onClose={() => setToast(null)} />}
     </div>
   );
 }

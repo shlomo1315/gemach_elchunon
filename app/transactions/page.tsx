@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
-import { Eye, Pencil, Trash2, CheckCircle2 } from "lucide-react";
+import { Eye, Pencil, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { ils, gdate, toHebrewDate, TXN_TYPES, TXN_METHODS } from "@/lib/format";
-import { Card, PageTitle, Button, Badge, Loading, Empty } from "@/components/ui";
+import { Card, PageTitle, Button, Badge, Loading, Empty, SuccessPopup } from "@/components/ui";
 import type { Transaction, Member } from "@/types";
 
 type Row = Transaction & { members: { name: string } | null };
@@ -418,29 +418,8 @@ export default function TransactionsPage() {
         </div>
       )}
 
-      {/* חלונית הצלחה צפה */}
-      {toast && (
-        <div style={{
-          position: "fixed", bottom: 24, left: 24, zIndex: 1200,
-          background: "#fff", borderRadius: 14, padding: "1rem 1.25rem",
-          boxShadow: "0 12px 40px rgba(0,0,0,.18)", borderRight: "4px solid #1e6f5c",
-          minWidth: 280, maxWidth: 360, direction: "rtl",
-          animation: "toastIn .25s ease, toastOut .5s ease 1.8s forwards",
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-            <CheckCircle2 size={22} color="#1e6f5c" />
-            <strong style={{ fontSize: ".98rem", color: "#1a1a2e" }}>{toast.title}</strong>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "0.3rem 0.75rem", fontSize: ".84rem" }}>
-            {toast.lines.map(([l, v]) => (
-              <div key={l} style={{ display: "contents" }}>
-                <span style={{ color: "#9aa5b5" }}>{l}</span>
-                <span style={{ fontWeight: 600, color: "#1a1a2e" }}>{v}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* חלונית הצלחה במרכז המסך */}
+      {toast && <SuccessPopup title={toast.title} lines={toast.lines} onClose={() => setToast(null)} />}
     </div>
   );
 }
