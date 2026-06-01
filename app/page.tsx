@@ -263,7 +263,8 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    fetch("https://www.hebcal.com/shabbat?cfg=json&geo=il&m=50&lg=he&M=on")
+    // פרשת השבוע לפי לוח ארץ ישראל (geonameid=281184 = ירושלים, i=on)
+    fetch("https://www.hebcal.com/shabbat?cfg=json&geonameid=281184&i=on&lg=he&M=on")
       .then(r => r.json())
       .then(data => {
         const items: any[] = data.items || [];
@@ -272,7 +273,7 @@ export default function Dashboard() {
       }).catch(() => {});
 
     const d = new Date();
-    fetch(`https://www.hebcal.com/hebcal?v=1&cfg=json&maj=on&min=on&mod=on&nx=on&year=${d.getFullYear()}&month=${d.getMonth() + 1}&ss=off&mf=off&c=off&geo=none&leyning=off&b=18&lg=he`)
+    fetch(`https://www.hebcal.com/hebcal?v=1&cfg=json&maj=on&min=on&mod=on&nx=on&i=on&year=${d.getFullYear()}&month=${d.getMonth() + 1}&ss=off&mf=off&c=off&geo=none&leyning=off&lg=he`)
       .then(r => r.json())
       .then(data => {
         const todayStr = d.toISOString().split("T")[0];
