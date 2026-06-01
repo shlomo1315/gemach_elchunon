@@ -242,14 +242,14 @@ export default function Dashboard() {
   // שערי מטבע (דולר/יורו מול שקל) — מתרענן כל 10 דקות
   useEffect(() => {
     const loadRates = () => {
-      fetch("https://open.er-api.com/v6/latest/USD", { cache: "no-store" })
+      // 1 ש"ח → דולר/יורו, והיפוך לקבלת ₪ לדולר ו-₪ ליורו
+      fetch("https://api.frankfurter.app/latest?from=ILS&to=USD,EUR", { cache: "no-store" })
         .then(r => r.json())
         .then(d => {
-          if (d?.rates?.ILS && d?.rates?.EUR) {
-            const usd = d.rates.ILS;
-            const eur = d.rates.ILS / d.rates.EUR;
-            const updated = d.time_last_update_unix ? new Date(d.time_last_update_unix * 1000) : new Date();
-            setRates({ usd, eur, updated });
+          if (d?.rates?.USD && d?.rates?.EUR) {
+            const usd = 1 / d.rates.USD;
+            const eur = 1 / d.rates.EUR;
+            setRates({ usd, eur, updated: new Date() });
           }
         }).catch(() => {});
     };
@@ -408,7 +408,7 @@ export default function Dashboard() {
               <span style={{ color: "#cbd5e0" }}>•</span>
               <span><span style={{ color: "#9aa5b5" }}>יורו: </span><span style={{ fontWeight: 700, color: "#2563eb" }}>₪{rates.eur.toFixed(2)}</span></span>
               <span style={{ color: "#b0bac7", fontSize: ".78rem" }} dir="ltr">
-                (עודכן {rates.updated.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", hour12: false })})
+                (עודכן {rates.updated.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Jerusalem" })})
               </span>
             </>
           )}
