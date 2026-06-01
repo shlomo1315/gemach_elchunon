@@ -269,7 +269,14 @@ export default function Dashboard() {
       .then(data => {
         const items: any[] = data.items || [];
         const p = items.find(i => i.category === "parashat");
-        if (p) setParasha(p.hebrew || p.title || "");
+        if (p) {
+          // הסרת ניקוד וקידומת "פרשת"
+          const clean = String(p.hebrew || p.title || "")
+            .replace(/[֑-ׇ]/g, "")
+            .replace(/^פרשת\s*/, "")
+            .trim();
+          setParasha(clean);
+        }
       }).catch(() => {});
 
     const d = new Date();
