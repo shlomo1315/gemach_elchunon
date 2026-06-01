@@ -242,16 +242,26 @@ export default function Dashboard() {
   // שערי מטבע (דולר/יורו מול שקל) — מתרענן כל 10 דקות
   useEffect(() => {
     const loadRates = () => {
-      // 1 ש"ח → דולר/יורו, והיפוך לקבלת ₪ לדולר ו-₪ ליורו
-      fetch("https://api.frankfurter.app/latest?from=ILS&to=USD,EUR", { cache: "no-store" })
-        .then(r => r.json())
-        .then(d => {
-          if (d?.rates?.USD && d?.rates?.EUR) {
-            const usd = 1 / d.rates.USD;
-            const eur = 1 / d.rates.EUR;
-            setRates({ usd, eur, updated: new Date() });
-          }
-        }).catch(() => {});
+      // מקור חינמי ויציב (currency-api) דרך CDN, עם כתובת גיבוי
+      const urls = [
+        "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json",
+        "https://latest.currency-api.pages.dev/v1/currencies/usd.json",
+      ];
+      const tryUrl = (i: number) => {
+        if (i >= urls.length) return;
+        fetch(urls[i], { cache: "no-store" })
+          .then(r => (r.ok ? r.json() : Promise.reject(new Error("bad"))))
+          .then(d => {
+            const t = d?.usd;
+            if (t?.ils && t?.eur) {
+              setRates({ usd: t.ils, eur: t.ils / t.eur, updated: new Date() });
+            } else {
+              tryUrl(i + 1);
+            }
+          })
+          .catch(() => tryUrl(i + 1));
+      };
+      tryUrl(0);
     };
     loadRates();
     const id = setInterval(loadRates, 10 * 60 * 1000);
