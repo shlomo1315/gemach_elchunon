@@ -49,12 +49,6 @@ function LoginPage({ onLogin }: { onLogin: (u: User) => void }) {
       }}>
         {/* לוגו */}
         <div style={{ textAlign: "center", marginBottom: "2rem" }}>
-          <div style={{
-            width: 64, height: 64, borderRadius: "50%",
-            background: `linear-gradient(135deg, ${BRAND} 0%, #2ecc71 100%)`,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            margin: "0 auto 1rem", fontSize: "1.8rem",
-          }}>✡</div>
           <h1 style={{ margin: 0, fontSize: "1.4rem", fontWeight: 800, color: BRAND_DARK }}>
             גמ״ח חסדי אהרן
           </h1>
@@ -124,7 +118,6 @@ function SplashScreen({ user, onDone }: { user: User; onDone: () => void }) {
       transition: "opacity 0.6s ease",
       pointerEvents: "none",
     }}>
-      <div style={{ fontSize: "3rem" }}>✡</div>
       <div style={{ color: "#fff", fontSize: "1.8rem", fontWeight: 800, textAlign: "center", letterSpacing: ".5px" }}>
         גמ״ח חסדי אהרן
       </div>
