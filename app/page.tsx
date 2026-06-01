@@ -230,7 +230,7 @@ export default function Dashboard() {
   const [holidays, setHolidays] = useState<string[]>([]);
 
   useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 30000);
+    const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
 
@@ -259,8 +259,15 @@ export default function Dashboard() {
 
   const name = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
   const dayOfWeek = now.toLocaleDateString("he-IL", { weekday: "long" });
-  const hebDate = toHebrewDate(now.toISOString().split("T")[0]);
-  const timeStr = now.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" });
+  // תאריך עברי באותיות גימטריה (ט״ז בסיון תשפ״ו)
+  let hebDate = "";
+  try {
+    hebDate = new Intl.DateTimeFormat("he-IL-u-ca-hebrew", {
+      day: "numeric", month: "long", year: "numeric", numberingSystem: "hebr",
+    }).format(now);
+  } catch { hebDate = toHebrewDate(now.toISOString().split("T")[0]); }
+  const gregDate = now.toLocaleDateString("he-IL", { day: "numeric", month: "long", year: "numeric" });
+  const timeStr = now.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
 
   const pieData = [
     { name: "הפקדות", value: summary?.total_deposits || 0 },
@@ -277,24 +284,24 @@ export default function Dashboard() {
         <h1 style={{ margin: 0, fontSize: "1.5rem", fontWeight: 800, color: "#1a1a2e" }}>
           שלום{name ? `, ${name}` : ""}
         </h1>
-        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.5rem 1rem", marginTop: 8 }}>
-          <span style={{ display: "flex", alignItems: "center", gap: 5, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 999, padding: "0.28rem 0.85rem", fontSize: ".83rem", fontWeight: 700, color: "#2c3e50", boxShadow: "0 1px 3px rgba(0,0,0,.05)" }}>
-            {dayOfWeek}
-          </span>
-          <span style={{ display: "flex", alignItems: "center", gap: 5, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 999, padding: "0.28rem 0.85rem", fontSize: ".83rem", color: "#4a5568", boxShadow: "0 1px 3px rgba(0,0,0,.05)" }}>
-            {hebDate}
-          </span>
-          <span style={{ display: "flex", alignItems: "center", gap: 5, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 999, padding: "0.28rem 0.85rem", fontSize: ".83rem", color: "#7a8699", boxShadow: "0 1px 3px rgba(0,0,0,.05)", fontVariantNumeric: "tabular-nums", fontFamily: "monospace" }}>
-            🕐 {timeStr}
-          </span>
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.35rem 0.7rem", marginTop: 8, fontSize: ".95rem" }}>
+          <span style={{ fontWeight: 800, color: "#2c3e50" }}>{dayOfWeek}</span>
+          <span style={{ color: "#cbd5e0" }}>•</span>
+          <span style={{ fontWeight: 600, color: BRAND }}>{hebDate}</span>
+          <span style={{ color: "#cbd5e0" }}>•</span>
+          <span style={{ color: "#9aa5b5" }}>{gregDate}</span>
+          <span style={{ color: "#cbd5e0" }}>•</span>
+          <span style={{ color: "#4a5568", fontWeight: 600, fontVariantNumeric: "tabular-nums", fontFamily: "ui-monospace, monospace", letterSpacing: ".5px" }} dir="ltr">{timeStr}</span>
           {parasha && (
-            <span style={{ display: "flex", alignItems: "center", gap: 5, background: "#e3f6ec", border: `1px solid ${BRAND}30`, borderRadius: 999, padding: "0.28rem 0.85rem", fontSize: ".83rem", fontWeight: 700, color: BRAND, boxShadow: "0 1px 3px rgba(0,0,0,.05)" }}>
-              📖 {parasha}
-            </span>
+            <>
+              <span style={{ color: "#cbd5e0" }}>•</span>
+              <span style={{ fontWeight: 700, color: BRAND }}>פרשת {parasha.replace(/^פרשת\s*/, "")}</span>
+            </>
           )}
           {holidays.map(h => (
-            <span key={h} style={{ display: "flex", alignItems: "center", gap: 5, background: "#fef3c7", border: "1px solid #f59e0b30", borderRadius: 999, padding: "0.28rem 0.85rem", fontSize: ".83rem", fontWeight: 700, color: "#92400e", boxShadow: "0 1px 3px rgba(0,0,0,.05)" }}>
-              ✨ {h}
+            <span key={h}>
+              <span style={{ color: "#cbd5e0", marginInlineEnd: "0.7rem" }}>•</span>
+              <span style={{ fontWeight: 700, color: "#b7791f" }}>{h}</span>
             </span>
           ))}
         </div>
