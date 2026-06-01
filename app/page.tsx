@@ -232,9 +232,29 @@ export default function Dashboard() {
   const [zmanim, setZmanim] = useState<{ label: string; time: Date }[]>([]);
   const [dafBavli, setDafBavli] = useState("");
   const [dafYerushalmi, setDafYerushalmi] = useState("");
+  const [rates, setRates] = useState<{ usd: number; eur: number; updated: Date } | null>(null);
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  // שערי מטבע (דולר/יורו מול שקל) — מתרענן כל 10 דקות
+  useEffect(() => {
+    const loadRates = () => {
+      fetch("https://open.er-api.com/v6/latest/USD", { cache: "no-store" })
+        .then(r => r.json())
+        .then(d => {
+          if (d?.rates?.ILS && d?.rates?.EUR) {
+            const usd = d.rates.ILS;
+            const eur = d.rates.ILS / d.rates.EUR;
+            const updated = d.time_last_update_unix ? new Date(d.time_last_update_unix * 1000) : new Date();
+            setRates({ usd, eur, updated });
+          }
+        }).catch(() => {});
+    };
+    loadRates();
+    const id = setInterval(loadRates, 10 * 60 * 1000);
     return () => clearInterval(id);
   }, []);
 
@@ -378,6 +398,17 @@ export default function Dashboard() {
             <>
               <span style={{ color: "#cbd5e0" }}>•</span>
               <span><span style={{ color: "#9aa5b5" }}>ירושלמי: </span><span style={{ fontWeight: 700, color: "#0891b2" }}>{dafYerushalmi}</span></span>
+            </>
+          )}
+          {rates && (
+            <>
+              <span style={{ color: "#cbd5e0" }}>•</span>
+              <span><span style={{ color: "#9aa5b5" }}>דולר: </span><span style={{ fontWeight: 700, color: "#16a34a" }}>₪{rates.usd.toFixed(2)}</span></span>
+              <span style={{ color: "#cbd5e0" }}>•</span>
+              <span><span style={{ color: "#9aa5b5" }}>יורו: </span><span style={{ fontWeight: 700, color: "#2563eb" }}>₪{rates.eur.toFixed(2)}</span></span>
+              <span style={{ color: "#b0bac7", fontSize: ".78rem" }} dir="ltr">
+                (עודכן {rates.updated.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", hour12: false })})
+              </span>
             </>
           )}
           {holidays.map(h => (
