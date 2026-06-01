@@ -3,11 +3,11 @@
 import { useEffect, useState, useMemo } from "react";
 import {
   BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip,
-  ResponsiveContainer, Legend, LineChart, Line, CartesianGrid,
+  ResponsiveContainer, Legend, LineChart, Line, CartesianGrid, LabelList,
 } from "recharts";
 import { supabase } from "@/lib/supabase";
 import { ils } from "@/lib/format";
-import { Card, PageTitle, Loading } from "@/components/ui";
+import { Loading } from "@/components/ui";
 import type { Transaction, MemberBalance } from "@/types";
 
 const BRAND = "#1e6f5c";
@@ -15,48 +15,48 @@ const RED = "#e05252";
 const BLUE = "#3b82f6";
 const ORANGE = "#f59e0b";
 const PURPLE = "#8b5cf6";
-const PALETTE = [BRAND, RED, BLUE, ORANGE, PURPLE, "#06b6d4", "#ec4899"];
+const CYAN = "#06b6d4";
+const PALETTE = [BRAND, BLUE, ORANGE, PURPLE, CYAN, "#ec4899", "#84cc16"];
 
 type Tab = "overview" | "methods" | "top" | "trend";
 
-const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: "overview", label: "סקירה כללית", icon: "📊" },
-  { id: "methods",  label: "אופן פעולה",  icon: "💳" },
-  { id: "top",      label: "יתרות מובילות", icon: "🏆" },
-  { id: "trend",    label: "מגמה חודשית",  icon: "📈" },
+const TABS: { id: Tab; label: string }[] = [
+  { id: "overview", label: "📊 סקירה" },
+  { id: "methods", label: "💳 אופן פעולה" },
+  { id: "top", label: "🏆 יתרות" },
+  { id: "trend", label: "📈 מגמה" },
 ];
 
-function StatChip({ label, value, color, sub }: { label: string; value: string; color: string; sub?: string }) {
+function Chip({ label, value, color, sub }: { label: string; value: string; color: string; sub?: string }) {
   return (
     <div style={{
-      background: `linear-gradient(135deg, ${color}18 0%, ${color}08 100%)`,
-      border: `1.5px solid ${color}30`,
-      borderRadius: 14,
-      padding: "1rem 1.25rem",
-      flex: 1,
-      minWidth: 150,
+      flex: "1 1 150px", background: "#fff", borderRadius: 14,
+      padding: "1rem 1.25rem", boxShadow: "0 2px 8px rgba(0,0,0,.05)",
+      borderTop: `4px solid ${color}`,
     }}>
-      <div style={{ fontSize: ".78rem", color: "#7a8699", marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: "1.5rem", fontWeight: 800, color }}>{value}</div>
-      {sub && <div style={{ fontSize: ".75rem", color: "#9aa5b5", marginTop: 2 }}>{sub}</div>}
+      <div style={{ fontSize: ".75rem", color: "#9aa5b5", marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: "1.55rem", fontWeight: 800, color }}>{value}</div>
+      {sub && <div style={{ fontSize: ".72rem", color: "#b0bac7", marginTop: 2 }}>{sub}</div>}
     </div>
   );
 }
 
-const customTooltipStyle = {
-  background: "#fff",
-  border: "1px solid #e2e8f0",
-  borderRadius: 10,
-  boxShadow: "0 4px 16px rgba(0,0,0,.1)",
-  padding: "0.5rem 0.9rem",
-  fontSize: ".85rem",
-  direction: "rtl" as const,
-};
+function Panel({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ background: "#fff", borderRadius: 16, padding: "1.25rem", boxShadow: "0 2px 8px rgba(0,0,0,.06)", marginBottom: 16 }}>
+      {children}
+    </div>
+  );
+}
 
-function IlsTooltip({ active, payload, label }: any) {
+function PanelTitle({ children }: { children: React.ReactNode }) {
+  return <h3 style={{ margin: "0 0 1rem", fontSize: ".95rem", fontWeight: 800, color: "#2c3e50" }}>{children}</h3>;
+}
+
+function IlsTip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   return (
-    <div style={customTooltipStyle}>
+    <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, padding: "0.5rem 0.9rem", fontSize: ".83rem", direction: "rtl", boxShadow: "0 4px 12px rgba(0,0,0,.1)" }}>
       {label && <div style={{ fontWeight: 700, marginBottom: 4, color: "#1a1a2e" }}>{label}</div>}
       {payload.map((p: any, i: number) => (
         <div key={i} style={{ color: p.color || BRAND }}>
@@ -86,15 +86,11 @@ export default function ReportsPage() {
     })();
   }, []);
 
-  const dep    = useMemo(() => txns.filter(t => t.type === "הפקדה").reduce((s, t) => s + t.amount, 0), [txns]);
-  const wit    = useMemo(() => txns.filter(t => t.type === "משיכה").reduce((s, t) => s + t.amount, 0), [txns]);
-  const net    = dep - wit;
-  const total  = txns.length;
+  const dep = useMemo(() => txns.filter(t => t.type === "הפקדה").reduce((s, t) => s + t.amount, 0), [txns]);
+  const wit = useMemo(() => txns.filter(t => t.type === "משיכה").reduce((s, t) => s + t.amount, 0), [txns]);
+  const net = dep - wit;
 
-  const typeData = [
-    { name: "הפקדות", value: dep },
-    { name: "משיכות", value: wit },
-  ];
+  const typeData = [{ name: "הפקדות", value: dep }, { name: "משיכות", value: wit }];
 
   const methodData = useMemo(() => {
     const map: Record<string, { הפקדות: number; משיכות: number }> = {};
@@ -110,9 +106,8 @@ export default function ReportsPage() {
   }, [txns]);
 
   const topData = useMemo(() =>
-    members.filter(m => m.balance > 0).slice(0, topN)
-      .map(m => ({ name: m.name || "—", value: m.balance }))
-  , [members, topN]);
+    members.filter(m => m.balance > 0).slice(0, topN).map(m => ({ name: m.name || "—", value: m.balance })),
+    [members, topN]);
 
   const trendData = useMemo(() => {
     const map: Record<string, { month: string; הפקדות: number; משיכות: number }> = {};
@@ -131,124 +126,105 @@ export default function ReportsPage() {
   if (loading) return <Loading />;
 
   return (
-    <div>
-      <PageTitle>דוחות וניתוח</PageTitle>
+    <div style={{ direction: "rtl" }}>
+      <div style={{ marginBottom: "1.25rem" }}>
+        <h1 style={{ margin: 0, fontSize: "1.5rem", fontWeight: 800, color: "#1a1a2e" }}>דוחות וניתוח</h1>
+      </div>
 
-      {/* KPI chips */}
+      {/* KPI */}
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 20 }}>
-        <StatChip label="סה״כ הפקדות" value={ils(dep)} color={BRAND} sub={`${txns.filter(t=>t.type==="הפקדה").length} פעולות`} />
-        <StatChip label="סה״כ משיכות" value={ils(wit)} color={RED} sub={`${txns.filter(t=>t.type==="משיכה").length} פעולות`} />
-        <StatChip label="נטו בקופה" value={ils(net)} color={net >= 0 ? BRAND : RED} />
-        <StatChip label="סה״כ פעולות" value={String(total)} color={BLUE} sub={`${members.length} חברים`} />
+        <Chip label="סך הפקדות" value={ils(dep)} color={BRAND} sub={`${txns.filter(t => t.type === "הפקדה").length} פעולות`} />
+        <Chip label="סך משיכות" value={ils(wit)} color={RED} sub={`${txns.filter(t => t.type === "משיכה").length} פעולות`} />
+        <Chip label="יתרה נטו" value={ils(net)} color={net >= 0 ? BRAND : RED} />
+        <Chip label="סך פעולות" value={String(txns.length)} color={BLUE} sub={`${members.length} חברים`} />
       </div>
 
       {/* טאבים */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16 }}>
         {TABS.map(t => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            style={{
-              padding: "0.5rem 1.1rem",
-              borderRadius: 999,
-              border: tab === t.id ? `2px solid ${BRAND}` : "2px solid #e2e8f0",
-              background: tab === t.id ? BRAND : "#fff",
-              color: tab === t.id ? "#fff" : "#4a5568",
-              fontWeight: 600,
-              fontSize: ".85rem",
-              cursor: "pointer",
-              transition: "all .15s",
-            }}
-          >
-            {t.icon} {t.label}
+          <button key={t.id} onClick={() => setTab(t.id)} style={{
+            padding: "0.45rem 1rem", borderRadius: 999,
+            border: tab === t.id ? `2px solid ${BRAND}` : "2px solid #e2e8f0",
+            background: tab === t.id ? BRAND : "#fff",
+            color: tab === t.id ? "#fff" : "#4a5568",
+            fontWeight: 600, fontSize: ".84rem", cursor: "pointer",
+          }}>
+            {t.label}
           </button>
         ))}
       </div>
 
-      {/* תוכן לפי טאב */}
+      {/* סקירה */}
       {tab === "overview" && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-          <Card>
-            <h3 style={{ marginTop: 0, fontSize: "1rem", color: "#2c3e50" }}>📊 הפקדות מול משיכות</h3>
-            <ResponsiveContainer width="100%" height={280}>
+          <Panel>
+            <PanelTitle>הפקדות מול משיכות</PanelTitle>
+            <ResponsiveContainer width="100%" height={260}>
               <PieChart>
-                <Pie
-                  data={typeData}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%" cy="50%"
-                  outerRadius={100}
-                  innerRadius={50}
-                  paddingAngle={3}
+                <Pie data={typeData} dataKey="value" nameKey="name" cx="50%" cy="50%"
+                  outerRadius={95} innerRadius={48} paddingAngle={4}
                   label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  labelLine={false}
-                >
+                  labelLine={{ stroke: "#ccc" }}>
                   <Cell fill={BRAND} />
                   <Cell fill={RED} />
                 </Pie>
-                <Tooltip content={<IlsTooltip />} />
-                <Legend formatter={(v) => <span style={{ fontSize: ".85rem" }}>{v}</span>} />
+                <Tooltip content={<IlsTip />} />
               </PieChart>
             </ResponsiveContainer>
-            <div style={{ display: "flex", justifyContent: "center", gap: 24, marginTop: 8 }}>
-              <span style={{ fontSize: ".85rem" }}>
-                <span style={{ color: BRAND, fontWeight: 700 }}>●</span> הפקדות: <strong>{ils(dep)}</strong>
-              </span>
-              <span style={{ fontSize: ".85rem" }}>
-                <span style={{ color: RED, fontWeight: 700 }}>●</span> משיכות: <strong>{ils(wit)}</strong>
-              </span>
+            <div style={{ display: "flex", justifyContent: "center", gap: 20, marginTop: 8 }}>
+              {[["הפקדות", ils(dep), BRAND], ["משיכות", ils(wit), RED]].map(([l, v, c]) => (
+                <div key={l as string} style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: ".7rem", color: "#9aa5b5" }}>{l}</div>
+                  <div style={{ fontWeight: 700, color: c as string }}>{v}</div>
+                </div>
+              ))}
             </div>
-          </Card>
+          </Panel>
 
-          <Card>
-            <h3 style={{ marginTop: 0, fontSize: "1rem", color: "#2c3e50" }}>💳 פילוח לפי אופן</h3>
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={methodData} margin={{ top: 8 }}>
+          <Panel>
+            <PanelTitle>פילוח לפי אופן פעולה</PanelTitle>
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={methodData} margin={{ top: 10, right: 8 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `₪${(v/1000).toFixed(0)}k`} />
-                <Tooltip content={<IlsTooltip />} />
+                <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `${(v / 1000).toFixed(0)}k`} />
+                <Tooltip content={<IlsTip />} />
                 <Bar dataKey="הפקדות" fill={BRAND} radius={[4, 4, 0, 0]} />
                 <Bar dataKey="משיכות" fill={RED} radius={[4, 4, 0, 0]} />
                 <Legend />
               </BarChart>
             </ResponsiveContainer>
-          </Card>
+          </Panel>
         </div>
       )}
 
+      {/* אופן */}
       {tab === "methods" && (
-        <Card>
-          <h3 style={{ marginTop: 0, fontSize: "1rem", color: "#2c3e50" }}>💳 פירוט לפי אופן פעולה</h3>
+        <Panel>
+          <PanelTitle>פירוט לפי אופן פעולה</PanelTitle>
           <div style={{ overflowX: "auto" }}>
-            <table className="table">
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
-                <tr>
-                  <th>אופן</th>
-                  <th>הפקדות</th>
-                  <th>משיכות</th>
-                  <th>סה״כ</th>
-                  <th>% מסך הכל</th>
+                <tr style={{ background: "#f8fafc" }}>
+                  {["אופן", "הפקדות", "משיכות", "סה״כ", "אחוז"].map(h => (
+                    <th key={h} style={{ padding: "0.6rem 0.9rem", textAlign: "right", fontSize: ".82rem", fontWeight: 700, color: "#4a5568", borderBottom: "2px solid #f0f2f5" }}>{h}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {methodData.map((r, i) => (
-                  <tr key={i}>
-                    <td style={{ fontWeight: 600 }}>{r.name}</td>
-                    <td style={{ color: BRAND, fontWeight: 600 }}>{ils(r.הפקדות)}</td>
-                    <td style={{ color: RED, fontWeight: 600 }}>{ils(r.משיכות)}</td>
-                    <td style={{ fontWeight: 700 }}>{ils(r.total)}</td>
-                    <td>
+                  <tr key={i} onMouseEnter={e => (e.currentTarget.style.background = "#f8fbf9")}
+                    onMouseLeave={e => (e.currentTarget.style.background = "")}>
+                    <td style={{ padding: "0.65rem 0.9rem", fontWeight: 600, borderBottom: "1px solid #f0f2f5" }}>{r.name}</td>
+                    <td style={{ padding: "0.65rem 0.9rem", color: BRAND, fontWeight: 600, borderBottom: "1px solid #f0f2f5" }}>{ils(r.הפקדות)}</td>
+                    <td style={{ padding: "0.65rem 0.9rem", color: RED, fontWeight: 600, borderBottom: "1px solid #f0f2f5" }}>{ils(r.משיכות)}</td>
+                    <td style={{ padding: "0.65rem 0.9rem", fontWeight: 700, borderBottom: "1px solid #f0f2f5" }}>{ils(r.total)}</td>
+                    <td style={{ padding: "0.65rem 0.9rem", borderBottom: "1px solid #f0f2f5" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <div style={{
-                          height: 8, borderRadius: 4,
-                          width: `${Math.round((r.total / (dep + wit)) * 100)}%`,
-                          minWidth: 4, maxWidth: 120,
-                          background: PALETTE[i % PALETTE.length],
-                        }} />
-                        <span style={{ fontSize: ".8rem", color: "#7a8699" }}>
-                          {((r.total / (dep + wit)) * 100).toFixed(1)}%
-                        </span>
+                        <div style={{ flex: 1, maxWidth: 80, height: 6, background: "#f0f2f5", borderRadius: 3, overflow: "hidden" }}>
+                          <div style={{ width: `${((r.total / (dep + wit)) * 100).toFixed(1)}%`, height: "100%", background: PALETTE[i % PALETTE.length], borderRadius: 3 }} />
+                        </div>
+                        <span style={{ fontSize: ".78rem", color: "#7a8699" }}>{((r.total / (dep + wit)) * 100).toFixed(1)}%</span>
                       </div>
                     </td>
                   </tr>
@@ -256,67 +232,63 @@ export default function ReportsPage() {
               </tbody>
             </table>
           </div>
-        </Card>
+        </Panel>
       )}
 
+      {/* יתרות */}
       {tab === "top" && (
-        <Card>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <h3 style={{ margin: 0, fontSize: "1rem", color: "#2c3e50" }}>🏆 יתרות מובילות</h3>
-            <div style={{ display: "flex", gap: 8 }}>
+        <Panel>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+            <PanelTitle>יתרות מובילות</PanelTitle>
+            <div style={{ display: "flex", gap: 6 }}>
               {[5, 10, 20].map(n => (
-                <button
-                  key={n}
-                  onClick={() => setTopN(n)}
-                  style={{
-                    padding: "0.3rem 0.8rem",
-                    borderRadius: 999,
-                    border: topN === n ? `1.5px solid ${BRAND}` : "1.5px solid #e2e8f0",
-                    background: topN === n ? BRAND : "#fff",
-                    color: topN === n ? "#fff" : "#4a5568",
-                    fontWeight: 600, fontSize: ".8rem", cursor: "pointer",
-                  }}
-                >
-                  Top {n}
-                </button>
+                <button key={n} onClick={() => setTopN(n)} style={{
+                  padding: "0.25rem 0.75rem", borderRadius: 999,
+                  border: topN === n ? `1.5px solid ${BRAND}` : "1.5px solid #e2e8f0",
+                  background: topN === n ? BRAND : "#fff",
+                  color: topN === n ? "#fff" : "#4a5568",
+                  fontWeight: 600, fontSize: ".78rem", cursor: "pointer",
+                }}>Top {n}</button>
               ))}
             </div>
           </div>
-          <ResponsiveContainer width="100%" height={Math.max(300, topN * 38)}>
-            <BarChart data={topData} layout="vertical" margin={{ right: 60, left: 10 }}>
+          <ResponsiveContainer width="100%" height={Math.max(280, topN * 36)}>
+            <BarChart data={topData} layout="vertical" margin={{ right: 70, left: 8 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
-              <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={(v) => `₪${(v/1000).toFixed(0)}k`} />
-              <YAxis type="category" dataKey="name" width={130} tick={{ fontSize: 12 }} />
-              <Tooltip content={<IlsTooltip />} />
-              <Bar dataKey="value" radius={[0, 6, 6, 0]} label={{ position: "right", formatter: (v: number) => ils(v), fontSize: 11, fill: "#4a5568" }}>
+              <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={v => `${(v / 1000).toFixed(0)}k`} />
+              <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11 }} />
+              <Tooltip content={<IlsTip />} />
+              <Bar dataKey="value" radius={[0, 6, 6, 0]}>
+                <LabelList dataKey="value" position="right" formatter={(v: number) => ils(v)} style={{ fontSize: 11, fill: "#4a5568" }} />
                 {topData.map((_, i) => (
-                  <Cell key={i} fill={i === 0 ? ORANGE : i === 1 ? "#64748b" : i === 2 ? "#a0522d" : BRAND} />
+                  <Cell key={i} fill={i === 0 ? ORANGE : i === 1 ? "#94a3b8" : i === 2 ? "#cd7f32" : BRAND} />
                 ))}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
-        </Card>
+        </Panel>
       )}
 
+      {/* מגמה */}
       {tab === "trend" && (
-        <Card>
-          <h3 style={{ marginTop: 0, fontSize: "1rem", color: "#2c3e50" }}>📈 מגמה חודשית — הפקדות מול משיכות</h3>
+        <Panel>
+          <PanelTitle>מגמה חודשית — הפקדות מול משיכות</PanelTitle>
           {trendData.length === 0 ? (
             <div style={{ textAlign: "center", padding: "3rem", color: "#9aa5b5" }}>אין נתוני תאריך לתצוגת מגמה</div>
           ) : (
-            <ResponsiveContainer width="100%" height={340}>
-              <LineChart data={trendData} margin={{ top: 8, right: 16 }}>
+            <ResponsiveContainer width="100%" height={320}>
+              <LineChart data={trendData} margin={{ top: 10, right: 16 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `₪${(v/1000).toFixed(0)}k`} />
-                <Tooltip content={<IlsTooltip />} />
+                <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `${(v / 1000).toFixed(0)}k`} />
+                <Tooltip content={<IlsTip />} />
                 <Legend />
-                <Line type="monotone" dataKey="הפקדות" stroke={BRAND} strokeWidth={2.5} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                <Line type="monotone" dataKey="משיכות" stroke={RED} strokeWidth={2.5} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                <Line type="monotone" dataKey="הפקדות" stroke={BRAND} strokeWidth={2.5} dot={{ r: 4, fill: BRAND }} activeDot={{ r: 6 }} />
+                <Line type="monotone" dataKey="משיכות" stroke={RED} strokeWidth={2.5} dot={{ r: 4, fill: RED }} activeDot={{ r: 6 }} />
               </LineChart>
             </ResponsiveContainer>
           )}
-        </Card>
+        </Panel>
       )}
     </div>
   );
