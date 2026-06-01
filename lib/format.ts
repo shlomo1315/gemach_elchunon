@@ -28,7 +28,7 @@ export function toHebrewDate(dateStr: string): string {
   if (!dateStr) return "";
   try {
     const d = new Date(dateStr + "T12:00:00");
-    return d.toLocaleDateString("he-IL-u-ca-hebrew", {
+    return d.toLocaleDateString("he-IL-u-ca-hebrew-nu-hebr", {
       year: "numeric",
       month: "long",
       day: "numeric",
