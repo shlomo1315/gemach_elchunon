@@ -3,32 +3,82 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { Pencil } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { ils, gdate } from "@/lib/format";
+import { ils, gdate, toHebrewDate, TXN_TYPES, TXN_METHODS } from "@/lib/format";
+import { hebTextToGreg } from "@/lib/hebrewParse";
 import { Card, PageTitle, Button, Badge, Loading, Empty } from "@/components/ui";
 import type { MemberBalance, Transaction } from "@/types";
+
+const BRAND = "#1e6f5c";
+
+// תאריך לועזי: מהשדה השמור, ואם אין — חישוב אוטומטי מהתאריך העברי הטקסטואלי
+function gregOf(t: Transaction): string {
+  if (t.greg_date) return gdate(t.greg_date);
+  const iso = hebTextToGreg(t.heb_date);
+  return iso ? gdate(iso) : "—";
+}
 
 export default function MemberDetail() {
   const { id } = useParams<{ id: string }>();
   const [member, setMember] = useState<MemberBalance | null>(null);
   const [txns, setTxns] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<Transaction | null>(null);
+  const [form, setForm] = useState({ amount: "", type: "הפקדה", method: "", greg_date: "", heb_date: "", notes: "" });
+  const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      const [m, t] = await Promise.all([
-        supabase.from("member_balances").select("*").eq("id", id).single(),
-        supabase
-          .from("transactions")
-          .select("*")
-          .eq("member_id", id)
-          .order("created_at", { ascending: true }),
-      ]);
-      setMember(m.data as MemberBalance);
-      setTxns((t.data as Transaction[]) || []);
-      setLoading(false);
-    })();
-  }, [id]);
+  async function load() {
+    const [m, t] = await Promise.all([
+      supabase.from("member_balances").select("*").eq("id", id).single(),
+      supabase.from("transactions").select("*").eq("member_id", id).order("created_at", { ascending: true }),
+    ]);
+    setMember(m.data as MemberBalance);
+    setTxns((t.data as Transaction[]) || []);
+    setLoading(false);
+  }
+  useEffect(() => { load(); }, [id]);
+
+  function openEdit(t: Transaction) {
+    setForm({
+      amount: String(t.amount), type: t.type, method: t.method || "",
+      greg_date: t.greg_date?.split("T")[0] || "", heb_date: t.heb_date || "", notes: t.notes || "",
+    });
+    setEditing(t);
+  }
+
+  // בחירת תאריך לועזי → חישוב עברי אוטומטי
+  function setGreg(val: string) {
+    setForm(f => ({ ...f, greg_date: val, heb_date: toHebrewDate(val) }));
+  }
+  // הקלדת תאריך עברי → חישוב לועזי אוטומטי (אם ניתן)
+  function setHeb(val: string) {
+    const iso = hebTextToGreg(val);
+    setForm(f => ({ ...f, heb_date: val, greg_date: iso || f.greg_date }));
+  }
+
+  async function save() {
+    if (!editing) return;
+    setSaving(true);
+    const { error } = await supabase.from("transactions").update({
+      amount: Number(form.amount), type: form.type, method: form.method || null,
+      greg_date: form.greg_date || null, heb_date: form.heb_date || null, notes: form.notes || null,
+    }).eq("id", editing.id);
+    setSaving(false);
+    if (error) { alert("שגיאה: " + error.message); return; }
+    setEditing(null);
+    load();
+  }
+
+  async function remove() {
+    if (!editing) return;
+    if (!confirm("למחוק את הפעולה?")) return;
+    setSaving(true);
+    await supabase.from("transactions").delete().eq("id", editing.id);
+    setSaving(false);
+    setEditing(null);
+    load();
+  }
 
   if (loading) return <Loading />;
   if (!member) return <Empty text="חבר לא נמצא" />;
@@ -74,31 +124,94 @@ export default function MemberDetail() {
                   <th>סוג</th>
                   <th>סכום</th>
                   <th>אופן</th>
-                  <th>תאריך</th>
+                  <th>תאריך עברי</th>
+                  <th>תאריך לועזי</th>
                   <th>הערות</th>
+                  <th className="no-print"></th>
                 </tr>
               </thead>
               <tbody>
                 {txns.map((t, i) => (
-                    <tr key={t.id}>
-                      <td>{i + 1}</td>
-                      <td><Badge type={t.type} /></td>
-                      <td style={{ fontWeight: 600, color: t.type === "משיכה" ? "#c0392b" : "#1e7d4f" }}>
-                        {t.type === "משיכה" ? "-" : "+"}{ils(t.amount)}
-                      </td>
-                      <td>{t.method || "—"}</td>
-                      <td>{t.heb_date || gdate(t.greg_date) || "—"}</td>
-                      <td style={{ color: "#7a8699" }}>{t.notes}</td>
-                    </tr>
-                  ))}
+                  <tr key={t.id} onClick={() => openEdit(t)} style={{ cursor: "pointer" }}
+                    onMouseEnter={e => (e.currentTarget.style.background = "#f4faf8")}
+                    onMouseLeave={e => (e.currentTarget.style.background = "")}>
+                    <td>{i + 1}</td>
+                    <td><Badge type={t.type} /></td>
+                    <td style={{ fontWeight: 600, color: t.type === "משיכה" ? "#c0392b" : "#1e7d4f" }}>
+                      {t.type === "משיכה" ? "-" : "+"}{ils(t.amount)}
+                    </td>
+                    <td>{t.method || "—"}</td>
+                    <td>{t.heb_date || "—"}</td>
+                    <td dir="ltr" style={{ textAlign: "right" }}>{gregOf(t)}</td>
+                    <td style={{ color: "#7a8699" }}>{t.notes}</td>
+                    <td className="no-print">
+                      <Pencil size={15} color="#f59e0b" style={{ opacity: .7 }} />
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
         )}
       </Card>
+
+      {/* מודאל עריכה */}
+      {editing && (
+        <div onClick={e => { if (e.target === e.currentTarget) setEditing(null); }}
+          style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem", backdropFilter: "blur(2px)" }}>
+          <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 20px 60px rgba(0,0,0,.2)", width: "100%", maxWidth: 500, padding: "1.75rem", direction: "rtl", animation: "modalIn 0.18s ease" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" }}>
+              <h2 style={{ margin: 0, fontSize: "1.15rem", fontWeight: 800, color: "#f59e0b" }}>עריכת פעולה</h2>
+              <button onClick={() => setEditing(null)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.2rem", color: "#9aa5b5" }}>✕</button>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+              <div>
+                <label style={lbl}>סוג</label>
+                <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))} style={inp}>
+                  {TXN_TYPES.map(t => <option key={t}>{t}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={lbl}>סכום ₪</label>
+                <input type="number" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} style={inp} />
+              </div>
+              <div>
+                <label style={lbl}>אופן</label>
+                <select value={form.method} onChange={e => setForm(f => ({ ...f, method: e.target.value }))} style={inp}>
+                  <option value="">—</option>
+                  {TXN_METHODS.map(t => <option key={t}>{t}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={lbl}>תאריך לועזי</label>
+                <input type="date" value={form.greg_date} onChange={e => setGreg(e.target.value)} style={inp} />
+              </div>
+              <div style={{ gridColumn: "1/-1" }}>
+                <label style={lbl}>תאריך עברי (טקסט)</label>
+                <input value={form.heb_date} onChange={e => setHeb(e.target.value)} style={inp} placeholder="כו ניסן פו" dir="rtl" />
+                {form.heb_date && hebTextToGreg(form.heb_date) && (
+                  <div style={{ fontSize: ".78rem", color: BRAND, marginTop: 4 }}>לועזי מחושב: {gdate(hebTextToGreg(form.heb_date)!)}</div>
+                )}
+              </div>
+              <div style={{ gridColumn: "1/-1" }}>
+                <label style={lbl}>הערות</label>
+                <input value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} style={inp} />
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 10, marginTop: "1.5rem" }}>
+              <button onClick={save} disabled={saving} style={{ padding: "0.55rem 1.2rem", background: BRAND, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".9rem", cursor: "pointer" }}>{saving ? "שומר…" : "✓ שמור שינויים"}</button>
+              <button onClick={() => setEditing(null)} style={{ padding: "0.55rem 1.2rem", background: "#eef2f1", color: BRAND, border: "none", borderRadius: 8, fontWeight: 600, fontSize: ".9rem", cursor: "pointer" }}>ביטול</button>
+              <button onClick={remove} disabled={saving} style={{ padding: "0.55rem 1.2rem", background: "#fde8e8", color: "#c0392b", border: "none", borderRadius: 8, fontWeight: 600, fontSize: ".9rem", cursor: "pointer", marginInlineStart: "auto" }}>מחק</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
+const inp: React.CSSProperties = { padding: "0.5rem 0.75rem", border: "1.5px solid #d8dde5", borderRadius: 8, fontSize: ".9rem", width: "100%", boxSizing: "border-box" };
+const lbl: React.CSSProperties = { fontSize: ".78rem", color: "#7a8699", fontWeight: 600, marginBottom: 4, display: "block" };
 
 function Row({ label, value }: { label: string; value: string }) {
   return (

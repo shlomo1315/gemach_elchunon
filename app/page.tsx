@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { supabase } from "@/lib/supabase";
-import { ils, num, gdate, toHebrewDate, TXN_TYPES, TXN_METHODS } from "@/lib/format";
+import { ils, num, gdate, toHebrewDate, hebrewDateLetters, TXN_TYPES, TXN_METHODS } from "@/lib/format";
 import { hebTextToGregDisplay } from "@/lib/hebrewParse";
 import { Badge, Loading } from "@/components/ui";
 import type { FundSummary, Transaction, MemberBalance, Member } from "@/types";
@@ -34,34 +34,6 @@ function KpiCard({ label, value, icon, color, sub }: {
       {sub && <div style={{ fontSize: ".72rem", color: "#b0bac7" }}>{sub}</div>}
     </div>
   );
-}
-
-// המרת מספר לאותיות גימטריה (16 → ט״ז, 786 → תשפ״ו)
-function gematria(num: number): string {
-  const ones = ["", "א", "ב", "ג", "ד", "ה", "ו", "ז", "ח", "ט"];
-  const tens = ["", "י", "כ", "ל", "מ", "נ", "ס", "ע", "פ", "צ"];
-  const hundreds = ["", "ק", "ר", "ש", "ת", "תק", "תר", "תש", "תת", "תתק"];
-  let n = num % 1000; // לשנה — מוותרים על האלפים (5786 → 786)
-  let s = hundreds[Math.floor(n / 100)];
-  n %= 100;
-  if (n === 15) s += "טו";
-  else if (n === 16) s += "טז";
-  else { s += tens[Math.floor(n / 10)]; s += ones[n % 10]; }
-  // הוספת גרש/גרשיים
-  if (s.length === 1) return s + "׳";
-  return s.slice(0, -1) + "״" + s.slice(-1);
-}
-
-// תאריך עברי מלא באותיות (ט״ז בסיון תשפ״ו)
-function hebrewDateLetters(d: Date): string {
-  try {
-    const parts = new Intl.DateTimeFormat("en-u-ca-hebrew", { day: "numeric", month: "numeric", year: "numeric" }).formatToParts(d);
-    const day = Number(parts.find(p => p.type === "day")?.value || 0);
-    const year = Number(parts.find(p => p.type === "year")?.value || 0);
-    const month = new Intl.DateTimeFormat("he-u-ca-hebrew", { month: "long" }).format(d);
-    if (!day || !year) return "";
-    return `${gematria(day)} ב${month} ${gematria(year)}`;
-  } catch { return ""; }
 }
 
 function initials(name: string) {
@@ -449,12 +421,20 @@ export default function Dashboard() {
                   <div style={{ fontWeight: 600, fontSize: ".88rem", color: "#1a1a2e", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.members?.name || "—"}</div>
                   {t.notes && <div style={{ fontSize: ".74rem", color: "#9aa5b5", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.notes}</div>}
                 </div>
-                {/* תאריך באמצע — עברי + לועזי אוטומטי */}
+                {/* תאריך באמצע — עברי (גימטריה) + לועזי אוטומטי */}
                 <div style={{ flex: 1, textAlign: "center", minWidth: 0 }}>
-                  <div style={{ fontSize: ".8rem", color: "#4a5568", fontWeight: 600 }}>{t.heb_date || "—"}</div>
                   {(() => {
+                    // אם התאריך העברי שמור בספרות — נציג גימטריה מהתאריך הלועזי; אחרת הטקסט המקורי
+                    const heb = t.heb_date && !/\d/.test(t.heb_date)
+                      ? t.heb_date
+                      : (t.greg_date ? hebrewDateLetters(new Date(t.greg_date + "T12:00:00")) : (t.heb_date || "—"));
                     const g = gdate(t.greg_date) || hebTextToGregDisplay(t.heb_date);
-                    return g ? <div style={{ fontSize: ".7rem", color: "#b0bac7", marginTop: 1 }} dir="ltr">{g}</div> : null;
+                    return (
+                      <>
+                        <div style={{ fontSize: ".8rem", color: "#4a5568", fontWeight: 600 }}>{heb}</div>
+                        {g && <div style={{ fontSize: ".7rem", color: "#b0bac7", marginTop: 1 }} dir="ltr">{g}</div>}
+                      </>
+                    );
                   })()}
                 </div>
                 <Badge type={t.type} />
