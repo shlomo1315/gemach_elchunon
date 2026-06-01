@@ -270,10 +270,12 @@ export default function Dashboard() {
         const items: any[] = data.items || [];
         const p = items.find(i => i.category === "parashat");
         if (p) {
-          // הסרת ניקוד וקידומת "פרשת"
+          // הסרת ניקוד/טעמים, המרת מקף עברי לרווח, והסרת קידומת "פרשת"
           const clean = String(p.hebrew || p.title || "")
-            .replace(/[֑-ׇ]/g, "")
+            .replace(/־/g, " ")                      // מקף עברי → רווח
+            .replace(/[֑-ֽֿ-ׇ]/g, "") // ניקוד וטעמים
             .replace(/^פרשת\s*/, "")
+            .replace(/\s+/g, " ")
             .trim();
           setParasha(clean);
         }
