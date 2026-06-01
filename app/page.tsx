@@ -5,6 +5,7 @@ import Link from "next/link";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { supabase } from "@/lib/supabase";
 import { ils, num, gdate, toHebrewDate, TXN_TYPES, TXN_METHODS } from "@/lib/format";
+import { hebTextToGregDisplay } from "@/lib/hebrewParse";
 import { Badge, Loading } from "@/components/ui";
 import type { FundSummary, Transaction, MemberBalance, Member } from "@/types";
 import { useAuth } from "@/components/AuthGuard";
@@ -375,15 +376,21 @@ export default function Dashboard() {
                 onMouseLeave={e => (e.currentTarget.style.background = "")}
               >
                 <Avatar name={t.members?.name || "?"} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: ".88rem", color: "#1a1a2e" }}>{t.members?.name || "—"}</div>
-                  <div style={{ fontSize: ".74rem", color: "#9aa5b5", marginTop: 1 }}>
-                    {t.heb_date || gdate(t.greg_date) || "—"}
-                    {t.notes ? ` · ${t.notes}` : ""}
-                  </div>
+                {/* שם + הערה */}
+                <div style={{ width: 200, minWidth: 0, flexShrink: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: ".88rem", color: "#1a1a2e", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.members?.name || "—"}</div>
+                  {t.notes && <div style={{ fontSize: ".74rem", color: "#9aa5b5", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.notes}</div>}
+                </div>
+                {/* תאריך באמצע — עברי + לועזי אוטומטי */}
+                <div style={{ flex: 1, textAlign: "center", minWidth: 0 }}>
+                  <div style={{ fontSize: ".8rem", color: "#4a5568", fontWeight: 600 }}>{t.heb_date || "—"}</div>
+                  {(() => {
+                    const g = gdate(t.greg_date) || hebTextToGregDisplay(t.heb_date);
+                    return g ? <div style={{ fontSize: ".7rem", color: "#b0bac7", marginTop: 1 }} dir="ltr">{g}</div> : null;
+                  })()}
                 </div>
                 <Badge type={t.type} />
-                <div style={{ fontWeight: 700, fontSize: ".92rem", color: t.type === "משיכה" ? RED : BRAND, minWidth: 80, textAlign: "left" }}>
+                <div style={{ fontWeight: 700, fontSize: ".92rem", color: t.type === "משיכה" ? RED : BRAND, minWidth: 84, textAlign: "left", flexShrink: 0 }}>
                   {t.type === "משיכה" ? "−" : "+"}{ils(t.amount)}
                 </div>
               </div>
