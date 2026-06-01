@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
-import { Eye, Pencil, Trash2 } from "lucide-react";
+import { Eye, Pencil, Trash2, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { ils, gdate, toHebrewDate, TXN_TYPES, TXN_METHODS } from "@/lib/format";
 import { Card, PageTitle, Button, Badge, Loading, Empty } from "@/components/ui";
@@ -86,6 +86,7 @@ export default function TransactionsPage() {
   const [editForm, setEditForm] = useState({ amount: "", type: "הפקדה", method: "", greg_date: "", heb_date: "", notes: "" });
   const [deleting, setDeleting] = useState<string | null>(null);
   const [formErr, setFormErr] = useState<Record<string, string>>({});
+  const [toast, setToast] = useState<{ title: string; lines: [string, string][] } | null>(null);
 
   const [q, setQ] = useState("");
   const [typeF, setTypeF] = useState("");
@@ -105,6 +106,13 @@ export default function TransactionsPage() {
     setLoading(false);
   }
   useEffect(() => { load(); }, []);
+
+  // סגירת חלונית ההצלחה אוטומטית אחרי ~2 שניות
+  useEffect(() => {
+    if (!toast) return;
+    const id = setTimeout(() => setToast(null), 2300);
+    return () => clearTimeout(id);
+  }, [toast]);
 
   const closeModal = useCallback(() => {
     setAdding(false);
@@ -147,7 +155,19 @@ export default function TransactionsPage() {
     });
     setSaving(false);
     if (error) { alert("שגיאה: " + error.message); return; }
+    const summary: { title: string; lines: [string, string][] } = {
+      title: "הפעולה נשמרה בהצלחה",
+      lines: [
+        ["חבר", member!.name],
+        ["סוג", form.type],
+        ["סכום", ils(amt)],
+        ["אופן", form.method],
+        ["תאריך", form.heb_date || gdate(form.greg_date)],
+        ...(form.notes ? [["הערות", form.notes] as [string, string]] : []),
+      ],
+    };
     closeModal();
+    setToast(summary);
     load();
   }
 
@@ -394,6 +414,30 @@ export default function TransactionsPage() {
               <button onClick={saveEdit} disabled={saving} style={saveBtnStyle}>{saving ? "שומר…" : "✓ שמור שינויים"}</button>
               <button onClick={() => setEditing(null)} style={ghostBtnStyle}>ביטול</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* חלונית הצלחה צפה */}
+      {toast && (
+        <div style={{
+          position: "fixed", bottom: 24, left: 24, zIndex: 1200,
+          background: "#fff", borderRadius: 14, padding: "1rem 1.25rem",
+          boxShadow: "0 12px 40px rgba(0,0,0,.18)", borderRight: "4px solid #1e6f5c",
+          minWidth: 280, maxWidth: 360, direction: "rtl",
+          animation: "toastIn .25s ease, toastOut .5s ease 1.8s forwards",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+            <CheckCircle2 size={22} color="#1e6f5c" />
+            <strong style={{ fontSize: ".98rem", color: "#1a1a2e" }}>{toast.title}</strong>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "0.3rem 0.75rem", fontSize: ".84rem" }}>
+            {toast.lines.map(([l, v]) => (
+              <div key={l} style={{ display: "contents" }}>
+                <span style={{ color: "#9aa5b5" }}>{l}</span>
+                <span style={{ fontWeight: 600, color: "#1a1a2e" }}>{v}</span>
+              </div>
+            ))}
           </div>
         </div>
       )}
