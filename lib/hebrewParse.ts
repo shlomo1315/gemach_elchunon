@@ -106,7 +106,7 @@ export function hebTextToGregDisplay(raw: string | null | undefined): string {
   const iso = hebTextToGreg(raw);
   if (!iso) return "";
   try {
-    return new Date(iso + "T12:00:00").toLocaleDateString("he-IL", { day: "numeric", month: "short", year: "numeric" });
+    return new Date(iso + "T12:00:00").toLocaleDateString("he-IL");
   } catch {
     return "";
   }
