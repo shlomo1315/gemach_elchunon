@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #f6f7fb;
+  --card: #ffffff;
+  --brand: #1e6f5c;
+  --brand-dark: #16513f;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  background: var(--bg);
+  color: #1a1a2e;
+  font-family: system-ui, "Segoe UI", "Heebo", Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* טבלאות */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--card);
+}
+.table th,
+.table td {
+  padding: 0.6rem 0.75rem;
+  text-align: right;
+  border-bottom: 1px solid #eef0f4;
+  font-size: 0.9rem;
+}
+.table th {
+  background: #f0f4f3;
+  font-weight: 600;
+  color: #2c3e50;
+  position: sticky;
+  top: 0;
+}
+.table tbody tr:hover {
+  background: #f8fafb;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+  }
+}
