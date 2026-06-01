@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { Eye, Pencil, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { ils, gdate, toHebrewDate, TXN_TYPES, TXN_METHODS } from "@/lib/format";
@@ -8,6 +8,7 @@ import { Card, PageTitle, Button, Badge, Loading, Empty } from "@/components/ui"
 import type { Transaction, Member } from "@/types";
 
 type Row = Transaction & { members: { name: string } | null };
+type Toast = { title: string; lines: [string, string][] };
 
 function MemberCombobox({ members, value, onChange }: {
   members: Member[];
@@ -87,6 +88,9 @@ export default function TransactionsPage() {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [formErr, setFormErr] = useState<Record<string, string>>({});
 
+  const [toast, setToast] = useState<Toast | null>(null);
+  const [toastFading, setToastFading] = useState(false);
+
   const [q, setQ] = useState("");
   const [typeF, setTypeF] = useState("");
   const [methodF, setMethodF] = useState("");
@@ -94,6 +98,13 @@ export default function TransactionsPage() {
   const [form, setForm] = useState({
     memberName: "", amount: "", type: "הפקדה", method: "", greg_date: "", heb_date: "", notes: "",
   });
+
+  function showToast(t: Toast) {
+    setToastFading(false);
+    setToast(t);
+    setTimeout(() => setToastFading(true), 2000);
+    setTimeout(() => setToast(null), 2700);
+  }
 
   async function load() {
     const [t, m] = await Promise.all([
@@ -148,6 +159,17 @@ export default function TransactionsPage() {
     setSaving(false);
     if (error) { alert("שגיאה: " + error.message); return; }
     closeModal();
+    showToast({
+      title: "הפעולה בוצעה בהצלחה ✓",
+      lines: [
+        ["חבר", member!.name],
+        ["סוג", form.type],
+        ["סכום", ils(amt)],
+        ["אופן", form.method],
+        ["תאריך", form.heb_date || gdate(form.greg_date) || "—"],
+        ...(form.notes ? [["הערות", form.notes] as [string, string]] : []),
+      ],
+    });
     load();
   }
 
@@ -342,6 +364,31 @@ export default function TransactionsPage() {
             <div style={{ marginTop: "1.5rem" }}>
               <button onClick={() => setViewing(null)} style={ghostBtnStyle}>סגור</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast הצלחה */}
+      {toast && (
+        <div style={{
+          position: "fixed", bottom: 28, left: 28, zIndex: 9999,
+          background: "#fff", borderRadius: 14,
+          boxShadow: "0 8px 32px rgba(0,0,0,.18)",
+          padding: "1rem 1.25rem", minWidth: 260, maxWidth: 340,
+          borderRight: "4px solid #1e6f5c", direction: "rtl",
+          animation: toastFading ? "toastOut 0.6s ease forwards" : "toastIn 0.25s ease",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+            <span style={{ fontSize: "1.1rem" }}>✅</span>
+            <strong style={{ fontSize: ".95rem", color: "#1e6f5c" }}>{toast.title}</strong>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "4px 12px", fontSize: ".82rem" }}>
+            {toast.lines.map(([label, value]) => (
+              <React.Fragment key={label}>
+                <span style={{ color: "#9aa5b5", whiteSpace: "nowrap" }}>{label}</span>
+                <span style={{ fontWeight: 600, color: "#1a1a2e" }}>{value}</span>
+              </React.Fragment>
+            ))}
           </div>
         </div>
       )}
