@@ -105,10 +105,6 @@ export default function MemberDetail() {
     setAddTxn(true);
   }
   function setAddGreg(val: string) { setAddForm(f => ({ ...f, greg_date: val, heb_date: toHebrewDate(val) })); }
-  function setAddHeb(val: string) {
-    const iso = hebTextToGreg(val);
-    setAddForm(f => ({ ...f, heb_date: val, greg_date: iso || f.greg_date }));
-  }
   async function saveAdd() {
     if (!member) return;
     if (!addForm.amount || Number(addForm.amount) <= 0) { alert("יש להזין סכום חיובי"); return; }
@@ -382,11 +378,10 @@ export default function MemberDetail() {
                 <input type="date" value={addForm.greg_date} onChange={e => setAddGreg(e.target.value)} style={inp} />
               </div>
               <div style={{ gridColumn: "1/-1" }}>
-                <label style={lbl}>תאריך עברי (טקסט)</label>
-                <input value={addForm.heb_date} onChange={e => setAddHeb(e.target.value)} style={inp} placeholder="כו ניסן פו" dir="rtl" />
-                {addForm.heb_date && hebTextToGreg(addForm.heb_date) && (
-                  <div style={{ fontSize: ".78rem", color: BRAND, marginTop: 4 }}>לועזי מחושב: {gdate(hebTextToGreg(addForm.heb_date)!)}</div>
-                )}
+                <label style={lbl}>תאריך עברי (מחושב אוטומטית)</label>
+                <div style={{ ...inp, background: "#f4faf8", color: addForm.heb_date ? "#1a1a2e" : "#9aa5b5", display: "flex", alignItems: "center", minHeight: 38 }}>
+                  {addForm.heb_date || "יתמלא אוטומטית לפי התאריך הלועזי"}
+                </div>
               </div>
               <div style={{ gridColumn: "1/-1" }}>
                 <label style={lbl}>הערות</label>
