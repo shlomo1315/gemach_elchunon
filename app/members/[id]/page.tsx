@@ -27,6 +27,54 @@ export default function MemberDetail() {
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [form, setForm] = useState({ amount: "", type: "הפקדה", method: "", greg_date: "", heb_date: "", notes: "" });
   const [saving, setSaving] = useState(false);
+  // עריכת פרטי החבר ישירות בכרטסת
+  const [editInfo, setEditInfo] = useState(false);
+  const [info, setInfo] = useState({ name: "", code: "", phone: "", address: "", email: "" });
+  const [savingInfo, setSavingInfo] = useState(false);
+  // יצירת התחברות לחבר
+  const [loginPass, setLoginPass] = useState("");
+  const [creatingLogin, setCreatingLogin] = useState(false);
+  const [loginMsg, setLoginMsg] = useState("");
+
+  function startEditInfo() {
+    if (!member) return;
+    setInfo({ name: member.name || "", code: member.code || "", phone: member.phone || "", address: member.address || "", email: member.email || "" });
+    setLoginPass(""); setLoginMsg("");
+    setEditInfo(true);
+  }
+
+  async function saveInfo() {
+    if (!member) return;
+    setSavingInfo(true);
+    const { error } = await supabase.from("members").update({
+      name: info.name.trim(), code: info.code.trim() || null,
+      phone: info.phone.trim() || null, address: info.address.trim() || null,
+      email: info.email.trim().toLowerCase() || null,
+    }).eq("id", member.id);
+    setSavingInfo(false);
+    if (error) { alert("שגיאה: " + error.message); return; }
+    setEditInfo(false);
+    load();
+  }
+
+  async function createLogin() {
+    if (!member) return;
+    const email = info.email.trim().toLowerCase();
+    if (!email) { setLoginMsg("יש להזין מייל לחבר תחילה"); return; }
+    if (loginPass.length < 6) { setLoginMsg("סיסמה חייבת להיות לפחות 6 תווים"); return; }
+    setCreatingLogin(true); setLoginMsg("");
+    const { data, error } = await supabase.functions.invoke("dynamic-responder", {
+      body: { email, password: loginPass, memberId: member.id },
+    });
+    setCreatingLogin(false);
+    if (error || (data && (data as any).error)) {
+      setLoginMsg("שגיאה: " + (error?.message || (data as any)?.error || "נכשל"));
+      return;
+    }
+    setLoginMsg("✓ חשבון ההתחברות נוצר בהצלחה");
+    setLoginPass("");
+    load();
+  }
 
   async function load() {
     const [m, t] = await Promise.all([
@@ -97,10 +145,66 @@ export default function MemberDetail() {
       </PageTitle>
 
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 18 }}>
-        <Card style={{ flex: 1, minWidth: 240 }}>
-          <Row label="קוד אישי" value={member.code || "—"} />
-          <Row label="טלפון" value={member.phone || "—"} />
-          <Row label="כתובת" value={member.address || "—"} />
+        <Card style={{ flex: 1, minWidth: 280 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+            <h3 style={{ margin: 0, fontSize: "1rem" }}>פרטי החבר</h3>
+            {!editInfo && (
+              <button className="no-print" onClick={startEditInfo} style={{ display: "flex", alignItems: "center", gap: 5, padding: "0.35rem 0.8rem", background: "#eef2f1", color: BRAND, border: "none", borderRadius: 8, fontWeight: 600, fontSize: ".82rem", cursor: "pointer" }}>
+                <Pencil size={14} /> ערוך פרטים
+              </button>
+            )}
+          </div>
+
+          {!editInfo ? (
+            <>
+              <Row label="שם" value={member.name || "—"} />
+              <Row label="קוד אישי" value={member.code || "—"} />
+              <Row label="טלפון" value={member.phone || "—"} />
+              <Row label="כתובת" value={member.address || "—"} />
+              <Row label="מייל להתחברות" value={member.email || "—"} />
+            </>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.8rem" }}>
+              <div style={{ gridColumn: "1/-1" }}>
+                <label style={lbl}>שם</label>
+                <input value={info.name} onChange={e => setInfo(f => ({ ...f, name: e.target.value }))} style={inp} />
+              </div>
+              <div>
+                <label style={lbl}>קוד אישי</label>
+                <input value={info.code} onChange={e => setInfo(f => ({ ...f, code: e.target.value }))} style={inp} />
+              </div>
+              <div>
+                <label style={lbl}>טלפון</label>
+                <input value={info.phone} onChange={e => setInfo(f => ({ ...f, phone: e.target.value }))} style={inp} dir="ltr" />
+              </div>
+              <div style={{ gridColumn: "1/-1" }}>
+                <label style={lbl}>כתובת</label>
+                <input value={info.address} onChange={e => setInfo(f => ({ ...f, address: e.target.value }))} style={inp} />
+              </div>
+              <div style={{ gridColumn: "1/-1" }}>
+                <label style={lbl}>מייל להתחברות (פורטל אישי)</label>
+                <input value={info.email} onChange={e => setInfo(f => ({ ...f, email: e.target.value }))} style={inp} dir="ltr" type="email" placeholder="member@example.com" />
+              </div>
+
+              {/* יצירת חשבון התחברות */}
+              <div style={{ gridColumn: "1/-1", background: "#f4faf8", borderRadius: 10, padding: "0.85rem 1rem", border: "1px solid #d7e9e2" }}>
+                <div style={{ fontSize: ".82rem", fontWeight: 700, color: BRAND, marginBottom: 6 }}>🔐 התחברות לפורטל האישי (צפייה בלבד)</div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                  <input value={loginPass} onChange={e => setLoginPass(e.target.value)} style={{ ...inp, flex: 1, minWidth: 140 }} dir="ltr" type="text" placeholder="סיסמה לחבר (לפחות 6 תווים)" />
+                  <button onClick={createLogin} disabled={creatingLogin} style={{ padding: "0.5rem 1rem", background: BRAND, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".85rem", cursor: "pointer", whiteSpace: "nowrap" }}>
+                    {creatingLogin ? "יוצר…" : "צור התחברות"}
+                  </button>
+                </div>
+                {loginMsg && <div style={{ fontSize: ".78rem", marginTop: 6, color: loginMsg.startsWith("✓") ? BRAND : "#c0392b" }}>{loginMsg}</div>}
+                <div style={{ fontSize: ".72rem", color: "#9aa5b5", marginTop: 6 }}>החבר יתחבר עם המייל שלמעלה והסיסמה שתגדיר כאן.</div>
+              </div>
+
+              <div style={{ gridColumn: "1/-1", display: "flex", gap: 10 }}>
+                <button onClick={saveInfo} disabled={savingInfo} style={{ padding: "0.5rem 1.2rem", background: BRAND, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".88rem", cursor: "pointer" }}>{savingInfo ? "שומר…" : "✓ שמור פרטים"}</button>
+                <button onClick={() => setEditInfo(false)} style={{ padding: "0.5rem 1.2rem", background: "#eef2f1", color: BRAND, border: "none", borderRadius: 8, fontWeight: 600, fontSize: ".88rem", cursor: "pointer" }}>ביטול</button>
+              </div>
+            </div>
+          )}
         </Card>
         <Card style={{ flex: 1, minWidth: 240, display: "flex", flexDirection: "column", justifyContent: "center" }}>
           <div style={{ fontSize: ".85rem", color: "#7a8699" }}>יתרה נוכחית</div>
