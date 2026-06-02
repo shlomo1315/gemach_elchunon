@@ -9,7 +9,7 @@ import { hebTextToGregDisplay, hebTextToGreg } from "@/lib/hebrewParse";
 import { Badge, Loading, SuccessPopup } from "@/components/ui";
 import type { FundSummary, Transaction, MemberBalance, Member } from "@/types";
 import { useAuth } from "@/components/AuthGuard";
-import { Users, ArrowDownCircle, ArrowUpCircle, Wallet, UserPlus, CreditCard, BarChart3, Clock } from "lucide-react";
+import { Users, ArrowDownCircle, ArrowUpCircle, Wallet, UserPlus, CreditCard, BarChart3, Clock, Flame } from "lucide-react";
 
 type Recent = Transaction & { members: { name: string } | null };
 
@@ -260,6 +260,29 @@ export default function Dashboard() {
   const [dafBavli, setDafBavli] = useState("");
   const [dafYerushalmi, setDafYerushalmi] = useState("");
   const [rates, setRates] = useState<{ usd: number; eur: number; updated: Date } | null>(null);
+  const [candles, setCandles] = useState<{ label: string; time: string; mins: number }[]>([]);
+
+  // זמני הדלקת נרות לשבת הקרובה — ירושלים, ביתר עילית, מודיעין עילית
+  useEffect(() => {
+    const cities = [
+      { label: "ירושלים", lat: 31.7683, lon: 35.2137, b: 40 },
+      { label: "ביתר עילית", lat: 31.6997, lon: 35.1163, b: 40 },
+      { label: "מודיעין עילית", lat: 31.9326, lon: 35.0413, b: 40 },
+    ];
+    Promise.all(cities.map(c =>
+      fetch(`https://www.hebcal.com/shabbat?cfg=json&latitude=${c.lat}&longitude=${c.lon}&tzid=Asia/Jerusalem&b=${c.b}&M=on&lg=he`, { cache: "no-store" })
+        .then(r => r.json())
+        .then(data => {
+          const item = (data.items || []).find((i: any) => i.category === "candles");
+          const dt = item ? new Date(item.date) : null;
+          const time = dt && !isNaN(dt.getTime())
+            ? dt.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Jerusalem" })
+            : "";
+          return { label: c.label, time, mins: c.b };
+        })
+        .catch(() => ({ label: c.label, time: "", mins: c.b }))
+    )).then(res => setCandles(res.filter(c => c.time)));
+  }, []);
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
@@ -457,24 +480,47 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* הזמן ההלכתי הבא */}
-        {nextZman && (
-          <div style={{
-            display: "inline-flex", alignItems: "center", gap: 10, marginTop: 12,
-            background: "linear-gradient(135deg,#f0f9f5,#eef6ff)",
-            border: "1px solid #d7e9e2", borderRadius: 12,
-            padding: "0.55rem 1rem", fontSize: ".9rem",
-          }}>
-            <Clock size={18} color={BRAND} />
-            <span style={{ color: "#4a5568" }}>
-              שים לב: <strong style={{ color: "#1a1a2e" }}>{nextZman.label}</strong> בשעה{" "}
-              <strong style={{ color: BRAND, fontVariantNumeric: "tabular-nums" }} dir="ltr">{zmanTime}</strong>
-            </span>
-            <span style={{ background: BRAND, color: "#fff", borderRadius: 999, padding: "0.15rem 0.7rem", fontSize: ".8rem", fontWeight: 700 }}>
-              {zmanCountdown}
-            </span>
-          </div>
-        )}
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "stretch", gap: 10, marginTop: 12 }}>
+          {/* הזמן ההלכתי הבא */}
+          {nextZman && (
+            <div style={{
+              display: "inline-flex", alignItems: "center", gap: 10,
+              background: "linear-gradient(135deg,#f0f9f5,#eef6ff)",
+              border: "1px solid #d7e9e2", borderRadius: 12,
+              padding: "0.55rem 1rem", fontSize: ".9rem",
+            }}>
+              <Clock size={18} color={BRAND} />
+              <span style={{ color: "#4a5568" }}>
+                שים לב: <strong style={{ color: "#1a1a2e" }}>{nextZman.label}</strong> בשעה{" "}
+                <strong style={{ color: BRAND, fontVariantNumeric: "tabular-nums" }} dir="ltr">{zmanTime}</strong>
+              </span>
+              <span style={{ background: BRAND, color: "#fff", borderRadius: 999, padding: "0.15rem 0.7rem", fontSize: ".8rem", fontWeight: 700 }}>
+                {zmanCountdown}
+              </span>
+            </div>
+          )}
+
+          {/* הדלקת נרות שבת הקרובה */}
+          {candles.length > 0 && (
+            <div style={{
+              display: "inline-flex", alignItems: "center", gap: 14, flexWrap: "wrap",
+              background: "linear-gradient(135deg,#fff8ec,#fff3ee)",
+              border: "1px solid #f2e0c9", borderRadius: 12,
+              padding: "0.55rem 1rem", fontSize: ".9rem",
+            }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "#b45309", fontWeight: 800 }}>
+                <Flame size={18} color="#e8820c" /> הדלקת נרות
+              </span>
+              {candles.map(c => (
+                <span key={c.label} style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  <span style={{ color: "#7a8699" }}>{c.label}</span>
+                  <strong style={{ color: "#b45309", fontVariantNumeric: "tabular-nums" }} dir="ltr">{c.time}</strong>
+                  <span style={{ color: "#c0a988", fontSize: ".78rem" }}>({c.mins} ד׳ לפני השקיעה)</span>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* KPI שורה */}
