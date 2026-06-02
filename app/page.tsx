@@ -260,7 +260,7 @@ export default function Dashboard() {
   const [dafBavli, setDafBavli] = useState("");
   const [dafYerushalmi, setDafYerushalmi] = useState("");
   const [rates, setRates] = useState<{ usd: number; eur: number; updated: Date } | null>(null);
-  const [candles, setCandles] = useState<{ label: string; time: string; mins: number }[]>([]);
+  const [candles, setCandles] = useState<{ label: string; time: string; mins: number; havdalah: string }[]>([]);
 
   // זמני הדלקת נרות לשבת הקרובה — ירושלים, ביתר עילית, מודיעין עילית
   useEffect(() => {
@@ -273,14 +273,17 @@ export default function Dashboard() {
       fetch(`https://www.hebcal.com/shabbat?cfg=json&latitude=${c.lat}&longitude=${c.lon}&tzid=Asia/Jerusalem&b=${c.b}&M=on&lg=he`, { cache: "no-store" })
         .then(r => r.json())
         .then(data => {
-          const item = (data.items || []).find((i: any) => i.category === "candles");
-          const dt = item ? new Date(item.date) : null;
-          const time = dt && !isNaN(dt.getTime())
-            ? dt.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Jerusalem" })
-            : "";
-          return { label: c.label, time, mins: c.b };
+          const items: any[] = data.items || [];
+          const fmt = (cat: string) => {
+            const it = items.find(i => i.category === cat);
+            const dt = it ? new Date(it.date) : null;
+            return dt && !isNaN(dt.getTime())
+              ? dt.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Jerusalem" })
+              : "";
+          };
+          return { label: c.label, time: fmt("candles"), mins: c.b, havdalah: fmt("havdalah") };
         })
-        .catch(() => ({ label: c.label, time: "", mins: c.b }))
+        .catch(() => ({ label: c.label, time: "", mins: c.b, havdalah: "" }))
     )).then(res => setCandles(res.filter(c => c.time)));
   }, []);
 
@@ -509,13 +512,23 @@ export default function Dashboard() {
               padding: "0.55rem 1rem", fontSize: ".9rem",
             }}>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "#b45309", fontWeight: 800 }}>
-                <Flame size={18} color="#e8820c" /> הדלקת נרות
+                <Flame size={18} color="#e8820c" /> שבת
               </span>
               {candles.map(c => (
-                <span key={c.label} style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-                  <span style={{ color: "#7a8699" }}>{c.label}</span>
-                  <strong style={{ color: "#b45309", fontVariantNumeric: "tabular-nums" }} dir="ltr">{c.time}</strong>
-                  <span style={{ color: "#c0a988", fontSize: ".78rem" }}>({c.mins} ד׳ לפני השקיעה)</span>
+                <span key={c.label} style={{ display: "inline-flex", flexDirection: "column", gap: 2, paddingInline: 4, borderInlineStart: "1px solid #f0e2cc" }}>
+                  <span style={{ color: "#7a8699", fontWeight: 700, fontSize: ".82rem" }}>{c.label}</span>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: ".82rem" }}>
+                    <span style={{ color: "#9aa5b5" }}>נרות</span>
+                    <strong style={{ color: "#b45309", fontVariantNumeric: "tabular-nums" }} dir="ltr">{c.time}</strong>
+                    <span style={{ color: "#c0a988", fontSize: ".72rem" }}>({c.mins} ד׳)</span>
+                    {c.havdalah && (
+                      <>
+                        <span style={{ color: "#d8c4a3" }}>·</span>
+                        <span style={{ color: "#9aa5b5" }}>צאת</span>
+                        <strong style={{ color: "#7c3aed", fontVariantNumeric: "tabular-nums" }} dir="ltr">{c.havdalah}</strong>
+                      </>
+                    )}
+                  </span>
                 </span>
               ))}
             </div>
