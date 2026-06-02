@@ -5,7 +5,7 @@ import Link from "next/link";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { supabase } from "@/lib/supabase";
 import { ils, num, gdate, toHebrewDate, hebrewDateLetters, TXN_TYPES, TXN_METHODS } from "@/lib/format";
-import { hebTextToGregDisplay } from "@/lib/hebrewParse";
+import { hebTextToGregDisplay, hebTextToGreg } from "@/lib/hebrewParse";
 import { Badge, Loading, SuccessPopup } from "@/components/ui";
 import type { FundSummary, Transaction, MemberBalance, Member } from "@/types";
 import { useAuth } from "@/components/AuthGuard";
@@ -112,7 +112,7 @@ export default function Dashboard() {
   const [recent, setRecent] = useState<Recent[]>([]);
   const [top, setTop] = useState<MemberBalance[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
-  const [allTxns, setAllTxns] = useState<{ amount: number; type: string; greg_date: string | null; created_at: string }[]>([]);
+  const [allTxns, setAllTxns] = useState<{ amount: number; type: string; greg_date: string | null; heb_date: string | null; created_at: string }[]>([]);
   const [period, setPeriod] = useState<"day" | "week" | "month" | "year">("day");
   const [loading, setLoading] = useState(true);
 
@@ -131,7 +131,7 @@ export default function Dashboard() {
       supabase.from("transactions").select("*, members(name)").order("created_at", { ascending: false }).limit(10),
       supabase.from("member_balances").select("*").order("balance", { ascending: false }).limit(6),
       supabase.from("members").select("*").order("name"),
-      supabase.from("transactions").select("amount,type,greg_date,created_at").limit(50000),
+      supabase.from("transactions").select("amount,type,greg_date,heb_date,created_at").limit(50000),
     ]);
     setSummary(s.data as FundSummary);
     setRecent((r.data as Recent[]) || []);
@@ -148,14 +148,17 @@ export default function Dashboard() {
     else if (period === "month") start.setDate(1);
     else if (period === "year") { start.setMonth(0, 1); }
     const startMs = start.getTime();
-    let depCount = 0, depSum = 0, wdCount = 0, wdSum = 0;
+    let depCount = 0, depSum = 0, wdCount = 0, wdSum = 0, undated = 0;
     for (const t of allTxns) {
-      const dt = new Date(t.greg_date || t.created_at).getTime();
+      // תאריך הפעולה בפועל: לועזי שמור, ואם אין — מחושב מהתאריך העברי. בלי תאריך — לא נספר.
+      const iso = t.greg_date || hebTextToGreg(t.heb_date);
+      if (!iso) { undated++; continue; }
+      const dt = new Date(iso).getTime();
       if (isNaN(dt) || dt < startMs) continue;
       if (t.type === "משיכה") { wdCount++; wdSum += Number(t.amount) || 0; }
       else { depCount++; depSum += Number(t.amount) || 0; }
     }
-    return { depCount, depSum, wdCount, wdSum, net: depSum - wdSum };
+    return { depCount, depSum, wdCount, wdSum, net: depSum - wdSum, undated };
   }, [allTxns, period]);
   useEffect(() => { load(); }, []);
 
@@ -513,6 +516,11 @@ export default function Dashboard() {
           <KpiCard label={`תנועה נטו ${PERIOD_LABEL[period]}`} value={ils(periodStats.net)} icon={<Wallet size={20} />} color={periodStats.net >= 0 ? BRAND : RED}
             sub={`${num(periodStats.depCount + periodStats.wdCount)} פעולות בסך הכל`} />
         </div>
+        {periodStats.undated > 0 && (
+          <div style={{ fontSize: ".72rem", color: "#b0bac7", marginTop: 10 }}>
+            * {num(periodStats.undated)} פעולות ללא תאריך תקין לא נכללו בחישוב התקופה
+          </div>
+        )}
       </div>
 
       {/* גריד ראשי */}
