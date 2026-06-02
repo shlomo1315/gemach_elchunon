@@ -115,7 +115,7 @@ export default function MembersPage() {
     if (!email) { setLoginMsg("יש להזין מייל לחבר תחילה"); return; }
     if (loginPass.length < 6) { setLoginMsg("סיסמה חייבת להיות לפחות 6 תווים"); return; }
     setCreatingLogin(true); setLoginMsg("");
-    const { data, error } = await supabase.functions.invoke("create-member-login", {
+    const { data, error } = await supabase.functions.invoke("dynamic-responder", {
       body: { email, password: loginPass, memberId: editing.id },
     });
     setCreatingLogin(false);
