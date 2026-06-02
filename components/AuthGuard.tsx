@@ -4,6 +4,7 @@ import { useEffect, useState, createContext, useContext } from "react";
 import { supabase } from "@/lib/supabase";
 import type { User } from "@supabase/supabase-js";
 import Sidebar from "./Sidebar";
+import MemberPortal from "./MemberPortal";
 
 type Theme = "light" | "dark";
 type AuthCtx = { user: User | null; logout: () => void; theme: Theme; toggleTheme: () => void };
@@ -133,6 +134,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const [checking, setChecking] = useState(true);
   const [showSplash, setShowSplash] = useState(false);
   const [theme, setTheme] = useState<Theme>("light");
+  const [memberId, setMemberId] = useState<string | null>(null);
+  const [roleResolved, setRoleResolved] = useState(false);
 
   useEffect(() => {
     const saved = typeof window !== "undefined" ? localStorage.getItem("gemach_theme") : null;
@@ -157,9 +160,32 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
+  // זיהוי תפקיד: אם המייל של המשתמש משויך לחבר → פורטל חבר (קריאה בלבד), אחרת מנהל
+  useEffect(() => {
+    let cancelled = false;
+    if (!user?.email) { setMemberId(null); setRoleResolved(true); return; }
+    setRoleResolved(false);
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("members")
+          .select("id")
+          .ilike("email", user.email!)
+          .maybeSingle();
+        if (!cancelled) setMemberId(data?.id ?? null);
+      } catch {
+        if (!cancelled) setMemberId(null);
+      } finally {
+        if (!cancelled) setRoleResolved(true);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user?.email]);
+
   async function logout() {
     await supabase.auth.signOut();
     setUser(null);
+    setMemberId(null);
   }
 
   function handleLogin(u: User) {
@@ -177,6 +203,25 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
   if (!user) return <LoginPage onLogin={handleLogin} />;
 
+  // המתנה לזיהוי תפקיד לפני הצגת ממשק
+  if (!roleResolved) {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f6f7fb" }}>
+        <div style={{ color: BRAND, fontSize: "1rem", fontWeight: 600 }}>טוען…</div>
+      </div>
+    );
+  }
+
+  // חבר רגיל → פורטל אישי לצפייה בלבד
+  if (memberId) {
+    return (
+      <AuthContext.Provider value={{ user, logout, theme, toggleTheme }}>
+        <MemberPortal memberId={memberId} logout={logout} />
+      </AuthContext.Provider>
+    );
+  }
+
+  // מנהל → המערכת המלאה
   return (
     <AuthContext.Provider value={{ user, logout, theme, toggleTheme }}>
       <div style={{ display: "flex", minHeight: "100vh", filter: showSplash ? "blur(5px)" : "none", transition: "filter 0.4s" }}>

@@ -5,6 +5,7 @@ export type Member = {
   name: string;
   address: string | null;
   phone: string | null;
+  email: string | null;
   created_at: string;
   updated_at: string;
 };

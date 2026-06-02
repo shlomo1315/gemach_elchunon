@@ -67,8 +67,8 @@ export default function MembersPage() {
   const [editing, setEditing] = useState<MemberBalance | null>(null);
 
   // טפסים
-  const [addForm, setAddForm] = useState({ name: "", code: "", phone: "", address: "" });
-  const [editForm, setEditForm] = useState({ name: "", code: "", phone: "", address: "" });
+  const [addForm, setAddForm] = useState({ name: "", code: "", phone: "", address: "", email: "" });
+  const [editForm, setEditForm] = useState({ name: "", code: "", phone: "", address: "", email: "" });
   const [addErr, setAddErr] = useState<Record<string, string>>({});
   const [editErr, setEditErr] = useState<Record<string, string>>({});
 
@@ -81,7 +81,7 @@ export default function MembersPage() {
 
   const closeAdd = useCallback(() => {
     setAdding(false); setAddErr({});
-    setAddForm({ name: "", code: "", phone: "", address: "" });
+    setAddForm({ name: "", code: "", phone: "", address: "", email: "" });
   }, []);
 
   function setAddPhone(val: string) {
@@ -99,7 +99,7 @@ export default function MembersPage() {
   }
 
   function openEdit(m: MemberBalance) {
-    setEditForm({ name: m.name || "", code: m.code || "", phone: m.phone || "", address: m.address || "" });
+    setEditForm({ name: m.name || "", code: m.code || "", phone: m.phone || "", address: m.address || "", email: m.email || "" });
     setEditErr({});
     setEditing(m);
   }
@@ -148,6 +148,7 @@ export default function MembersPage() {
       code: code || addForm.code.trim() || null,
       phone: addForm.phone.trim() || null,
       address: addForm.address.trim() || null,
+      email: addForm.email.trim().toLowerCase() || null,
     });
     setSaving(false);
     if (error) { alert("שגיאה: " + error.message); return; }
@@ -169,6 +170,7 @@ export default function MembersPage() {
       code: editForm.code.trim() || null,
       phone: editForm.phone.trim() || null,
       address: editForm.address.trim() || null,
+      email: editForm.email.trim().toLowerCase() || null,
     }).eq("id", editing.id);
     setSaving(false);
     if (error) { alert("שגיאה: " + error.message); return; }
@@ -355,6 +357,10 @@ export default function MembersPage() {
                 <label style={lbl}>כתובת</label>
                 <input value={editForm.address} onChange={e => setEditForm(f => ({ ...f, address: e.target.value }))} style={inp} placeholder="רחוב, עיר" />
               </div>
+              <div style={{ gridColumn: "1/-1" }}>
+                <label style={lbl}>מייל להתחברות (פורטל אישי)</label>
+                <input value={editForm.email} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} style={inp} dir="ltr" placeholder="member@example.com" type="email" />
+              </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: "1.5rem" }}>
               <button onClick={saveMember} disabled={saving} style={saveBtnStyle}>{saving ? "שומר…" : "✓ שמור שינויים"}</button>
@@ -393,6 +399,10 @@ export default function MembersPage() {
               <div style={{ gridColumn: "1 / -1" }}>
                 <label style={lbl}>כתובת</label>
                 <input value={addForm.address} onChange={e => setAddForm(f => ({ ...f, address: e.target.value }))} style={inp} placeholder="רחוב, עיר" />
+              </div>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label style={lbl}>מייל להתחברות (פורטל אישי)</label>
+                <input value={addForm.email} onChange={e => setAddForm(f => ({ ...f, email: e.target.value }))} style={inp} dir="ltr" placeholder="member@example.com" type="email" />
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: "1.5rem" }}>
