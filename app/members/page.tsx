@@ -71,6 +71,10 @@ export default function MembersPage() {
   const [editForm, setEditForm] = useState({ name: "", code: "", phone: "", address: "", email: "" });
   const [addErr, setAddErr] = useState<Record<string, string>>({});
   const [editErr, setEditErr] = useState<Record<string, string>>({});
+  // יצירת התחברות לחבר
+  const [loginPass, setLoginPass] = useState("");
+  const [creatingLogin, setCreatingLogin] = useState(false);
+  const [loginMsg, setLoginMsg] = useState("");
 
   async function load() {
     const { data } = await supabase.from("member_balances").select("*").order("name");
@@ -101,7 +105,27 @@ export default function MembersPage() {
   function openEdit(m: MemberBalance) {
     setEditForm({ name: m.name || "", code: m.code || "", phone: m.phone || "", address: m.address || "", email: m.email || "" });
     setEditErr({});
+    setLoginPass(""); setLoginMsg("");
     setEditing(m);
+  }
+
+  async function createLogin() {
+    if (!editing) return;
+    const email = editForm.email.trim().toLowerCase();
+    if (!email) { setLoginMsg("יש להזין מייל לחבר תחילה"); return; }
+    if (loginPass.length < 6) { setLoginMsg("סיסמה חייבת להיות לפחות 6 תווים"); return; }
+    setCreatingLogin(true); setLoginMsg("");
+    const { data, error } = await supabase.functions.invoke("create-member-login", {
+      body: { email, password: loginPass, memberId: editing.id },
+    });
+    setCreatingLogin(false);
+    if (error || (data && (data as any).error)) {
+      setLoginMsg("שגיאה: " + (error?.message || (data as any)?.error || "נכשל"));
+      return;
+    }
+    setLoginMsg("✓ חשבון ההתחברות נוצר בהצלחה");
+    setLoginPass("");
+    load();
   }
 
   const filtered = useMemo(() => {
@@ -360,6 +384,18 @@ export default function MembersPage() {
               <div style={{ gridColumn: "1/-1" }}>
                 <label style={lbl}>מייל להתחברות (פורטל אישי)</label>
                 <input value={editForm.email} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} style={inp} dir="ltr" placeholder="member@example.com" type="email" />
+              </div>
+              {/* יצירת חשבון התחברות לחבר */}
+              <div style={{ gridColumn: "1/-1", background: "#f4faf8", borderRadius: 10, padding: "0.85rem 1rem", border: "1px solid #d7e9e2" }}>
+                <div style={{ fontSize: ".82rem", fontWeight: 700, color: BRAND, marginBottom: 6 }}>🔐 התחברות לפורטל האישי (צפייה בלבד)</div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                  <input value={loginPass} onChange={e => setLoginPass(e.target.value)} style={{ ...inp, flex: 1, minWidth: 140 }} dir="ltr" type="text" placeholder="סיסמה לחבר (לפחות 6 תווים)" />
+                  <button onClick={createLogin} disabled={creatingLogin} style={{ padding: "0.5rem 1rem", background: BRAND, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".85rem", cursor: "pointer", whiteSpace: "nowrap" }}>
+                    {creatingLogin ? "יוצר…" : "צור התחברות"}
+                  </button>
+                </div>
+                {loginMsg && <div style={{ fontSize: ".78rem", marginTop: 6, color: loginMsg.startsWith("✓") ? BRAND : RED }}>{loginMsg}</div>}
+                <div style={{ fontSize: ".72rem", color: "#9aa5b5", marginTop: 6 }}>החבר יתחבר עם המייל שלמעלה והסיסמה שתגדיר כאן.</div>
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: "1.5rem" }}>
