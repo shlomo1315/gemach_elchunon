@@ -95,6 +95,37 @@ export default function MemberDetail() {
     setEditing(t);
   }
 
+  // הוספת פעולה חדשה לחבר הנוכחי
+  const [addTxn, setAddTxn] = useState(false);
+  const [addForm, setAddForm] = useState({ amount: "", type: "הפקדה", method: "", greg_date: "", heb_date: "", notes: "" });
+  const [savingAdd, setSavingAdd] = useState(false);
+
+  function openAdd() {
+    setAddForm({ amount: "", type: "הפקדה", method: "", greg_date: "", heb_date: "", notes: "" });
+    setAddTxn(true);
+  }
+  function setAddGreg(val: string) { setAddForm(f => ({ ...f, greg_date: val, heb_date: toHebrewDate(val) })); }
+  function setAddHeb(val: string) {
+    const iso = hebTextToGreg(val);
+    setAddForm(f => ({ ...f, heb_date: val, greg_date: iso || f.greg_date }));
+  }
+  async function saveAdd() {
+    if (!member) return;
+    if (!addForm.amount || Number(addForm.amount) <= 0) { alert("יש להזין סכום חיובי"); return; }
+    if (!addForm.method) { alert("יש לבחור אופן"); return; }
+    if (!addForm.greg_date) { alert("יש לבחור תאריך"); return; }
+    setSavingAdd(true);
+    const { error } = await supabase.from("transactions").insert({
+      member_id: member.id, amount: Number(addForm.amount), type: addForm.type,
+      method: addForm.method || null, greg_date: addForm.greg_date || null,
+      heb_date: addForm.heb_date || null, notes: addForm.notes || null,
+    });
+    setSavingAdd(false);
+    if (error) { alert("שגיאה: " + error.message); return; }
+    setAddTxn(false);
+    load();
+  }
+
   // בחירת תאריך לועזי → חישוב עברי אוטומטי
   function setGreg(val: string) {
     setForm(f => ({ ...f, greg_date: val, heb_date: toHebrewDate(val) }));
@@ -216,7 +247,12 @@ export default function MemberDetail() {
       </div>
 
       <Card style={{ padding: 0 }}>
-        <h3 style={{ padding: "1rem 1.25rem 0" }}>היסטוריית פעולות</h3>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem 1.25rem 0" }}>
+          <h3 style={{ margin: 0 }}>היסטוריית פעולות</h3>
+          <button className="no-print" onClick={openAdd} style={{ display: "flex", alignItems: "center", gap: 6, padding: "0.45rem 1rem", background: BRAND, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".85rem", cursor: "pointer" }}>
+            ＋ הוספת פעולה
+          </button>
+        </div>
         {txns.length === 0 ? (
           <Empty text="אין פעולות לחבר זה" />
         ) : (
@@ -306,6 +342,60 @@ export default function MemberDetail() {
               <button onClick={save} disabled={saving} style={{ padding: "0.55rem 1.2rem", background: BRAND, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".9rem", cursor: "pointer" }}>{saving ? "שומר…" : "✓ שמור שינויים"}</button>
               <button onClick={() => setEditing(null)} style={{ padding: "0.55rem 1.2rem", background: "#eef2f1", color: BRAND, border: "none", borderRadius: 8, fontWeight: 600, fontSize: ".9rem", cursor: "pointer" }}>ביטול</button>
               <button onClick={remove} disabled={saving} style={{ padding: "0.55rem 1.2rem", background: "#fde8e8", color: "#c0392b", border: "none", borderRadius: 8, fontWeight: 600, fontSize: ".9rem", cursor: "pointer", marginInlineStart: "auto" }}>מחק</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* מודאל הוספת פעולה — החבר ידוע אוטומטית */}
+      {addTxn && (
+        <div onClick={e => { if (e.target === e.currentTarget) setAddTxn(false); }}
+          style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem", backdropFilter: "blur(2px)" }}>
+          <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 20px 60px rgba(0,0,0,.2)", width: "100%", maxWidth: 500, padding: "1.75rem", direction: "rtl", animation: "modalIn 0.18s ease" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" }}>
+              <h2 style={{ margin: 0, fontSize: "1.15rem", fontWeight: 800, color: BRAND }}>הוספת פעולה</h2>
+              <button onClick={() => setAddTxn(false)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.2rem", color: "#9aa5b5" }}>✕</button>
+            </div>
+            <div style={{ background: "#f4faf8", borderRadius: 10, padding: "0.6rem 0.9rem", marginBottom: "1rem", fontSize: ".9rem", border: "1px solid #d7e9e2" }}>
+              <span style={{ color: "#7a8699" }}>חבר: </span><strong style={{ color: BRAND }}>{member.name}</strong>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+              <div>
+                <label style={lbl}>סוג</label>
+                <select value={addForm.type} onChange={e => setAddForm(f => ({ ...f, type: e.target.value }))} style={inp}>
+                  {TXN_TYPES.map(t => <option key={t}>{t}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={lbl}>סכום ₪</label>
+                <input type="number" value={addForm.amount} onChange={e => setAddForm(f => ({ ...f, amount: e.target.value }))} style={inp} autoFocus />
+              </div>
+              <div>
+                <label style={lbl}>אופן</label>
+                <select value={addForm.method} onChange={e => setAddForm(f => ({ ...f, method: e.target.value }))} style={inp}>
+                  <option value="">—</option>
+                  {TXN_METHODS.map(t => <option key={t}>{t}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={lbl}>תאריך לועזי</label>
+                <input type="date" value={addForm.greg_date} onChange={e => setAddGreg(e.target.value)} style={inp} />
+              </div>
+              <div style={{ gridColumn: "1/-1" }}>
+                <label style={lbl}>תאריך עברי (טקסט)</label>
+                <input value={addForm.heb_date} onChange={e => setAddHeb(e.target.value)} style={inp} placeholder="כו ניסן פו" dir="rtl" />
+                {addForm.heb_date && hebTextToGreg(addForm.heb_date) && (
+                  <div style={{ fontSize: ".78rem", color: BRAND, marginTop: 4 }}>לועזי מחושב: {gdate(hebTextToGreg(addForm.heb_date)!)}</div>
+                )}
+              </div>
+              <div style={{ gridColumn: "1/-1" }}>
+                <label style={lbl}>הערות</label>
+                <input value={addForm.notes} onChange={e => setAddForm(f => ({ ...f, notes: e.target.value }))} style={inp} />
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 10, marginTop: "1.5rem" }}>
+              <button onClick={saveAdd} disabled={savingAdd} style={{ padding: "0.55rem 1.2rem", background: BRAND, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".9rem", cursor: "pointer" }}>{savingAdd ? "שומר…" : "✓ הוסף פעולה"}</button>
+              <button onClick={() => setAddTxn(false)} style={{ padding: "0.55rem 1.2rem", background: "#eef2f1", color: BRAND, border: "none", borderRadius: 8, fontWeight: 600, fontSize: ".9rem", cursor: "pointer" }}>ביטול</button>
             </div>
           </div>
         </div>
