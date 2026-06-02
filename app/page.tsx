@@ -16,6 +16,9 @@ type Recent = Transaction & { members: { name: string } | null };
 const BRAND = "#1e6f5c";
 const RED = "#e05252";
 
+const PERIOD_LABEL = { day: "היום", week: "השבוע", month: "החודש", year: "השנה" } as const;
+const PERIOD_TAB = { day: "יום", week: "שבוע", month: "חודש", year: "שנה" } as const;
+
 function KpiCard({ label, value, icon, color, sub }: {
   label: string; value: string; icon: React.ReactNode; color: string; sub?: string;
 }) {
@@ -109,6 +112,8 @@ export default function Dashboard() {
   const [recent, setRecent] = useState<Recent[]>([]);
   const [top, setTop] = useState<MemberBalance[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
+  const [allTxns, setAllTxns] = useState<{ amount: number; type: string; greg_date: string | null; created_at: string }[]>([]);
+  const [period, setPeriod] = useState<"day" | "week" | "month" | "year">("day");
   const [loading, setLoading] = useState(true);
 
   const [addTxn, setAddTxn] = useState(false);
@@ -121,18 +126,37 @@ export default function Dashboard() {
   const [formErr, setFormErr] = useState<Record<string, string>>({});
 
   async function load() {
-    const [s, r, t, m] = await Promise.all([
+    const [s, r, t, m, a] = await Promise.all([
       supabase.from("fund_summary").select("*").single(),
       supabase.from("transactions").select("*, members(name)").order("created_at", { ascending: false }).limit(10),
       supabase.from("member_balances").select("*").order("balance", { ascending: false }).limit(6),
       supabase.from("members").select("*").order("name"),
+      supabase.from("transactions").select("amount,type,greg_date,created_at").limit(50000),
     ]);
     setSummary(s.data as FundSummary);
     setRecent((r.data as Recent[]) || []);
     setTop((t.data as MemberBalance[]) || []);
     setMembers((m.data as Member[]) || []);
+    setAllTxns((a.data as any[]) || []);
     setLoading(false);
   }
+
+  // סטטיסטיקות לפי התקופה הנבחרת (יום/שבוע/חודש/שנה)
+  const periodStats = useMemo(() => {
+    const start = new Date(); start.setHours(0, 0, 0, 0);
+    if (period === "week") start.setDate(start.getDate() - start.getDay());
+    else if (period === "month") start.setDate(1);
+    else if (period === "year") { start.setMonth(0, 1); }
+    const startMs = start.getTime();
+    let depCount = 0, depSum = 0, wdCount = 0, wdSum = 0;
+    for (const t of allTxns) {
+      const dt = new Date(t.greg_date || t.created_at).getTime();
+      if (isNaN(dt) || dt < startMs) continue;
+      if (t.type === "משיכה") { wdCount++; wdSum += Number(t.amount) || 0; }
+      else { depCount++; depSum += Number(t.amount) || 0; }
+    }
+    return { depCount, depSum, wdCount, wdSum, net: depSum - wdSum };
+  }, [allTxns, period]);
   useEffect(() => { load(); }, []);
 
   // הצגת פופ-אפ הצלחה שנעלם באיטיות
@@ -458,6 +482,37 @@ export default function Dashboard() {
         <KpiCard label="סך משיכות" value={ils(summary?.total_withdrawals)} icon={<ArrowUpCircle size={20} />} color={RED} />
         <KpiCard label="חברים" value={num(summary?.members_count)} icon={<Users size={20} />} color="#3b82f6"
           sub={`${num(summary?.txn_count)} פעולות`} />
+      </div>
+
+      {/* פעילות לפי תקופה */}
+      <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 2px 8px rgba(0,0,0,.06)", padding: "1.1rem 1.25rem", marginBottom: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
+          <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 800, color: "#1a1a2e", display: "flex", alignItems: "center", gap: 7 }}>
+            <Clock size={18} color={BRAND} /> פעילות {PERIOD_LABEL[period]}
+          </h3>
+          <div style={{ display: "inline-flex", background: "#f0f4f3", borderRadius: 999, padding: 3, gap: 2 }}>
+            {(["day", "week", "month", "year"] as const).map(p => (
+              <button key={p} onClick={() => setPeriod(p)}
+                style={{
+                  border: "none", cursor: "pointer", padding: "0.4rem 1rem", borderRadius: 999,
+                  fontSize: ".84rem", fontWeight: 700, transition: "all .15s",
+                  background: period === p ? BRAND : "transparent",
+                  color: period === p ? "#fff" : "#7a8699",
+                  boxShadow: period === p ? "0 2px 6px rgba(30,111,92,.3)" : "none",
+                }}>
+                {PERIOD_TAB[p]}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+          <KpiCard label={`הפקדות ${PERIOD_LABEL[period]}`} value={num(periodStats.depCount)} icon={<ArrowDownCircle size={20} />} color="#16a085"
+            sub={ils(periodStats.depSum)} />
+          <KpiCard label={`משיכות ${PERIOD_LABEL[period]}`} value={num(periodStats.wdCount)} icon={<ArrowUpCircle size={20} />} color={RED}
+            sub={ils(periodStats.wdSum)} />
+          <KpiCard label={`תנועה נטו ${PERIOD_LABEL[period]}`} value={ils(periodStats.net)} icon={<Wallet size={20} />} color={periodStats.net >= 0 ? BRAND : RED}
+            sub={`${num(periodStats.depCount + periodStats.wdCount)} פעולות בסך הכל`} />
+        </div>
       </div>
 
       {/* גריד ראשי */}
