@@ -155,6 +155,19 @@ export default function MemberDetail() {
     load();
   }
 
+  // מחיקת כל הפעולות של החבר — עם אישור כפול
+  const [deletingAll, setDeletingAll] = useState(false);
+  async function deleteAllTxns() {
+    if (!member || txns.length === 0) return;
+    if (!confirm(`למחוק את כל ${txns.length} הפעולות של "${member.name}"?\n\nפעולה זו אינה ניתנת לביטול!`)) return;
+    if (!confirm("אישור אחרון — כל הפעולות יימחקו לצמיתות. להמשיך?")) return;
+    setDeletingAll(true);
+    const { error } = await supabase.from("transactions").delete().eq("member_id", member.id);
+    setDeletingAll(false);
+    if (error) { alert("שגיאה: " + error.message); return; }
+    load();
+  }
+
   if (loading) return <Loading />;
   if (!member) return <Empty text="חבר לא נמצא" />;
 
@@ -245,9 +258,16 @@ export default function MemberDetail() {
       <Card style={{ padding: 0 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem 1.25rem 0" }}>
           <h3 style={{ margin: 0 }}>היסטוריית פעולות</h3>
-          <button className="no-print" onClick={openAdd} style={{ display: "flex", alignItems: "center", gap: 6, padding: "0.45rem 1rem", background: BRAND, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".85rem", cursor: "pointer" }}>
-            ＋ הוספת פעולה
-          </button>
+          <div className="no-print" style={{ display: "flex", gap: 8 }}>
+            {txns.length > 0 && (
+              <button onClick={deleteAllTxns} disabled={deletingAll} style={{ display: "flex", alignItems: "center", gap: 6, padding: "0.45rem 1rem", background: "#fde8e8", color: "#c0392b", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".85rem", cursor: "pointer" }}>
+                🗑️ {deletingAll ? "מוחק…" : "מחק את כל הפעולות"}
+              </button>
+            )}
+            <button onClick={openAdd} style={{ display: "flex", alignItems: "center", gap: 6, padding: "0.45rem 1rem", background: BRAND, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".85rem", cursor: "pointer" }}>
+              ＋ הוספת פעולה
+            </button>
+          </div>
         </div>
         {txns.length === 0 ? (
           <Empty text="אין פעולות לחבר זה" />
