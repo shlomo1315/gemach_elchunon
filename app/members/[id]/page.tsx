@@ -168,6 +168,26 @@ export default function MemberDetail() {
     load();
   }
 
+  // בחירה מרובה (סימון וי) ומחיקת הנבחרות
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [deletingSel, setDeletingSel] = useState(false);
+  function toggleOne(tid: string) {
+    setSelected(s => { const n = new Set(s); n.has(tid) ? n.delete(tid) : n.add(tid); return n; });
+  }
+  function toggleAll() {
+    setSelected(s => s.size === txns.length ? new Set() : new Set(txns.map(t => t.id)));
+  }
+  async function deleteSelected() {
+    if (selected.size === 0) return;
+    if (!confirm(`למחוק ${selected.size} פעולות שנבחרו?\n\nפעולה זו אינה ניתנת לביטול!`)) return;
+    setDeletingSel(true);
+    const { error } = await supabase.from("transactions").delete().in("id", Array.from(selected));
+    setDeletingSel(false);
+    if (error) { alert("שגיאה: " + error.message); return; }
+    setSelected(new Set());
+    load();
+  }
+
   if (loading) return <Loading />;
   if (!member) return <Empty text="חבר לא נמצא" />;
 
@@ -273,9 +293,23 @@ export default function MemberDetail() {
           <Empty text="אין פעולות לחבר זה" />
         ) : (
           <div style={{ overflowX: "auto" }}>
+            {selected.size > 0 && (
+              <div className="no-print" style={{ display: "flex", alignItems: "center", gap: 12, padding: "0.6rem 1.25rem", background: "#fef5f5", borderBottom: "1px solid #f3d7d7" }}>
+                <span style={{ fontWeight: 700, color: "#c0392b" }}>נבחרו {selected.size} פעולות</span>
+                <button onClick={deleteSelected} disabled={deletingSel} style={{ padding: "0.4rem 1rem", background: "#c0392b", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".85rem", cursor: "pointer" }}>
+                  🗑️ {deletingSel ? "מוחק…" : "מחק את הנבחרות"}
+                </button>
+                <button onClick={() => setSelected(new Set())} style={{ padding: "0.4rem 1rem", background: "#eef2f1", color: "#7a8699", border: "none", borderRadius: 8, fontWeight: 600, fontSize: ".85rem", cursor: "pointer" }}>
+                  בטל בחירה
+                </button>
+              </div>
+            )}
             <table className="table">
               <thead>
                 <tr>
+                  <th className="no-print" style={{ width: 36 }}>
+                    <input type="checkbox" checked={selected.size === txns.length && txns.length > 0} onChange={toggleAll} style={{ cursor: "pointer", width: 16, height: 16 }} />
+                  </th>
                   <th>#</th>
                   <th>סוג</th>
                   <th>סכום</th>
@@ -288,9 +322,12 @@ export default function MemberDetail() {
               </thead>
               <tbody>
                 {txns.map((t, i) => (
-                  <tr key={t.id} onClick={() => openEdit(t)} style={{ cursor: "pointer" }}
-                    onMouseEnter={e => (e.currentTarget.style.background = "#f4faf8")}
-                    onMouseLeave={e => (e.currentTarget.style.background = "")}>
+                  <tr key={t.id} onClick={() => openEdit(t)} style={{ cursor: "pointer", background: selected.has(t.id) ? "#fef5f5" : "" }}
+                    onMouseEnter={e => { if (!selected.has(t.id)) e.currentTarget.style.background = "#f4faf8"; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = selected.has(t.id) ? "#fef5f5" : ""; }}>
+                    <td className="no-print" onClick={e => e.stopPropagation()}>
+                      <input type="checkbox" checked={selected.has(t.id)} onChange={() => toggleOne(t.id)} style={{ cursor: "pointer", width: 16, height: 16 }} />
+                    </td>
                     <td>{i + 1}</td>
                     <td><Badge type={t.type} /></td>
                     <td style={{ fontWeight: 600, color: t.type === "משיכה" ? "#c0392b" : "#1e7d4f" }}>
