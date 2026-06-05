@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Pencil } from "lucide-react";
@@ -94,6 +94,18 @@ export default function MemberDetail() {
   const [chkForm, setChkForm] = useState({ amount: "", due_date: "", hebrew_due: "", notes: "" });
   const [addingChk, setAddingChk] = useState(false);
   const [chkBusy, setChkBusy] = useState<string | null>(null);
+
+  // התקדמות פירעון: כמה מהחוב כבר נפרע בשיקים וכמה צפוי להיפרע
+  const checkStats = useMemo(() => {
+    const pend = checks.filter(c => c.status === "pending");
+    const pendSum = pend.reduce((s, c) => s + c.amount, 0);
+    const cashedSum = checks.filter(c => c.status === "cashed").reduce((s, c) => s + c.amount, 0);
+    const debt = member && member.balance < 0 ? -member.balance : 0; // חוב נוכחי בפועל
+    const projectedDebt = Math.max(0, debt - pendSum);               // יתרת חוב צפויה אחרי פדיון כל הממתינים
+    const planTotal = cashedSum + pendSum;                           // סך תכנית הפירעון בשיקים
+    const progressPct = planTotal > 0 ? Math.round((cashedSum / planTotal) * 100) : 0;
+    return { pend, pendSum, cashedSum, debt, projectedDebt, planTotal, progressPct };
+  }, [checks, member]);
 
   async function addCheck() {
     if (!member) return;
@@ -412,6 +424,27 @@ export default function MemberDetail() {
             return pend.length > 0 ? <span style={{ fontSize: ".82rem", color: "#7a8699" }}>{pend.length} שיקים פתוחים · {ils(sum)}</span> : null;
           })()}
         </div>
+
+        {/* התקדמות פירעון ההלוואה בשיקים */}
+        {checks.length > 0 && (
+          <div style={{ padding: "0.75rem 1.25rem 0" }}>
+            <div style={{ display: "flex", gap: 18, flexWrap: "wrap", fontSize: ".85rem", color: "#445" }}>
+              <div>חוב נוכחי: <b style={{ color: checkStats.debt > 0 ? "#c0392b" : BRAND }}>{ils(checkStats.debt)}</b></div>
+              <div>שיקים ממתינים לפדיון: <b>{ils(checkStats.pendSum)}</b>{checkStats.pend.length > 0 ? ` (${checkStats.pend.length})` : ""}</div>
+              <div>יתרת חוב צפויה אחרי פדיון הכל: <b style={{ color: checkStats.projectedDebt > 0 ? "#c0392b" : BRAND }}>{ils(checkStats.projectedDebt)}</b></div>
+            </div>
+            {checkStats.planTotal > 0 && (
+              <div style={{ marginTop: 8 }}>
+                <div style={{ height: 8, background: "#eef2f1", borderRadius: 999, overflow: "hidden" }}>
+                  <div style={{ width: `${checkStats.progressPct}%`, height: "100%", background: BRAND, transition: "width .3s" }} />
+                </div>
+                <div style={{ fontSize: ".78rem", color: "#7a8699", marginTop: 4 }}>
+                  נפדו {ils(checkStats.cashedSum)} מתוך {ils(checkStats.planTotal)} · {checkStats.progressPct}% מתכנית השיקים
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* טופס הוספת שיק */}
         <div className="no-print" style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "flex-end", padding: "0.75rem 1.25rem" }}>
