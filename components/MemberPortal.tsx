@@ -52,6 +52,44 @@ export default function MemberPortal({ memberId, logout }: { memberId: string; l
   const [propTxn, setPropTxn] = useState<Transaction | null>(null);
   const [propForm, setPropForm] = useState({ amount: "", type: "הפקדה", method: "", greg_date: "", heb_date: "", notes: "", member_note: "" });
   const [savingProp, setSavingProp] = useState(false);
+  // הגשת פעולה חדשה לאישור (kind='add') עם מסמך תיעוד
+  const [addReqOpen, setAddReqOpen] = useState(false);
+  const [addForm, setAddForm] = useState({ amount: "", type: "הפקדה", method: "", greg_date: "", heb_date: "", notes: "", member_note: "" });
+  const [addFile, setAddFile] = useState<File | null>(null);
+  const [savingAddReq, setSavingAddReq] = useState(false);
+
+  function openAddReq() {
+    setAddForm({ amount: "", type: "הפקדה", method: "", greg_date: "", heb_date: "", notes: "", member_note: "" });
+    setAddFile(null);
+    setAddReqOpen(true);
+  }
+  function addGreg(val: string) { setAddForm(f => ({ ...f, greg_date: val, heb_date: toHebrewDate(val) })); }
+
+  async function submitAddReq() {
+    if (!addForm.amount || Number(addForm.amount) <= 0) { alert("יש להזין סכום חיובי"); return; }
+    if (!addForm.greg_date && !addForm.heb_date) { alert("יש להזין תאריך"); return; }
+    setSavingAddReq(true);
+    let documentUrl: string | null = null;
+    if (addFile) {
+      const safe = addFile.name.replace(/[^\w.\-]+/g, "_");
+      const path = `${memberId}/${Date.now()}-${safe}`;
+      const { error: upErr } = await supabase.storage.from("member-docs").upload(path, addFile, { upsert: false });
+      if (upErr) { setSavingAddReq(false); alert("שגיאה בהעלאת המסמך: " + upErr.message); return; }
+      documentUrl = path;
+    }
+    const { error } = await supabase.from("transaction_change_requests").insert({
+      member_id: memberId, transaction_id: null, kind: "add", status: "pending",
+      member_note: addForm.member_note || null, document_url: documentUrl,
+      proposed: {
+        amount: Number(addForm.amount), type: addForm.type, method: addForm.method || null,
+        greg_date: addForm.greg_date || null, heb_date: addForm.heb_date || null, notes: addForm.notes || null,
+      },
+    });
+    setSavingAddReq(false);
+    if (error) { alert("שגיאה: " + error.message); return; }
+    setAddReqOpen(false);
+    loadRequests();
+  }
   // פנייה / בקשה
   const [reqForm, setReqForm] = useState({ type: "message", subject: "", body: "", amount: "" });
   const [savingReq, setSavingReq] = useState(false);
@@ -188,8 +226,11 @@ export default function MemberPortal({ memberId, logout }: { memberId: string; l
 
         {/* פעולות אחרונות */}
         <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 2px 8px rgba(0,0,0,.06)", overflow: "hidden" }}>
-          <div style={{ padding: "1.1rem 1.25rem", borderBottom: "1px solid #f0f2f5", fontWeight: 800, color: "#1a1a2e" }}>
-            הפעולות שלך
+          <div style={{ padding: "1.1rem 1.25rem", borderBottom: "1px solid #f0f2f5", fontWeight: 800, color: "#1a1a2e", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+            <span>הפעולות שלך</span>
+            <button onClick={openAddReq} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "0.45rem 1rem", background: BRAND, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".85rem", cursor: "pointer" }}>
+              ＋ הגש פעולה חדשה לאישור
+            </button>
           </div>
           {txns.length === 0 ? (
             <div style={{ padding: "2rem", textAlign: "center", color: "#9aa5b5" }}>אין פעולות עדיין</div>
@@ -275,7 +316,7 @@ export default function MemberPortal({ memberId, logout }: { memberId: string; l
                 ))}
                 {myChanges.map(c => (
                   <div key={c.id} style={rowCard}>
-                    <span>הצעת תיקון לפעולה{c.proposed?.amount ? ` · ${ils(Number(c.proposed.amount))}` : ""}</span>
+                    <span>{c.kind === "add" ? "בקשת פעולה חדשה" : c.kind === "delete" ? "בקשת מחיקת פעולה" : "הצעת תיקון לפעולה"}{c.proposed?.amount ? ` · ${ils(Number(c.proposed.amount))}` : ""}{c.document_url ? " · 📎" : ""}</span>
                     <span style={{ ...miniPill, background: STATUS_COLOR[c.status] }}>{REQ_STATUS_LABEL[c.status]}</span>
                   </div>
                 ))}
@@ -337,6 +378,64 @@ export default function MemberPortal({ memberId, logout }: { memberId: string; l
             <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
               <button onClick={submitPropose} disabled={savingProp} style={{ padding: "0.55rem 1.3rem", background: BRAND, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".9rem", cursor: "pointer" }}>{savingProp ? "שולח…" : "שלח הצעה"}</button>
               <button onClick={() => setPropTxn(null)} style={{ padding: "0.55rem 1.3rem", background: "#eef2f1", color: BRAND, border: "none", borderRadius: 8, fontWeight: 600, fontSize: ".9rem", cursor: "pointer" }}>ביטול</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* מודאל הגשת פעולה חדשה לאישור */}
+      {addReqOpen && (
+        <div onClick={e => { if (e.target === e.currentTarget) setAddReqOpen(false); }}
+          style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem", backdropFilter: "blur(2px)" }}>
+          <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 20px 60px rgba(0,0,0,.2)", width: "100%", maxWidth: 480, padding: "1.6rem", direction: "rtl", maxHeight: "92vh", overflowY: "auto" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+              <h2 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 800, color: BRAND }}>הגשת פעולה חדשה לאישור</h2>
+              <button onClick={() => setAddReqOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.2rem", color: "#9aa5b5" }}>✕</button>
+            </div>
+            <div style={{ fontSize: ".82rem", color: "#7a8699", marginBottom: 12 }}>פרט את הפעולה שביצעת וצרף מסמך תיעוד. הבקשה תיכנס לתיק שלך ותמתין לאישור הגבאי.</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.9rem" }}>
+              <div>
+                <label style={lblS}>סוג</label>
+                <select value={addForm.type} onChange={e => setAddForm(f => ({ ...f, type: e.target.value }))} style={inp}>
+                  {TXN_TYPES.map(t => <option key={t}>{t}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={lblS}>סכום ₪</label>
+                <input type="number" value={addForm.amount} onChange={e => setAddForm(f => ({ ...f, amount: e.target.value }))} style={inp} autoFocus />
+              </div>
+              <div>
+                <label style={lblS}>אופן</label>
+                <select value={addForm.method} onChange={e => setAddForm(f => ({ ...f, method: e.target.value }))} style={inp}>
+                  <option value="">—</option>
+                  {TXN_METHODS.map(t => <option key={t}>{t}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={lblS}>תאריך לועזי</label>
+                <input type="date" value={addForm.greg_date} onChange={e => addGreg(e.target.value)} style={inp} />
+              </div>
+              <div style={{ gridColumn: "1/-1" }}>
+                <label style={lblS}>תאריך עברי (מחושב)</label>
+                <div style={{ ...inp, background: "#f4faf8", color: addForm.heb_date ? "#1a1a2e" : "#9aa5b5", display: "flex", alignItems: "center", minHeight: 38 }}>{addForm.heb_date || "—"}</div>
+              </div>
+              <div style={{ gridColumn: "1/-1" }}>
+                <label style={lblS}>הערות</label>
+                <input value={addForm.notes} onChange={e => setAddForm(f => ({ ...f, notes: e.target.value }))} style={inp} />
+              </div>
+              <div style={{ gridColumn: "1/-1" }}>
+                <label style={lblS}>מסמך תיעוד (קבלה / אסמכתא)</label>
+                <input type="file" accept="image/*,application/pdf" onChange={e => setAddFile(e.target.files?.[0] || null)} style={{ ...inp, padding: "0.4rem" }} />
+                {addFile && <div style={{ fontSize: ".76rem", color: BRAND, marginTop: 4 }}>נבחר: {addFile.name}</div>}
+              </div>
+              <div style={{ gridColumn: "1/-1" }}>
+                <label style={lblS}>הערה לגבאי (אופציונלי)</label>
+                <input value={addForm.member_note} onChange={e => setAddForm(f => ({ ...f, member_note: e.target.value }))} style={inp} />
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+              <button onClick={submitAddReq} disabled={savingAddReq} style={{ padding: "0.55rem 1.3rem", background: BRAND, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".9rem", cursor: "pointer" }}>{savingAddReq ? "שולח…" : "שלח לאישור"}</button>
+              <button onClick={() => setAddReqOpen(false)} style={{ padding: "0.55rem 1.3rem", background: "#eef2f1", color: BRAND, border: "none", borderRadius: 8, fontWeight: 600, fontSize: ".9rem", cursor: "pointer" }}>ביטול</button>
             </div>
           </div>
         </div>
