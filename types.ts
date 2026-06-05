@@ -63,6 +63,21 @@ export type ChangeRequest = {
   members?: { name: string } | null;
 };
 
+// A5: שיק דחוי
+export type Check = {
+  id: string;
+  member_id: string;
+  transaction_id: string | null;
+  amount: number;
+  due_date: string | null;
+  hebrew_due: string | null;
+  status: "pending" | "cashed" | "bounced";
+  notes: string | null;
+  created_at: string;
+  cashed_at: string | null;
+  members?: { name: string } | null;
+};
+
 // A4: פנייה / בקשת הלוואה / החזר פיקדון
 export type MemberRequestType = "message" | "loan" | "deposit_refund";
 

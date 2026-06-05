@@ -8,7 +8,7 @@ import { supabase, fnErrMessage } from "@/lib/supabase";
 import { ils, gdate, toHebrewDate, TXN_TYPES, TXN_METHODS } from "@/lib/format";
 import { hebTextToGreg } from "@/lib/hebrewParse";
 import { Card, PageTitle, Button, Badge, Loading, Empty } from "@/components/ui";
-import type { MemberBalance, Transaction } from "@/types";
+import type { MemberBalance, Transaction, Check } from "@/types";
 
 const BRAND = "#1e6f5c";
 
@@ -77,15 +77,69 @@ export default function MemberDetail() {
   }
 
   async function load() {
-    const [m, t] = await Promise.all([
+    const [m, t, c] = await Promise.all([
       supabase.from("member_balances").select("*").eq("id", id).single(),
       supabase.from("transactions").select("*").eq("member_id", id).order("created_at", { ascending: true }),
+      supabase.from("checks").select("*").eq("member_id", id).order("due_date", { ascending: true }),
     ]);
     setMember(m.data as MemberBalance);
     setTxns((t.data as Transaction[]) || []);
+    setChecks((c.data as Check[]) || []);
     setLoading(false);
   }
   useEffect(() => { load(); }, [id]);
+
+  // A5: שיקים
+  const [checks, setChecks] = useState<Check[]>([]);
+  const [chkForm, setChkForm] = useState({ amount: "", due_date: "", hebrew_due: "", notes: "" });
+  const [addingChk, setAddingChk] = useState(false);
+  const [chkBusy, setChkBusy] = useState<string | null>(null);
+
+  async function addCheck() {
+    if (!member) return;
+    if (!chkForm.amount || Number(chkForm.amount) <= 0) { alert("יש להזין סכום חיובי"); return; }
+    if (!chkForm.due_date) { alert("יש לבחור תאריך פירעון"); return; }
+    setAddingChk(true);
+    const { error } = await supabase.from("checks").insert({
+      member_id: member.id, amount: Number(chkForm.amount), due_date: chkForm.due_date,
+      hebrew_due: toHebrewDate(chkForm.due_date),
+      notes: chkForm.notes || null, status: "pending",
+    });
+    setAddingChk(false);
+    if (error) { alert("שגיאה: " + error.message); return; }
+    setChkForm({ amount: "", due_date: "", hebrew_due: "", notes: "" });
+    load();
+  }
+
+  // פדיון שיק → יוצר הפקדה (מקטין את החוב) ומקשר אותה לשיק
+  async function markCashed(c: Check) {
+    if (!member) return;
+    if (!confirm(`לסמן שיק על סך ${ils(c.amount)} כנפדה? תיווצר הפקדה שתקטין את החוב.`)) return;
+    setChkBusy(c.id);
+    const { data: txn, error: tErr } = await supabase.from("transactions").insert({
+      member_id: member.id, amount: c.amount, type: "הפקדה", method: "צ'יקים",
+      greg_date: c.due_date, heb_date: c.hebrew_due, notes: "פדיון שיק" + (c.notes ? " · " + c.notes : ""),
+    }).select("id").single();
+    if (tErr) { setChkBusy(null); alert("שגיאה ביצירת ההפקדה: " + tErr.message); return; }
+    await supabase.from("checks").update({ status: "cashed", cashed_at: new Date().toISOString(), transaction_id: (txn as any)?.id || null }).eq("id", c.id);
+    setChkBusy(null);
+    load();
+  }
+
+  async function markBounced(c: Check) {
+    setChkBusy(c.id);
+    await supabase.from("checks").update({ status: "bounced" }).eq("id", c.id);
+    setChkBusy(null);
+    load();
+  }
+
+  async function deleteCheck(c: Check) {
+    if (!confirm("למחוק את השיק?")) return;
+    setChkBusy(c.id);
+    await supabase.from("checks").delete().eq("id", c.id);
+    setChkBusy(null);
+    load();
+  }
 
   function openEdit(t: Transaction) {
     setForm({
@@ -342,6 +396,85 @@ export default function MemberDetail() {
                     </td>
                   </tr>
                 ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
+      {/* A5: שיקים */}
+      <Card style={{ padding: 0, marginTop: 18 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem 1.25rem 0", flexWrap: "wrap", gap: 8 }}>
+          <h3 style={{ margin: 0 }}>שיקים</h3>
+          {(() => {
+            const pend = checks.filter(c => c.status === "pending");
+            const sum = pend.reduce((s, c) => s + c.amount, 0);
+            return pend.length > 0 ? <span style={{ fontSize: ".82rem", color: "#7a8699" }}>{pend.length} שיקים פתוחים · {ils(sum)}</span> : null;
+          })()}
+        </div>
+
+        {/* טופס הוספת שיק */}
+        <div className="no-print" style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "flex-end", padding: "0.75rem 1.25rem" }}>
+          <div style={{ width: 120 }}>
+            <label style={lbl}>סכום ₪</label>
+            <input type="number" value={chkForm.amount} onChange={e => setChkForm(f => ({ ...f, amount: e.target.value }))} style={inp} />
+          </div>
+          <div style={{ width: 160 }}>
+            <label style={lbl}>תאריך פירעון</label>
+            <input type="date" value={chkForm.due_date} onChange={e => setChkForm(f => ({ ...f, due_date: e.target.value }))} style={inp} />
+          </div>
+          <div style={{ flex: 1, minWidth: 140 }}>
+            <label style={lbl}>הערות</label>
+            <input value={chkForm.notes} onChange={e => setChkForm(f => ({ ...f, notes: e.target.value }))} style={inp} placeholder="מס' שיק / בנק / פרטים" />
+          </div>
+          <button onClick={addCheck} disabled={addingChk} style={{ padding: "0.5rem 1.1rem", background: BRAND, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".85rem", cursor: "pointer", whiteSpace: "nowrap" }}>
+            {addingChk ? "מוסיף…" : "＋ הוסף שיק"}
+          </button>
+        </div>
+
+        {checks.length === 0 ? (
+          <Empty text="אין שיקים לחבר זה" />
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>סכום</th>
+                  <th>פירעון (לועזי)</th>
+                  <th>פירעון (עברי)</th>
+                  <th>סטטוס</th>
+                  <th>הערות</th>
+                  <th className="no-print"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {checks.map(c => {
+                  const overdue = c.status === "pending" && c.due_date && new Date(c.due_date) <= new Date();
+                  return (
+                    <tr key={c.id} style={{ background: overdue ? "#fff7ed" : "" }}>
+                      <td style={{ fontWeight: 700 }}>{ils(c.amount)}</td>
+                      <td dir="ltr" style={{ textAlign: "right" }}>{c.due_date ? gdate(c.due_date) : "—"}{overdue ? " ⚠️" : ""}</td>
+                      <td>{c.hebrew_due || "—"}</td>
+                      <td>
+                        <span style={{ color: "#fff", borderRadius: 999, padding: "0.12rem 0.6rem", fontSize: ".76rem", fontWeight: 700, background: c.status === "cashed" ? BRAND : c.status === "bounced" ? "#c0392b" : "#f59e0b" }}>
+                          {c.status === "cashed" ? "נפדה" : c.status === "bounced" ? "חזר" : "ממתין"}
+                        </span>
+                      </td>
+                      <td style={{ color: "#7a8699" }}>{c.notes || "—"}</td>
+                      <td className="no-print">
+                        {c.status === "pending" && (
+                          <div style={{ display: "flex", gap: 6 }}>
+                            <button onClick={() => markCashed(c)} disabled={chkBusy === c.id} style={{ padding: "0.3rem 0.7rem", background: BRAND, color: "#fff", border: "none", borderRadius: 7, fontSize: ".78rem", fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>נפדה ✓</button>
+                            <button onClick={() => markBounced(c)} disabled={chkBusy === c.id} style={{ padding: "0.3rem 0.7rem", background: "#fde8e8", color: "#c0392b", border: "none", borderRadius: 7, fontSize: ".78rem", fontWeight: 700, cursor: "pointer" }}>חזר</button>
+                          </div>
+                        )}
+                        {c.status !== "pending" && (
+                          <button onClick={() => deleteCheck(c)} disabled={chkBusy === c.id} style={{ padding: "0.3rem 0.7rem", background: "none", color: "#9aa5b5", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: ".78rem", cursor: "pointer" }}>מחק</button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
