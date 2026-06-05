@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, Pencil, Trash2 } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { supabase, fnErrMessage } from "@/lib/supabase";
 import { ils } from "@/lib/format";
 import { PageTitle, Button, Loading, Empty } from "@/components/ui";
 import type { MemberBalance } from "@/types";
@@ -115,15 +115,15 @@ export default function MembersPage() {
     if (!email) { setLoginMsg("יש להזין מייל לחבר תחילה"); return; }
     if (loginPass.length < 6) { setLoginMsg("סיסמה חייבת להיות לפחות 6 תווים"); return; }
     setCreatingLogin(true); setLoginMsg("");
-    const { data, error } = await supabase.functions.invoke("dynamic-responder", {
+    const { data, error } = await supabase.functions.invoke("member-login", {
       body: { email, password: loginPass, memberId: editing.id },
     });
     setCreatingLogin(false);
     if (error || (data && (data as any).error)) {
-      setLoginMsg("שגיאה: " + (error?.message || (data as any)?.error || "נכשל"));
+      setLoginMsg("שגיאה: " + (await fnErrMessage(error, data)));
       return;
     }
-    setLoginMsg("✓ חשבון ההתחברות נוצר בהצלחה");
+    setLoginMsg((data as any)?.updated ? "✓ הסיסמה עודכנה בהצלחה" : "✓ חשבון ההתחברות נוצר בהצלחה");
     setLoginPass("");
     load();
   }
