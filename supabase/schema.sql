@@ -13,12 +13,14 @@ create table if not exists members (
   name        text not null default '',    -- שם ומשפחה
   address     text default '',
   phone       text default '',
+  email       text,                        -- מייל להתחברות לפורטל האישי
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );
 
 create index if not exists members_name_idx on members (name);
 create index if not exists members_code_idx on members (code);
+create index if not exists members_email_idx on members (lower(email));
 
 -- ---------- פעולות (הפקדות / משיכות) ----------
 create table if not exists transactions (
