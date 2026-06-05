@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { LogOut, Wallet, ArrowDownCircle, ArrowUpCircle, ListChecks } from "lucide-react";
+import { LogOut, Wallet, ArrowDownCircle, ArrowUpCircle, ListChecks, KeyRound } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { ils, gdate } from "@/lib/format";
 import { hebTextToGreg } from "@/lib/hebrewParse";
@@ -11,6 +11,8 @@ import type { MemberBalance, Transaction } from "@/types";
 const BRAND = "#1e6f5c";
 const BRAND_DARK = "#16513f";
 const RED = "#e05252";
+
+const inp: React.CSSProperties = { padding: "0.55rem 0.8rem", border: "1.5px solid #d8dde5", borderRadius: 10, fontSize: ".9rem", width: "100%", boxSizing: "border-box", outline: "none" };
 
 function gregOf(t: Transaction): string {
   if (t.greg_date) return gdate(t.greg_date);
@@ -34,6 +36,23 @@ export default function MemberPortal({ memberId, logout }: { memberId: string; l
   const [member, setMember] = useState<MemberBalance | null>(null);
   const [txns, setTxns] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  // שינוי סיסמה ע"י החבר
+  const [showPass, setShowPass] = useState(false);
+  const [newPass, setNewPass] = useState("");
+  const [confirmPass, setConfirmPass] = useState("");
+  const [savingPass, setSavingPass] = useState(false);
+  const [passMsg, setPassMsg] = useState("");
+
+  async function updatePassword() {
+    if (newPass.length < 6) { setPassMsg("סיסמה חייבת להיות לפחות 6 תווים"); return; }
+    if (newPass !== confirmPass) { setPassMsg("הסיסמאות אינן תואמות"); return; }
+    setSavingPass(true); setPassMsg("");
+    const { error } = await supabase.auth.updateUser({ password: newPass });
+    setSavingPass(false);
+    if (error) { setPassMsg("שגיאה: " + error.message); return; }
+    setPassMsg("✓ הסיסמה עודכנה בהצלחה");
+    setNewPass(""); setConfirmPass("");
+  }
 
   useEffect(() => {
     (async () => {
@@ -80,6 +99,26 @@ export default function MemberPortal({ memberId, logout }: { memberId: string; l
           <Stat label="סך המשיכות שלך" value={ils(wit)} color={RED} icon={<ArrowUpCircle size={20} />} />
           <Stat label="יתרה נוכחית" value={ils(balance)} color={BRAND} icon={<Wallet size={20} />} />
           <Stat label="מספר פעולות" value={String(txns.length)} color="#3b82f6" icon={<ListChecks size={20} />} />
+        </div>
+
+        {/* שינוי סיסמה */}
+        <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 2px 8px rgba(0,0,0,.06)", overflow: "hidden", marginBottom: 18 }}>
+          <button onClick={() => { setShowPass(s => !s); setPassMsg(""); }} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "1.1rem 1.25rem", background: "none", border: "none", cursor: "pointer", fontWeight: 800, color: "#1a1a2e", fontSize: ".95rem" }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 8 }}><KeyRound size={18} color={BRAND} /> שינוי סיסמה</span>
+            <span style={{ color: "#9aa5b5", fontSize: "1.1rem" }}>{showPass ? "−" : "+"}</span>
+          </button>
+          {showPass && (
+            <div style={{ padding: "0 1.25rem 1.25rem", display: "flex", flexDirection: "column", gap: 10, maxWidth: 360 }}>
+              <input type="password" value={newPass} onChange={e => setNewPass(e.target.value)} placeholder="סיסמה חדשה (לפחות 6 תווים)" dir="ltr" style={inp} />
+              <input type="password" value={confirmPass} onChange={e => setConfirmPass(e.target.value)} placeholder="אימות סיסמה חדשה" dir="ltr" style={inp} />
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <button onClick={updatePassword} disabled={savingPass} style={{ padding: "0.55rem 1.3rem", background: BRAND, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".9rem", cursor: "pointer" }}>
+                  {savingPass ? "שומר…" : "עדכן סיסמה"}
+                </button>
+                {passMsg && <span style={{ fontSize: ".82rem", fontWeight: 600, color: passMsg.startsWith("✓") ? BRAND : RED }}>{passMsg}</span>}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* פעולות אחרונות */}
