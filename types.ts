@@ -37,3 +37,44 @@ export type FundSummary = {
   total_withdrawals: number;
   total_balance: number;
 };
+
+// A3: בקשת תיקון פעולה
+export type TxnProposed = {
+  amount?: number;
+  type?: TxnType;
+  method?: TxnMethod | null;
+  greg_date?: string | null;
+  heb_date?: string | null;
+  notes?: string | null;
+};
+
+export type ChangeRequest = {
+  id: string;
+  member_id: string;
+  transaction_id: string | null;
+  kind: "edit" | "add" | "delete";
+  proposed: TxnProposed | null;
+  status: "pending" | "approved" | "rejected";
+  member_note: string | null;
+  admin_note: string | null;
+  created_at: string;
+  resolved_at: string | null;
+  members?: { name: string } | null;
+};
+
+// A4: פנייה / בקשת הלוואה / החזר פיקדון
+export type MemberRequestType = "message" | "loan" | "deposit_refund";
+
+export type MemberRequest = {
+  id: string;
+  member_id: string;
+  type: MemberRequestType;
+  subject: string | null;
+  body: string | null;
+  amount: number | null;
+  status: "open" | "in_progress" | "done" | "rejected";
+  admin_note: string | null;
+  created_at: string;
+  resolved_at: string | null;
+  members?: { name: string } | null;
+};
