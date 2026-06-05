@@ -46,8 +46,31 @@ Deno.serve(async (req) => {
       password: String(password),
       email_confirm: true,
     });
+
+    let userId = created?.user?.id;
+    let updated = false;
+
     if (cErr) {
-      return new Response(JSON.stringify({ error: cErr.message }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+      // אם המשתמש כבר קיים — לאתר אותו ולעדכן את הסיסמה (אידמפוטנטי / איפוס סיסמה)
+      const alreadyExists = /already.*registered|already.*exists|duplicate|been registered/i.test(cErr.message || "");
+      if (!alreadyExists) {
+        return new Response(JSON.stringify({ error: cErr.message }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+      }
+      // איתור המשתמש הקיים לפי מייל
+      let found: any = null;
+      for (let page = 1; page <= 20 && !found; page++) {
+        const { data: list, error: lErr } = await admin.auth.admin.listUsers({ page, perPage: 200 });
+        if (lErr) return new Response(JSON.stringify({ error: lErr.message }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+        found = (list?.users || []).find((x: any) => (x.email || "").toLowerCase() === lowerEmail) || null;
+        if (!list || list.users.length < 200) break;
+      }
+      if (!found) {
+        return new Response(JSON.stringify({ error: "המשתמש קיים אך לא נמצא לעדכון" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+      }
+      const { error: uErr } = await admin.auth.admin.updateUserById(found.id, { password: String(password), email_confirm: true });
+      if (uErr) return new Response(JSON.stringify({ error: uErr.message }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+      userId = found.id;
+      updated = true;
     }
 
     // שיוך המייל לשורת החבר
@@ -55,7 +78,7 @@ Deno.serve(async (req) => {
       await admin.from("members").update({ email: lowerEmail }).eq("id", memberId);
     }
 
-    return new Response(JSON.stringify({ ok: true, userId: created.user?.id }), { headers: { ...cors, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ ok: true, userId, updated }), { headers: { ...cors, "Content-Type": "application/json" } });
   } catch (e) {
     return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
   }

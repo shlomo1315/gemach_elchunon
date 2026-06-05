@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Pencil } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { supabase, fnErrMessage } from "@/lib/supabase";
 import { ils, gdate, toHebrewDate, TXN_TYPES, TXN_METHODS } from "@/lib/format";
 import { hebTextToGreg } from "@/lib/hebrewParse";
 import { Card, PageTitle, Button, Badge, Loading, Empty } from "@/components/ui";
@@ -68,10 +68,10 @@ export default function MemberDetail() {
     });
     setCreatingLogin(false);
     if (error || (data && (data as any).error)) {
-      setLoginMsg("שגיאה: " + (error?.message || (data as any)?.error || "נכשל"));
+      setLoginMsg("שגיאה: " + (await fnErrMessage(error, data)));
       return;
     }
-    setLoginMsg("✓ חשבון ההתחברות נוצר בהצלחה");
+    setLoginMsg((data as any)?.updated ? "✓ הסיסמה עודכנה בהצלחה" : "✓ חשבון ההתחברות נוצר בהצלחה");
     setLoginPass("");
     load();
   }
