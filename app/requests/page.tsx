@@ -69,11 +69,21 @@ export default function RequestsPage() {
 
   async function setReqStatus(r: MemberRequest, status: string) {
     setBusy(r.id);
-    const note = status === "rejected" ? (prompt("סיבת הדחייה (אופציונלי):") ?? "") : r.admin_note;
+    const note = status === "rejected"
+      ? (prompt("סיבת הדחייה / תשובה לחבר (אופציונלי):", r.admin_note || "") ?? r.admin_note ?? "")
+      : r.admin_note;
     await supabase.from("member_requests").update({
       status, admin_note: note || null,
       resolved_at: status === "done" || status === "rejected" ? new Date().toISOString() : null,
     }).eq("id", r.id);
+    setBusy(null);
+    load();
+  }
+
+  // שמירת תשובה לחבר (ללא שינוי סטטוס) — החבר רואה אותה בפורטל האישי
+  async function saveReply(r: MemberRequest, text: string) {
+    setBusy(r.id);
+    await supabase.from("member_requests").update({ admin_note: text.trim() || null }).eq("id", r.id);
     setBusy(null);
     load();
   }
@@ -139,8 +149,8 @@ export default function RequestsPage() {
                 </div>
                 {r.subject && <div style={{ fontWeight: 700, marginTop: 6 }}>{r.subject}</div>}
                 {r.body && <div style={{ fontSize: ".88rem", color: "#4a5568", marginTop: 4, whiteSpace: "pre-wrap" }}>{r.body}</div>}
-                {r.admin_note && <div style={{ fontSize: ".82rem", color: RED, marginTop: 4 }}>הערת מנהל: {r.admin_note}</div>}
                 <div style={{ fontSize: ".72rem", color: "#b0bac7", marginTop: 6 }}>{new Date(r.created_at).toLocaleString("he-IL")}</div>
+                <ReplyBox initial={r.admin_note || ""} busy={busy === r.id} onSave={(t) => saveReply(r, t)} />
                 <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
                   {r.status !== "in_progress" && r.status !== "done" && <button onClick={() => setReqStatus(r, "in_progress")} disabled={busy === r.id} style={btn("#e8f0fe", "#3b82f6")}>סמן בטיפול</button>}
                   {r.status !== "done" && <button onClick={() => setReqStatus(r, "done")} disabled={busy === r.id} style={btn(BRAND)}>✓ טופל</button>}
@@ -196,6 +206,23 @@ function DocPreview({ path }: { path: string }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// תיבת תשובה לחבר (הגבאי כותב — החבר רואה בפורטל)
+function ReplyBox({ initial, busy, onSave }: { initial: string; busy: boolean; onSave: (text: string) => void }) {
+  const [text, setText] = useState(initial);
+  useEffect(() => { setText(initial); }, [initial]);
+  const changed = text.trim() !== initial.trim();
+  return (
+    <div style={{ marginTop: 10, background: "#f8fafc", borderRadius: 10, padding: "0.6rem 0.75rem" }}>
+      <label style={{ fontSize: ".78rem", color: "#7a8699", fontWeight: 700, display: "block", marginBottom: 4 }}>תשובה לחבר {initial && <span style={{ color: BRAND }}>· נשלחה תשובה</span>}</label>
+      <textarea value={text} onChange={e => setText(e.target.value)} rows={2} placeholder="כתוב כאן תשובה שהחבר יראה בפורטל האישי…"
+        style={{ width: "100%", boxSizing: "border-box", padding: "0.5rem 0.7rem", border: "1.5px solid #d8dde5", borderRadius: 8, fontSize: ".85rem", resize: "vertical", fontFamily: "inherit", direction: "rtl" }} />
+      <button onClick={() => onSave(text)} disabled={busy || !changed} style={{ ...btn(changed ? BRAND : "#cbd5e0"), marginTop: 6, cursor: changed && !busy ? "pointer" : "default" }}>
+        {initial ? "עדכן תשובה" : "שלח תשובה"}
+      </button>
     </div>
   );
 }

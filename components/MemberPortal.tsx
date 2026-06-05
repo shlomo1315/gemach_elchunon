@@ -327,9 +327,17 @@ export default function MemberPortal({ memberId, logout }: { memberId: string; l
               <div style={{ fontWeight: 700, color: "#4a5568", marginBottom: 8, fontSize: ".9rem" }}>הבקשות שלי</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {myRequests.map(r => (
-                  <div key={r.id} style={rowCard}>
-                    <span>{REQ_TYPE_LABEL[r.type]}{r.subject ? ` · ${r.subject}` : ""}{r.amount ? ` · ${ils(r.amount)}` : ""}</span>
-                    <span style={{ ...miniPill, background: STATUS_COLOR[r.status] }}>{REQ_STATUS_LABEL[r.status]}</span>
+                  <div key={r.id} style={{ ...rowCard, display: "block" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+                      <span>{REQ_TYPE_LABEL[r.type]}{r.subject ? ` · ${r.subject}` : ""}{r.amount ? ` · ${ils(r.amount)}` : ""}</span>
+                      <span style={{ ...miniPill, background: STATUS_COLOR[r.status] }}>{REQ_STATUS_LABEL[r.status]}</span>
+                    </div>
+                    {r.admin_note && (
+                      <div style={{ marginTop: 8, background: "#eef6f3", borderInlineStart: `3px solid ${BRAND}`, borderRadius: 8, padding: "0.5rem 0.7rem" }}>
+                        <div style={{ fontSize: ".74rem", fontWeight: 700, color: BRAND, marginBottom: 2 }}>תשובת הגבאי</div>
+                        <div style={{ fontSize: ".84rem", color: "#1a1a2e", whiteSpace: "pre-wrap" }}>{r.admin_note}</div>
+                      </div>
+                    )}
                   </div>
                 ))}
                 {myChanges.map(c => (
