@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { LogOut, Wallet, ArrowDownCircle, ArrowUpCircle, ListChecks, KeyRound, MessageSquarePlus, Pencil } from "lucide-react";
+import { LogOut, Wallet, ArrowDownCircle, ArrowUpCircle, ListChecks, KeyRound, MessageSquarePlus, Pencil, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { ils, gdate, toHebrewDate, TXN_TYPES, TXN_METHODS } from "@/lib/format";
 import { hebTextToGreg } from "@/lib/hebrewParse";
@@ -57,6 +57,18 @@ export default function MemberPortal({ memberId, logout }: { memberId: string; l
   const [addForm, setAddForm] = useState({ amount: "", type: "הפקדה", method: "", greg_date: "", heb_date: "", notes: "", member_note: "" });
   const [addFile, setAddFile] = useState<File | null>(null);
   const [savingAddReq, setSavingAddReq] = useState(false);
+  // פופאפ הצלחה אחרי הגשת פעולה חדשה (נסגר אוטומטית באיטיות כלפי פנים)
+  type SuccessInfo = { type: string; amount: string; method: string; greg_date: string; heb_date: string; notes: string; member_note: string; fileName: string | null };
+  const [successInfo, setSuccessInfo] = useState<SuccessInfo | null>(null);
+  const [successClosing, setSuccessClosing] = useState(false);
+
+  useEffect(() => {
+    if (!successInfo) return;
+    setSuccessClosing(false);
+    const tClose = setTimeout(() => setSuccessClosing(true), 2400); // התחלת הסגירה האיטית
+    const tDone = setTimeout(() => setSuccessInfo(null), 3000);     // הסרה מהמסך
+    return () => { clearTimeout(tClose); clearTimeout(tDone); };
+  }, [successInfo]);
 
   function openAddReq() {
     setAddForm({ amount: "", type: "הפקדה", method: "", greg_date: "", heb_date: "", notes: "", member_note: "" });
@@ -87,6 +99,12 @@ export default function MemberPortal({ memberId, logout }: { memberId: string; l
     });
     setSavingAddReq(false);
     if (error) { alert("שגיאה: " + error.message); return; }
+    setSuccessInfo({
+      type: addForm.type, amount: addForm.amount, method: addForm.method,
+      greg_date: addForm.greg_date, heb_date: addForm.heb_date,
+      notes: addForm.notes, member_note: addForm.member_note,
+      fileName: addFile?.name || null,
+    });
     setAddReqOpen(false);
     loadRequests();
   }
@@ -440,6 +458,39 @@ export default function MemberPortal({ memberId, logout }: { memberId: string; l
           </div>
         </div>
       )}
+
+      {/* פופאפ הצלחה — מופיע אחרי הגשת פעולה חדשה ונסגר באיטיות כלפי פנים */}
+      {successInfo && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem", backdropFilter: "blur(2px)", opacity: successClosing ? 0 : 1, transition: "opacity .55s ease" }}>
+          <div style={{ background: "#fff", borderRadius: 18, boxShadow: "0 24px 70px rgba(0,0,0,.25)", width: "100%", maxWidth: 420, padding: "1.8rem", direction: "rtl", textAlign: "center", transform: successClosing ? "scale(.55)" : "scale(1)", opacity: successClosing ? 0 : 1, transition: "transform .6s cubic-bezier(.4,0,.2,1), opacity .6s ease" }}>
+            <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#e8f5f0", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
+              <CheckCircle2 size={38} color={BRAND} />
+            </div>
+            <h2 style={{ margin: "0 0 6px", fontSize: "1.2rem", fontWeight: 800, color: BRAND }}>הבקשה הוגשה בהצלחה</h2>
+            <div style={{ fontSize: ".85rem", color: "#7a8699", marginBottom: 16 }}>הבקשה מועברת לטיפול ההנהלה ותיכנס לתיק שלך.</div>
+            <div style={{ textAlign: "right", background: "#f8fafc", borderRadius: 12, padding: "0.9rem 1rem", display: "flex", flexDirection: "column", gap: 7 }}>
+              <SuccessRow label="סוג" value={successInfo.type} />
+              <SuccessRow label="סכום" value={ils(Number(successInfo.amount) || 0)} />
+              {successInfo.method && <SuccessRow label="אופן" value={successInfo.method} />}
+              {(successInfo.heb_date || successInfo.greg_date) && (
+                <SuccessRow label="תאריך" value={`${successInfo.heb_date || ""}${successInfo.greg_date ? `${successInfo.heb_date ? " · " : ""}${gdate(successInfo.greg_date)}` : ""}`} />
+              )}
+              {successInfo.notes && <SuccessRow label="הערות" value={successInfo.notes} />}
+              {successInfo.member_note && <SuccessRow label="הערה לגבאי" value={successInfo.member_note} />}
+              {successInfo.fileName && <SuccessRow label="מסמך" value={`📎 ${successInfo.fileName}`} />}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SuccessRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: ".86rem" }}>
+      <span style={{ color: "#9aa5b5", fontWeight: 600 }}>{label}</span>
+      <span style={{ color: "#1a1a2e", fontWeight: 700, textAlign: "left" }}>{value}</span>
     </div>
   );
 }
