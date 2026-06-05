@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, ArrowLeftRight, BarChart3, LogOut, Settings, Upload, Sun, Moon } from "lucide-react";
+import { LayoutDashboard, Users, ArrowLeftRight, BarChart3, LogOut, Settings, Upload, Sun, Moon, Inbox } from "lucide-react";
 import { useAuth } from "./AuthGuard";
 
 const links = [
   { href: "/", label: "ראשי", icon: LayoutDashboard },
   { href: "/members", label: "חברים", icon: Users },
   { href: "/transactions", label: "פעולות", icon: ArrowLeftRight },
+  { href: "/requests", label: "בקשות", icon: Inbox },
   { href: "/import", label: "ייבוא מאקסל", icon: Upload },
   { href: "/reports", label: "דוחות", icon: BarChart3 },
   { href: "/settings", label: "הגדרות", icon: Settings },

@@ -1,12 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { LogOut, Wallet, ArrowDownCircle, ArrowUpCircle, ListChecks, KeyRound } from "lucide-react";
+import { LogOut, Wallet, ArrowDownCircle, ArrowUpCircle, ListChecks, KeyRound, MessageSquarePlus, Pencil } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { ils, gdate } from "@/lib/format";
+import { ils, gdate, toHebrewDate, TXN_TYPES, TXN_METHODS } from "@/lib/format";
 import { hebTextToGreg } from "@/lib/hebrewParse";
 import { Badge, Loading } from "@/components/ui";
-import type { MemberBalance, Transaction } from "@/types";
+import type { MemberBalance, Transaction, ChangeRequest, MemberRequest } from "@/types";
+
+const REQ_TYPE_LABEL: Record<string, string> = { message: "פנייה / הודעה", loan: "בקשת הלוואה", deposit_refund: "בקשת החזר פיקדון" };
+const REQ_STATUS_LABEL: Record<string, string> = { open: "פתוח", in_progress: "בטיפול", done: "טופל", rejected: "נדחה", pending: "ממתין", approved: "אושר" };
+const STATUS_COLOR: Record<string, string> = { open: "#f59e0b", in_progress: "#3b82f6", done: "#1e6f5c", rejected: "#c0392b", pending: "#f59e0b", approved: "#1e6f5c" };
 
 const BRAND = "#1e6f5c";
 const BRAND_DARK = "#16513f";
@@ -36,12 +40,72 @@ export default function MemberPortal({ memberId, logout }: { memberId: string; l
   const [member, setMember] = useState<MemberBalance | null>(null);
   const [txns, setTxns] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [myChanges, setMyChanges] = useState<ChangeRequest[]>([]);
+  const [myRequests, setMyRequests] = useState<MemberRequest[]>([]);
   // שינוי סיסמה ע"י החבר
   const [showPass, setShowPass] = useState(false);
   const [newPass, setNewPass] = useState("");
   const [confirmPass, setConfirmPass] = useState("");
   const [savingPass, setSavingPass] = useState(false);
   const [passMsg, setPassMsg] = useState("");
+  // הצעת תיקון לפעולה
+  const [propTxn, setPropTxn] = useState<Transaction | null>(null);
+  const [propForm, setPropForm] = useState({ amount: "", type: "הפקדה", method: "", greg_date: "", heb_date: "", notes: "", member_note: "" });
+  const [savingProp, setSavingProp] = useState(false);
+  // פנייה / בקשה
+  const [reqForm, setReqForm] = useState({ type: "message", subject: "", body: "", amount: "" });
+  const [savingReq, setSavingReq] = useState(false);
+  const [reqMsg, setReqMsg] = useState("");
+
+  async function loadRequests() {
+    const [c, r] = await Promise.all([
+      supabase.from("transaction_change_requests").select("*").eq("member_id", memberId).order("created_at", { ascending: false }),
+      supabase.from("member_requests").select("*").eq("member_id", memberId).order("created_at", { ascending: false }),
+    ]);
+    setMyChanges((c.data as ChangeRequest[]) || []);
+    setMyRequests((r.data as MemberRequest[]) || []);
+  }
+
+  function openPropose(t: Transaction) {
+    setPropForm({
+      amount: String(t.amount), type: t.type, method: t.method || "",
+      greg_date: t.greg_date?.split("T")[0] || "", heb_date: t.heb_date || "", notes: t.notes || "", member_note: "",
+    });
+    setPropTxn(t);
+  }
+  function propGreg(val: string) { setPropForm(f => ({ ...f, greg_date: val, heb_date: toHebrewDate(val) })); }
+
+  async function submitPropose() {
+    if (!propTxn) return;
+    setSavingProp(true);
+    const { error } = await supabase.from("transaction_change_requests").insert({
+      member_id: memberId, transaction_id: propTxn.id, kind: "edit", status: "pending",
+      member_note: propForm.member_note || null,
+      proposed: {
+        amount: Number(propForm.amount), type: propForm.type, method: propForm.method || null,
+        greg_date: propForm.greg_date || null, heb_date: propForm.heb_date || null, notes: propForm.notes || null,
+      },
+    });
+    setSavingProp(false);
+    if (error) { alert("שגיאה: " + error.message); return; }
+    setPropTxn(null);
+    loadRequests();
+  }
+
+  async function submitRequest() {
+    if (reqForm.type === "message" && !reqForm.body.trim()) { setReqMsg("יש להזין תוכן"); return; }
+    setSavingReq(true); setReqMsg("");
+    const { error } = await supabase.from("member_requests").insert({
+      member_id: memberId, type: reqForm.type, status: "open",
+      subject: reqForm.subject || null, body: reqForm.body || null,
+      amount: reqForm.amount ? Number(reqForm.amount) : null,
+    });
+    setSavingReq(false);
+    if (error) { setReqMsg("שגיאה: " + error.message); return; }
+    setReqMsg("✓ הבקשה נשלחה");
+    setReqForm({ type: "message", subject: "", body: "", amount: "" });
+    loadRequests();
+  }
 
   async function updatePassword() {
     if (newPass.length < 6) { setPassMsg("סיסמה חייבת להיות לפחות 6 תווים"); return; }
@@ -63,6 +127,7 @@ export default function MemberPortal({ memberId, logout }: { memberId: string; l
       setMember(m.data as MemberBalance);
       setTxns((t.data as Transaction[]) || []);
       setLoading(false);
+      loadRequests();
     })();
   }, [memberId]);
 
@@ -138,6 +203,7 @@ export default function MemberPortal({ memberId, logout }: { memberId: string; l
                     <th style={{ padding: "0.6rem 1rem", textAlign: "right", fontWeight: 700, color: "#4a5568" }}>תאריך עברי</th>
                     <th style={{ padding: "0.6rem 1rem", textAlign: "right", fontWeight: 700, color: "#4a5568" }}>תאריך לועזי</th>
                     <th style={{ padding: "0.6rem 1rem", textAlign: "right", fontWeight: 700, color: "#4a5568" }}>הערות</th>
+                    <th style={{ padding: "0.6rem 1rem" }}></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -150,6 +216,11 @@ export default function MemberPortal({ memberId, logout }: { memberId: string; l
                       <td style={{ padding: "0.55rem 1rem", color: "#4a5568" }}>{t.heb_date || "—"}</td>
                       <td style={{ padding: "0.55rem 1rem", color: "#7a8699" }} dir="ltr">{gregOf(t) || "—"}</td>
                       <td style={{ padding: "0.55rem 1rem", color: "#7a8699" }}>{t.notes || "—"}</td>
+                      <td style={{ padding: "0.55rem 1rem" }}>
+                        <button onClick={() => openPropose(t)} title="הצע תיקון" style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "none", border: "1px solid #d8dde5", borderRadius: 8, padding: "0.25rem 0.6rem", color: BRAND, fontSize: ".78rem", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
+                          <Pencil size={13} /> הצע תיקון
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -158,10 +229,122 @@ export default function MemberPortal({ memberId, logout }: { memberId: string; l
           )}
         </div>
 
+        {/* פניות ובקשות */}
+        <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 2px 8px rgba(0,0,0,.06)", marginTop: 18, padding: "1.25rem" }}>
+          <div style={{ fontWeight: 800, color: "#1a1a2e", display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+            <MessageSquarePlus size={18} color={BRAND} /> פנייה / בקשה לגבאי
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "flex-end" }}>
+            <div style={{ minWidth: 170 }}>
+              <label style={lblS}>סוג</label>
+              <select value={reqForm.type} onChange={e => setReqForm(f => ({ ...f, type: e.target.value }))} style={inp}>
+                <option value="message">פנייה / הודעה</option>
+                <option value="loan">בקשת הלוואה</option>
+                <option value="deposit_refund">בקשת החזר פיקדון</option>
+              </select>
+            </div>
+            {reqForm.type !== "message" && (
+              <div style={{ width: 130 }}>
+                <label style={lblS}>סכום ₪</label>
+                <input type="number" value={reqForm.amount} onChange={e => setReqForm(f => ({ ...f, amount: e.target.value }))} style={inp} />
+              </div>
+            )}
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <label style={lblS}>נושא</label>
+              <input value={reqForm.subject} onChange={e => setReqForm(f => ({ ...f, subject: e.target.value }))} style={inp} />
+            </div>
+          </div>
+          <div style={{ marginTop: 10 }}>
+            <label style={lblS}>תוכן</label>
+            <textarea value={reqForm.body} onChange={e => setReqForm(f => ({ ...f, body: e.target.value }))} rows={3} style={{ ...inp, resize: "vertical" }} />
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 10 }}>
+            <button onClick={submitRequest} disabled={savingReq} style={{ padding: "0.55rem 1.4rem", background: BRAND, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".9rem", cursor: "pointer" }}>{savingReq ? "שולח…" : "שלח בקשה"}</button>
+            {reqMsg && <span style={{ fontSize: ".82rem", fontWeight: 600, color: reqMsg.startsWith("✓") ? BRAND : RED }}>{reqMsg}</span>}
+          </div>
+
+          {(myRequests.length > 0 || myChanges.length > 0) && (
+            <div style={{ marginTop: 18, borderTop: "1px solid #f0f2f5", paddingTop: 12 }}>
+              <div style={{ fontWeight: 700, color: "#4a5568", marginBottom: 8, fontSize: ".9rem" }}>הבקשות שלי</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {myRequests.map(r => (
+                  <div key={r.id} style={rowCard}>
+                    <span>{REQ_TYPE_LABEL[r.type]}{r.subject ? ` · ${r.subject}` : ""}{r.amount ? ` · ${ils(r.amount)}` : ""}</span>
+                    <span style={{ ...miniPill, background: STATUS_COLOR[r.status] }}>{REQ_STATUS_LABEL[r.status]}</span>
+                  </div>
+                ))}
+                {myChanges.map(c => (
+                  <div key={c.id} style={rowCard}>
+                    <span>הצעת תיקון לפעולה{c.proposed?.amount ? ` · ${ils(Number(c.proposed.amount))}` : ""}</span>
+                    <span style={{ ...miniPill, background: STATUS_COLOR[c.status] }}>{REQ_STATUS_LABEL[c.status]}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
         <div style={{ textAlign: "center", color: "#b0bac7", fontSize: ".78rem", marginTop: 16 }}>
           אזור אישי לצפייה בלבד · לשאלות פנה לגבאי הגמ״ח
         </div>
       </div>
+
+      {/* מודאל הצעת תיקון לפעולה */}
+      {propTxn && (
+        <div onClick={e => { if (e.target === e.currentTarget) setPropTxn(null); }}
+          style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem", backdropFilter: "blur(2px)" }}>
+          <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 20px 60px rgba(0,0,0,.2)", width: "100%", maxWidth: 480, padding: "1.6rem", direction: "rtl" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+              <h2 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 800, color: BRAND }}>הצעת תיקון לפעולה</h2>
+              <button onClick={() => setPropTxn(null)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.2rem", color: "#9aa5b5" }}>✕</button>
+            </div>
+            <div style={{ fontSize: ".82rem", color: "#7a8699", marginBottom: 12 }}>הצעתך תישלח לגבאי לאישור. הפעולה לא תשתנה עד שהגבאי יאשר.</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.9rem" }}>
+              <div>
+                <label style={lblS}>סוג</label>
+                <select value={propForm.type} onChange={e => setPropForm(f => ({ ...f, type: e.target.value }))} style={inp}>
+                  {TXN_TYPES.map(t => <option key={t}>{t}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={lblS}>סכום ₪</label>
+                <input type="number" value={propForm.amount} onChange={e => setPropForm(f => ({ ...f, amount: e.target.value }))} style={inp} />
+              </div>
+              <div>
+                <label style={lblS}>אופן</label>
+                <select value={propForm.method} onChange={e => setPropForm(f => ({ ...f, method: e.target.value }))} style={inp}>
+                  <option value="">—</option>
+                  {TXN_METHODS.map(t => <option key={t}>{t}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={lblS}>תאריך לועזי</label>
+                <input type="date" value={propForm.greg_date} onChange={e => propGreg(e.target.value)} style={inp} />
+              </div>
+              <div style={{ gridColumn: "1/-1" }}>
+                <label style={lblS}>תאריך עברי (מחושב)</label>
+                <div style={{ ...inp, background: "#f4faf8", color: propForm.heb_date ? "#1a1a2e" : "#9aa5b5", display: "flex", alignItems: "center", minHeight: 38 }}>{propForm.heb_date || "—"}</div>
+              </div>
+              <div style={{ gridColumn: "1/-1" }}>
+                <label style={lblS}>הערות</label>
+                <input value={propForm.notes} onChange={e => setPropForm(f => ({ ...f, notes: e.target.value }))} style={inp} />
+              </div>
+              <div style={{ gridColumn: "1/-1" }}>
+                <label style={lblS}>הערה לגבאי (אופציונלי)</label>
+                <input value={propForm.member_note} onChange={e => setPropForm(f => ({ ...f, member_note: e.target.value }))} style={inp} placeholder="הסבר קצר על התיקון" />
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+              <button onClick={submitPropose} disabled={savingProp} style={{ padding: "0.55rem 1.3rem", background: BRAND, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".9rem", cursor: "pointer" }}>{savingProp ? "שולח…" : "שלח הצעה"}</button>
+              <button onClick={() => setPropTxn(null)} style={{ padding: "0.55rem 1.3rem", background: "#eef2f1", color: BRAND, border: "none", borderRadius: 8, fontWeight: 600, fontSize: ".9rem", cursor: "pointer" }}>ביטול</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
+const lblS: React.CSSProperties = { fontSize: ".76rem", color: "#7a8699", fontWeight: 600, marginBottom: 4, display: "block" };
+const rowCard: React.CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, background: "#f8fafc", borderRadius: 10, padding: "0.5rem 0.85rem", fontSize: ".85rem", color: "#4a5568" };
+const miniPill: React.CSSProperties = { color: "#fff", borderRadius: 999, padding: "0.1rem 0.6rem", fontSize: ".72rem", fontWeight: 700, whiteSpace: "nowrap" };
