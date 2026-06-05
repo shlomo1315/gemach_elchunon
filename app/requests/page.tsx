@@ -59,6 +59,12 @@ export default function RequestsPage() {
     load();
   }
 
+  async function viewDocument(path: string) {
+    const { data, error } = await supabase.storage.from("member-docs").createSignedUrl(path, 3600);
+    if (error || !data?.signedUrl) { alert("שגיאה בפתיחת המסמך: " + (error?.message || "")); return; }
+    window.open(data.signedUrl, "_blank");
+  }
+
   async function rejectChange(cr: ChangeRequest) {
     const note = prompt("סיבת הדחייה (אופציונלי):") ?? "";
     setBusy(cr.id);
@@ -109,6 +115,9 @@ export default function RequestsPage() {
                       <span key={k}><b style={{ color: "#7a8699" }}>{fieldLabel(k)}:</b> {k === "amount" ? ils(Number(v)) : k === "greg_date" ? gdate(String(v)) : String(v)}</span>
                     ))}
                   </div>
+                )}
+                {cr.document_url && (
+                  <button onClick={() => viewDocument(cr.document_url!)} style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 5, background: "#eef2f1", color: BRAND, border: "none", borderRadius: 8, padding: "0.35rem 0.8rem", fontSize: ".82rem", fontWeight: 700, cursor: "pointer" }}>📎 צפה במסמך התיעוד</button>
                 )}
                 {cr.member_note && <div style={{ fontSize: ".82rem", color: "#7a8699", marginTop: 6 }}>הערת החבר: {cr.member_note}</div>}
                 {cr.admin_note && <div style={{ fontSize: ".82rem", color: RED, marginTop: 4 }}>הערת מנהל: {cr.admin_note}</div>}

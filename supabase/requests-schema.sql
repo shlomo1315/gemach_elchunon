@@ -25,6 +25,9 @@ create table if not exists transaction_change_requests (
   created_at     timestamptz not null default now(),
   resolved_at    timestamptz
 );
+-- מסמך תיעוד מצורף (נתיב בקובץ ב-Storage)
+alter table transaction_change_requests add column if not exists document_url text;
+
 create index if not exists tcr_member_idx on transaction_change_requests(member_id);
 create index if not exists tcr_status_idx on transaction_change_requests(status);
 
@@ -73,3 +76,20 @@ create policy mr_member_select on member_requests for select
 drop policy if exists mr_member_insert on member_requests;
 create policy mr_member_insert on member_requests for insert
   with check (member_id = current_member_id() and status = 'open');
+
+-- ------------------------------------------------------------
+-- Storage: מסמכי תיעוד שחברים מצרפים לבקשות (bucket פרטי)
+-- ------------------------------------------------------------
+insert into storage.buckets (id, name, public)
+values ('member-docs', 'member-docs', false)
+on conflict (id) do nothing;
+
+-- חבר מחובר יכול להעלות מסמך
+drop policy if exists "member_docs_upload" on storage.objects;
+create policy "member_docs_upload" on storage.objects for insert to authenticated
+  with check (bucket_id = 'member-docs');
+
+-- קריאה: בעל הקובץ או מנהל בלבד
+drop policy if exists "member_docs_read" on storage.objects;
+create policy "member_docs_read" on storage.objects for select to authenticated
+  using (bucket_id = 'member-docs' and (owner = auth.uid() or is_admin()));

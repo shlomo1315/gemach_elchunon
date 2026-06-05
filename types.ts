@@ -57,6 +57,7 @@ export type ChangeRequest = {
   status: "pending" | "approved" | "rejected";
   member_note: string | null;
   admin_note: string | null;
+  document_url: string | null;
   created_at: string;
   resolved_at: string | null;
   members?: { name: string } | null;

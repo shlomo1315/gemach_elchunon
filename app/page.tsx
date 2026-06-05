@@ -125,19 +125,26 @@ export default function Dashboard() {
   const [memberForm, setMemberForm] = useState({ name: "", code: "", phone: "", address: "" });
   const [formErr, setFormErr] = useState<Record<string, string>>({});
 
+  const [pendingChanges, setPendingChanges] = useState(0);
+  const [openRequests, setOpenRequests] = useState(0);
+
   async function load() {
-    const [s, r, t, m, a] = await Promise.all([
+    const [s, r, t, m, a, pc, or] = await Promise.all([
       supabase.from("fund_summary").select("*").single(),
       supabase.from("transactions").select("*, members(name)").order("created_at", { ascending: false }).limit(10),
       supabase.from("member_balances").select("*").order("balance", { ascending: false }).limit(6),
       supabase.from("members").select("*").order("name"),
       supabase.from("transactions").select("amount,type,greg_date,heb_date,created_at").limit(50000),
+      supabase.from("transaction_change_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
+      supabase.from("member_requests").select("id", { count: "exact", head: true }).eq("status", "open"),
     ]);
     setSummary(s.data as FundSummary);
     setRecent((r.data as Recent[]) || []);
     setTop((t.data as MemberBalance[]) || []);
     setMembers((m.data as Member[]) || []);
     setAllTxns((a.data as any[]) || []);
+    setPendingChanges(pc.count || 0);
+    setOpenRequests(or.count || 0);
     setLoading(false);
   }
 
@@ -543,6 +550,28 @@ export default function Dashboard() {
         <KpiCard label="חברים" value={num(summary?.members_count)} icon={<Users size={20} />} color="#3b82f6"
           sub={`${num(summary?.txn_count)} פעולות`} />
       </div>
+
+      {/* ממתינים לאישור מנהל */}
+      {(pendingChanges > 0 || openRequests > 0) && (
+        <Link href="/requests" style={{ textDecoration: "none" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", background: "linear-gradient(135deg,#fff7ed,#fffbeb)", border: "1px solid #fcd9a8", borderRadius: 16, padding: "1rem 1.25rem", marginBottom: 20, cursor: "pointer" }}>
+            <div style={{ width: 42, height: 42, borderRadius: 12, background: "#f59e0b", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <Clock size={22} />
+            </div>
+            <div style={{ flex: 1, minWidth: 180 }}>
+              <div style={{ fontWeight: 800, color: "#1a1a2e" }}>ממתינים לאישור מנהל</div>
+              <div style={{ fontSize: ".85rem", color: "#92741f" }}>
+                {pendingChanges > 0 && <span>{pendingChanges} בקשות פעולה</span>}
+                {pendingChanges > 0 && openRequests > 0 && <span> · </span>}
+                {openRequests > 0 && <span>{openRequests} פניות חדשות</span>}
+              </div>
+            </div>
+            <span style={{ background: "#f59e0b", color: "#fff", borderRadius: 999, padding: "0.3rem 1rem", fontWeight: 800, fontSize: ".9rem" }}>
+              {pendingChanges + openRequests} →
+            </span>
+          </div>
+        </Link>
+      )}
 
       {/* פעילות לפי תקופה */}
       <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 2px 8px rgba(0,0,0,.06)", padding: "1.1rem 1.25rem", marginBottom: 20 }}>
