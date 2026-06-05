@@ -127,9 +127,10 @@ export default function Dashboard() {
 
   const [pendingChanges, setPendingChanges] = useState(0);
   const [openRequests, setOpenRequests] = useState(0);
+  const [dueChecks, setDueChecks] = useState<any[]>([]);
 
   async function load() {
-    const [s, r, t, m, a, pc, or] = await Promise.all([
+    const [s, r, t, m, a, pc, or, ck] = await Promise.all([
       supabase.from("fund_summary").select("*").single(),
       supabase.from("transactions").select("*, members(name)").order("created_at", { ascending: false }).limit(10),
       supabase.from("member_balances").select("*").order("balance", { ascending: false }).limit(6),
@@ -137,6 +138,7 @@ export default function Dashboard() {
       supabase.from("transactions").select("amount,type,greg_date,heb_date,created_at").limit(50000),
       supabase.from("transaction_change_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
       supabase.from("member_requests").select("id", { count: "exact", head: true }).eq("status", "open"),
+      supabase.from("checks").select("*, members(name)").eq("status", "pending").order("due_date", { ascending: true }).limit(200),
     ]);
     setSummary(s.data as FundSummary);
     setRecent((r.data as Recent[]) || []);
@@ -145,8 +147,15 @@ export default function Dashboard() {
     setAllTxns((a.data as any[]) || []);
     setPendingChanges(pc.count || 0);
     setOpenRequests(or.count || 0);
+    setDueChecks((ck.data as any[]) || []);
     setLoading(false);
   }
+
+  // שיקים שהגיע מועד פירעונם (תזכורת יומית עד פדיון)
+  const checksDueNow = useMemo(() => {
+    const today = new Date(); today.setHours(23, 59, 59, 999);
+    return dueChecks.filter(c => c.due_date && new Date(c.due_date) <= today);
+  }, [dueChecks]);
 
   // סטטיסטיקות לפי התקופה הנבחרת (יום/שבוע/חודש/שנה)
   const periodStats = useMemo(() => {
@@ -571,6 +580,29 @@ export default function Dashboard() {
             </span>
           </div>
         </Link>
+      )}
+
+      {/* תזכורת: שיקים שהגיע מועד פירעונם */}
+      {checksDueNow.length > 0 && (
+        <div style={{ background: "linear-gradient(135deg,#fef2f2,#fff7ed)", border: "1px solid #f5c2a8", borderRadius: 16, padding: "1rem 1.25rem", marginBottom: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+            <span style={{ fontSize: "1.2rem" }}>🔔</span>
+            <div style={{ fontWeight: 800, color: "#1a1a2e" }}>שיקים שהגיע מועד פירעונם ({checksDueNow.length})</div>
+            <span style={{ fontSize: ".8rem", color: "#b45309" }}>— יש לסמן כנפדה לאחר הפקדה בבנק</span>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {checksDueNow.slice(0, 8).map(c => (
+              <Link key={c.id} href={`/members/${c.member_id}`} style={{ textDecoration: "none" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, background: "#fff", borderRadius: 10, padding: "0.5rem 0.85rem", fontSize: ".86rem" }}>
+                  <span style={{ color: "#1a1a2e", fontWeight: 600 }}>{c.members?.name || "—"}</span>
+                  <span style={{ color: "#7a8699" }}>{c.due_date ? gdate(c.due_date) : ""}{c.notes ? ` · ${c.notes}` : ""}</span>
+                  <span style={{ fontWeight: 800, color: "#c0392b" }}>{ils(c.amount)}</span>
+                </div>
+              </Link>
+            ))}
+            {checksDueNow.length > 8 && <div style={{ fontSize: ".8rem", color: "#b45309" }}>ועוד {checksDueNow.length - 8}…</div>}
+          </div>
+        </div>
       )}
 
       {/* פעילות לפי תקופה */}
