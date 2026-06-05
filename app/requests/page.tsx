@@ -59,12 +59,6 @@ export default function RequestsPage() {
     load();
   }
 
-  async function viewDocument(path: string) {
-    const { data, error } = await supabase.storage.from("member-docs").createSignedUrl(path, 3600);
-    if (error || !data?.signedUrl) { alert("שגיאה בפתיחת המסמך: " + (error?.message || "")); return; }
-    window.open(data.signedUrl, "_blank");
-  }
-
   async function rejectChange(cr: ChangeRequest) {
     const note = prompt("סיבת הדחייה (אופציונלי):") ?? "";
     setBusy(cr.id);
@@ -116,9 +110,7 @@ export default function RequestsPage() {
                     ))}
                   </div>
                 )}
-                {cr.document_url && (
-                  <button onClick={() => viewDocument(cr.document_url!)} style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 5, background: "#eef2f1", color: BRAND, border: "none", borderRadius: 8, padding: "0.35rem 0.8rem", fontSize: ".82rem", fontWeight: 700, cursor: "pointer" }}>📎 צפה במסמך התיעוד</button>
-                )}
+                {cr.document_url && <DocPreview path={cr.document_url} />}
                 {cr.member_note && <div style={{ fontSize: ".82rem", color: "#7a8699", marginTop: 6 }}>הערת החבר: {cr.member_note}</div>}
                 {cr.admin_note && <div style={{ fontSize: ".82rem", color: RED, marginTop: 4 }}>הערת מנהל: {cr.admin_note}</div>}
                 <div style={{ fontSize: ".72rem", color: "#b0bac7", marginTop: 6 }}>{new Date(cr.created_at).toLocaleString("he-IL")}</div>
@@ -158,6 +150,51 @@ export default function RequestsPage() {
             ))}
           </div>
         )
+      )}
+    </div>
+  );
+}
+
+// תצוגה מקדימה מוטמעת של מסמך התיעוד (תמונה / PDF) + הגדלה במודאל
+function DocPreview({ path }: { path: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [big, setBig] = useState(false);
+  const isPdf = /\.pdf(\?|$)/i.test(path);
+
+  useEffect(() => {
+    let active = true;
+    supabase.storage.from("member-docs").createSignedUrl(path, 3600).then(({ data }) => {
+      if (active && data?.signedUrl) setUrl(data.signedUrl);
+    });
+    return () => { active = false; };
+  }, [path]);
+
+  return (
+    <div style={{ marginTop: 8 }}>
+      <div style={{ fontSize: ".78rem", color: "#7a8699", fontWeight: 700, marginBottom: 4 }}>📎 מסמך התיעוד</div>
+      {!url ? (
+        <div style={{ fontSize: ".8rem", color: "#9aa5b5" }}>טוען תצוגה מקדימה…</div>
+      ) : (
+        <button onClick={() => setBig(true)} title="הגדל" style={{ padding: 0, border: "1px solid #e2e8f0", borderRadius: 10, overflow: "hidden", background: "#f8fafc", cursor: "zoom-in", lineHeight: 0 }}>
+          {isPdf
+            ? <iframe src={url} title="מסמך התיעוד" style={{ width: 240, height: 170, border: "none", pointerEvents: "none" }} />
+            : <img src={url} alt="מסמך התיעוד" style={{ maxWidth: 240, maxHeight: 170, display: "block", objectFit: "cover" }} />}
+        </button>
+      )}
+
+      {big && url && (
+        <div onClick={e => { if (e.target === e.currentTarget) setBig(false); }}
+          style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.72)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1.25rem" }}>
+          <div style={{ background: "#fff", borderRadius: 12, padding: 10, maxWidth: "94vw", maxHeight: "94vh", display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 14 }}>
+              <a href={url} target="_blank" rel="noreferrer" style={{ color: BRAND, fontWeight: 700, fontSize: ".85rem", textDecoration: "none" }}>פתח בכרטיסייה חדשה ↗</a>
+              <button onClick={() => setBig(false)} style={{ background: "none", border: "none", fontSize: "1.3rem", cursor: "pointer", color: "#9aa5b5", lineHeight: 1 }}>✕</button>
+            </div>
+            {isPdf
+              ? <iframe src={url} title="מסמך התיעוד" style={{ width: "84vw", height: "82vh", border: "none" }} />
+              : <img src={url} alt="מסמך התיעוד" style={{ maxWidth: "90vw", maxHeight: "82vh", objectFit: "contain", display: "block" }} />}
+          </div>
+        </div>
       )}
     </div>
   );
