@@ -62,12 +62,15 @@ export function SuccessPopup({
 export function Card({
   children,
   style,
+  id,
 }: {
   children: React.ReactNode;
   style?: React.CSSProperties;
+  id?: string;
 }) {
   return (
     <div
+      id={id}
       style={{
         background: "var(--card)",
         borderRadius: 12,

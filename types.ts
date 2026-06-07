@@ -13,10 +13,14 @@ export type Member = {
 export type MemberBalance = Member & {
   balance: number;
   txn_count: number;
+  loan_balance: number;    // חוב הלוואות (הלוואות פחות פרעונות)
+  savings_balance: number; // יתרת חיסכון (פיקדונות פחות החזרים)
 };
 
 export type TxnType = "הפקדה" | "משיכה";
 export type TxnMethod = "העברה בנקאית" | "צ'יקים" | "מזומן" | "העברה לצד ג";
+// סיווג פעולה: הלוואה / פרעון הלוואה / פיקדון (חיסכון) / החזר פיקדון
+export type TxnCategory = "loan" | "repayment" | "deposit" | "refund";
 
 export type Transaction = {
   id: string;
@@ -27,6 +31,7 @@ export type Transaction = {
   greg_date: string | null;
   heb_date: string | null;
   notes: string | null;
+  category: TxnCategory | null;
   created_at: string;
 };
 
@@ -69,6 +74,7 @@ export type Check = {
   member_id: string;
   transaction_id: string | null;
   loan_transaction_id: string | null; // ההלוואה (משיכה) שהשיק משויך אליה
+  kind: "repayment" | "deposit";      // פרעון הלוואה / פיקדון (חיסכון)
   amount: number;
   due_date: string | null;
   hebrew_due: string | null;
