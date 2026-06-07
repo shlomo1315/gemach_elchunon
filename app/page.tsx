@@ -7,9 +7,9 @@ import { supabase } from "@/lib/supabase";
 import { ils, num, gdate, toHebrewDate, hebrewDateLetters, TXN_TYPES, TXN_METHODS } from "@/lib/format";
 import { hebTextToGregDisplay } from "@/lib/hebrewParse";
 import { Badge, Loading, SuccessPopup } from "@/components/ui";
-import type { FundSummary, Transaction, MemberBalance, Member } from "@/types";
+import type { FundSummary, Transaction, MemberBalance, Member, ChangeRequest, MemberRequest } from "@/types";
 import { useAuth } from "@/components/AuthGuard";
-import { Users, ArrowDownCircle, ArrowUpCircle, Wallet, UserPlus, CreditCard, BarChart3, Clock, Flame } from "lucide-react";
+import { Users, ArrowDownCircle, ArrowUpCircle, Wallet, UserPlus, CreditCard, BarChart3, Clock, Flame, Bell } from "lucide-react";
 
 type Recent = Transaction & { members: { name: string } | null };
 
@@ -128,6 +128,10 @@ export default function Dashboard() {
   const [pendingChanges, setPendingChanges] = useState(0);
   const [openRequests, setOpenRequests] = useState(0);
   const [dueChecks, setDueChecks] = useState<any[]>([]);
+  // חלונית התראות בכניסה למערכת (בקשות ופניות ממתינות)
+  const [pendingList, setPendingList] = useState<ChangeRequest[]>([]);
+  const [requestsList, setRequestsList] = useState<MemberRequest[]>([]);
+  const [notifOpen, setNotifOpen] = useState(false);
 
   async function load() {
     const [s, r, t, m, a, pc, or, ck] = await Promise.all([
@@ -136,8 +140,8 @@ export default function Dashboard() {
       supabase.from("member_balances").select("*").order("balance", { ascending: false }).limit(6),
       supabase.from("members").select("*").order("name"),
       supabase.from("transactions").select("amount,type,greg_date,heb_date,created_at").limit(50000),
-      supabase.from("transaction_change_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
-      supabase.from("member_requests").select("id", { count: "exact", head: true }).eq("status", "open"),
+      supabase.from("transaction_change_requests").select("*, members(name)").eq("status", "pending").order("created_at", { ascending: false }),
+      supabase.from("member_requests").select("*, members(name)").eq("status", "open").order("created_at", { ascending: false }),
       supabase.from("checks").select("*, members(name)").eq("status", "pending").order("due_date", { ascending: true }).limit(200),
     ]);
     setSummary(s.data as FundSummary);
@@ -145,10 +149,19 @@ export default function Dashboard() {
     setTop((t.data as MemberBalance[]) || []);
     setMembers((m.data as Member[]) || []);
     setAllTxns((a.data as any[]) || []);
-    setPendingChanges(pc.count || 0);
-    setOpenRequests(or.count || 0);
+    const pcList = (pc.data as ChangeRequest[]) || [];
+    const orList = (or.data as MemberRequest[]) || [];
+    setPendingList(pcList);
+    setRequestsList(orList);
+    setPendingChanges(pcList.length);
+    setOpenRequests(orList.length);
     setDueChecks((ck.data as any[]) || []);
     setLoading(false);
+    // הצגת חלונית ההתראות פעם אחת בכל כניסה למערכת (לפי session)
+    if (pcList.length + orList.length > 0 && typeof window !== "undefined" && !sessionStorage.getItem("notif_seen")) {
+      setNotifOpen(true);
+      sessionStorage.setItem("notif_seen", "1");
+    }
   }
 
   // שיקים שהגיע מועד פירעונם (תזכורת יומית עד פדיון)
@@ -872,9 +885,68 @@ export default function Dashboard() {
 
       {/* ===== פופ-אפ הצלחה במרכז המסך ===== */}
       {toast && <SuccessPopup title={toast.title} lines={toast.lines} onClose={() => setToast(null)} />}
+
+      {/* ===== חלונית התראות בכניסה: בקשות ופניות ממתינות ===== */}
+      {notifOpen && (
+        <div onClick={e => { if (e.target === e.currentTarget) setNotifOpen(false); }}
+          style={{ position: "fixed", inset: 0, zIndex: 1200, background: "rgba(15,30,25,0.45)", backdropFilter: "blur(3px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
+          <div style={{ background: "#fff", borderRadius: 20, width: "100%", maxWidth: 480, maxHeight: "85vh", display: "flex", flexDirection: "column", boxShadow: "0 30px 80px rgba(0,0,0,.3)", direction: "rtl", overflow: "hidden", animation: "modalIn 0.22s ease" }}>
+            {/* כותרת */}
+            <div style={{ background: `linear-gradient(135deg, #16513f, ${BRAND})`, color: "#fff", padding: "1.1rem 1.3rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <Bell size={22} />
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: "1.05rem" }}>בקשות ופניות ממתינות</div>
+                  <div style={{ fontSize: ".8rem", opacity: .85 }}>{pendingChanges + openRequests} פריטים מחכים לטיפול</div>
+                </div>
+              </div>
+              <button onClick={() => setNotifOpen(false)} title="סגור" style={{ background: "rgba(255,255,255,.18)", border: "none", color: "#fff", width: 32, height: 32, borderRadius: "50%", fontSize: "1.1rem", cursor: "pointer", lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>✕</button>
+            </div>
+
+            {/* רשימה */}
+            <div style={{ padding: "0.9rem 1rem", overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
+              {pendingList.map(c => (
+                <div key={c.id} style={notifRow}>
+                  <div style={{ ...notifDot, background: "#f59e0b" }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 700, color: "#1a1a2e", fontSize: ".9rem" }}>
+                      {c.members?.name || "—"} · {c.kind === "add" ? "בקשת פעולה חדשה" : c.kind === "delete" ? "בקשת מחיקת פעולה" : "הצעת תיקון לפעולה"}
+                    </div>
+                    <div style={{ fontSize: ".78rem", color: "#7a8699" }}>
+                      {c.proposed?.amount ? `${ils(Number(c.proposed.amount))} · ` : ""}{new Date(c.created_at).toLocaleDateString("he-IL")}{c.document_url ? " · 📎 מסמך" : ""}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {requestsList.map(r => (
+                <div key={r.id} style={notifRow}>
+                  <div style={{ ...notifDot, background: "#3b82f6" }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 700, color: "#1a1a2e", fontSize: ".9rem" }}>
+                      {r.members?.name || "—"} · {r.type === "loan" ? "בקשת הלוואה" : r.type === "deposit_refund" ? "בקשת החזר פיקדון" : "פנייה / הודעה"}
+                    </div>
+                    <div style={{ fontSize: ".78rem", color: "#7a8699" }}>
+                      {r.subject ? `${r.subject} · ` : ""}{r.amount ? `${ils(r.amount)} · ` : ""}{new Date(r.created_at).toLocaleDateString("he-IL")}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* כפתורים */}
+            <div style={{ borderTop: "1px solid #f0f2f5", padding: "0.85rem 1rem", display: "flex", gap: 10 }}>
+              <Link href="/requests" onClick={() => setNotifOpen(false)} style={{ flex: 1, textAlign: "center", background: BRAND, color: "#fff", borderRadius: 10, padding: "0.6rem", fontWeight: 700, fontSize: ".9rem", textDecoration: "none" }}>מעבר לטיפול בבקשות →</Link>
+              <button onClick={() => setNotifOpen(false)} style={{ background: "#eef2f1", color: BRAND, border: "none", borderRadius: 10, padding: "0.6rem 1.2rem", fontWeight: 700, fontSize: ".9rem", cursor: "pointer" }}>סגור</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
+const notifRow: React.CSSProperties = { display: "flex", alignItems: "center", gap: 10, background: "#f8fafc", borderRadius: 12, padding: "0.6rem 0.8rem" };
+const notifDot: React.CSSProperties = { width: 10, height: 10, borderRadius: "50%", flexShrink: 0 };
 
 function ShortcutInner({ icon, label, color }: { icon: React.ReactNode; label: string; color: string }) {
   return (
