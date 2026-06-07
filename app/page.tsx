@@ -672,11 +672,12 @@ export default function Dashboard() {
             <div style={{ padding: "2rem", textAlign: "center", color: "#9aa5b5" }}>אין פעולות עדיין</div>
           ) : (
             recent.map((t, i) => (
-              <div key={t.id} style={{
+              <Link key={t.id} href={`/members/${t.member_id}`} style={{ textDecoration: "none", color: "inherit", display: "block" }}>
+              <div style={{
                 display: "flex", alignItems: "center", gap: 12,
                 padding: "0.75rem 1.25rem",
                 borderBottom: i < recent.length - 1 ? "1px solid #f8fafc" : "none",
-                transition: "background .1s",
+                transition: "background .1s", cursor: "pointer",
               }}
                 onMouseEnter={e => (e.currentTarget.style.background = "#f8fbf9")}
                 onMouseLeave={e => (e.currentTarget.style.background = "")}
@@ -708,6 +709,7 @@ export default function Dashboard() {
                   {t.type === "משיכה" ? "−" : "+"}{ils(t.amount)}
                 </div>
               </div>
+              </Link>
             ))
           )}
         </div>
