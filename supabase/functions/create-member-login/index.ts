@@ -27,11 +27,13 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "לא מחובר" }), { status: 401, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
-    // לקוח מנהל (service role) — עוקף RLS, לכן חובה לאמת הרשאה ידנית
+    // לקוח מנהל (service role) — עוקף RLS, לכן חובה לאמת הרשאה ידנית.
+    // מנהל מזוהה בדיוק כמו באפליקציה (AuthGuard): משתמש מחובר שהמייל שלו
+    // אינו רשום בטבלת members. כך אין תלות בטבלת admins נפרדת.
     const admin = createClient(url, serviceKey);
-    const { data: adminRow } = await admin.from("admins").select("email").ilike("email", callerEmail).maybeSingle();
-    if (!adminRow) {
-      return new Response(JSON.stringify({ error: "אין הרשאה" }), { status: 403, headers: { ...cors, "Content-Type": "application/json" } });
+    const { data: callerMember } = await admin.from("members").select("id").ilike("email", callerEmail).maybeSingle();
+    if (callerMember) {
+      return new Response(JSON.stringify({ error: "אין הרשאה — רק מנהל יכול ליצור התחברות" }), { status: 403, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
     const { email, password, memberId } = await req.json();
