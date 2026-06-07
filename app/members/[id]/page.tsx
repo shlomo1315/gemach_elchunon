@@ -103,7 +103,7 @@ export default function MemberDetail() {
 
   // A5: שיקים
   const [checks, setChecks] = useState<Check[]>([]);
-  const [chkForm, setChkForm] = useState({ amount: "", due_date: "", hebrew_due: "", notes: "" });
+  const [chkForm, setChkForm] = useState({ amount: "", due_date: "", count: "1", notes: "" });
   const [addingChk, setAddingChk] = useState(false);
   const [chkBusy, setChkBusy] = useState<string | null>(null);
 
@@ -121,17 +121,24 @@ export default function MemberDetail() {
 
   async function addCheck() {
     if (!member) return;
-    if (!chkForm.amount || Number(chkForm.amount) <= 0) { alert("יש להזין סכום חיובי"); return; }
+    const amt = Number(chkForm.amount);
+    if (!amt || amt <= 0) { alert("יש להזין סכום חיובי"); return; }
     if (!chkForm.due_date) { alert("יש לבחור תאריך פירעון"); return; }
+    const count = Math.max(1, Math.min(60, Number(chkForm.count) || 1));
     setAddingChk(true);
-    const { error } = await supabase.from("checks").insert({
-      member_id: member.id, amount: Number(chkForm.amount), due_date: chkForm.due_date,
-      hebrew_due: toHebrewDate(chkForm.due_date),
-      notes: chkForm.notes || null, status: "pending",
+    // בניית שורות השיקים: כל שיק בחודש עוקב מתאריך הפירעון הראשון (חישוב ב-UTC כדי לא להיסחף עקב אזור זמן)
+    const [y, m, d] = chkForm.due_date.split("-").map(Number);
+    const rows = Array.from({ length: count }, (_, i) => {
+      const iso = new Date(Date.UTC(y, (m - 1) + i, d)).toISOString().slice(0, 10);
+      const note = chkForm.notes
+        ? (count > 1 ? `${chkForm.notes} (${i + 1}/${count})` : chkForm.notes)
+        : (count > 1 ? `שיק ${i + 1}/${count}` : null);
+      return { member_id: member.id, amount: amt, due_date: iso, hebrew_due: toHebrewDate(iso), notes: note, status: "pending" };
     });
+    const { error } = await supabase.from("checks").insert(rows);
     setAddingChk(false);
     if (error) { alert("שגיאה: " + error.message); return; }
-    setChkForm({ amount: "", due_date: "", hebrew_due: "", notes: "" });
+    setChkForm({ amount: "", due_date: "", count: "1", notes: "" });
     load();
   }
 
@@ -466,18 +473,27 @@ export default function MemberDetail() {
             <label style={lbl}>סכום ₪</label>
             <input type="number" value={chkForm.amount} onChange={e => setChkForm(f => ({ ...f, amount: e.target.value }))} style={inp} />
           </div>
-          <div style={{ width: 160 }}>
-            <label style={lbl}>תאריך פירעון</label>
+          <div style={{ width: 150 }}>
+            <label style={lbl}>תאריך פירעון (ראשון)</label>
             <input type="date" value={chkForm.due_date} onChange={e => setChkForm(f => ({ ...f, due_date: e.target.value }))} style={inp} />
             {chkForm.due_date && <div style={{ fontSize: ".72rem", color: BRAND, marginTop: 3, fontWeight: 600 }}>{toHebrewDate(chkForm.due_date)}</div>}
+          </div>
+          <div style={{ width: 90 }}>
+            <label style={lbl}>מספר שיקים</label>
+            <input type="number" min={1} max={60} value={chkForm.count} onChange={e => setChkForm(f => ({ ...f, count: e.target.value }))} style={inp} />
           </div>
           <div style={{ flex: 1, minWidth: 140 }}>
             <label style={lbl}>הערות</label>
             <input value={chkForm.notes} onChange={e => setChkForm(f => ({ ...f, notes: e.target.value }))} style={inp} placeholder="מס' שיק / בנק / פרטים" />
           </div>
           <button onClick={addCheck} disabled={addingChk} style={{ padding: "0.5rem 1.1rem", background: BRAND, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".85rem", cursor: "pointer", whiteSpace: "nowrap" }}>
-            {addingChk ? "מוסיף…" : "＋ הוסף שיק"}
+            {addingChk ? "מוסיף…" : (Number(chkForm.count) > 1 ? `＋ הוסף ${Number(chkForm.count)} שיקים` : "＋ הוסף שיק")}
           </button>
+          {Number(chkForm.count) > 1 && chkForm.amount && (
+            <div style={{ width: "100%", fontSize: ".76rem", color: "#7a8699" }}>
+              ייווצרו {Number(chkForm.count)} שיקים בני {ils(Number(chkForm.amount))} כל אחד (סה״כ {ils(Number(chkForm.amount) * Number(chkForm.count))}), אחד בכל חודש החל מתאריך הפירעון.
+            </div>
+          )}
         </div>
 
         {checks.length === 0 ? (
