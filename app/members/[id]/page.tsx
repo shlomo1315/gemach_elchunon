@@ -106,12 +106,19 @@ export default function MemberDetail() {
   const [chkBusy, setChkBusy] = useState<string | null>(null);
   // עורך שיקים מרובים: מקלידים מספר → נפתחות שורות; ממלאים מלמעלה והסכום משתכפל; עורכים ידנית; שומרים
   type ChkDraft = { amount: string; due_date: string; notes: string };
-  const [chkMaster, setChkMaster] = useState({ amount: "", due_date: "", count: "1", loan_transaction_id: "", kind: "repayment" as "repayment" | "deposit" });
+  const [chkMaster, setChkMaster] = useState({ amount: "", due_date: "", count: "1", loan_transaction_id: "" });
   const [chkDrafts, setChkDrafts] = useState<ChkDraft[]>([{ amount: "", due_date: "", notes: "" }]);
   const [savingChks, setSavingChks] = useState(false);
 
   // ההלוואות של החבר (פעולות משיכה) — לשיוך שיקים אליהן
   const loans = useMemo(() => txns.filter(t => t.type === "משיכה"), [txns]);
+
+  // אם יש בדיוק הלוואה אחת — לשייך אליה אוטומטית את השיקים
+  useEffect(() => {
+    if (loans.length === 1 && !chkMaster.loan_transaction_id) {
+      setChkMaster(f => ({ ...f, loan_transaction_id: loans[0].id }));
+    }
+  }, [loans, chkMaster.loan_transaction_id]);
 
   // תאריך השיק ה-i: חודש עוקב מהתאריך הראשון (חישוב ב-UTC כדי לא להיסחף עקב אזור זמן)
   function monthlyISO(firstISO: string, i: number): string {
@@ -144,6 +151,8 @@ export default function MemberDetail() {
     if (!member) return;
     const valid = chkDrafts.filter(d => Number(d.amount) > 0 && d.due_date);
     if (valid.length === 0) { alert("אין שיקים תקינים לשמירה (סכום חיובי ותאריך פירעון לכל שיק)"); return; }
+    // אם יש יותר מהלוואה אחת — חובה לבחור לאיזו הלוואה השיקים מיועדים
+    if (loans.length > 1 && !chkMaster.loan_transaction_id) { alert("יש לבחור לאיזו הלוואה השיקים מיועדים"); return; }
     setSavingChks(true);
     const rows = valid.map((d, i) => ({
       member_id: member.id,
@@ -152,13 +161,13 @@ export default function MemberDetail() {
       hebrew_due: toHebrewDate(d.due_date),
       notes: d.notes || (valid.length > 1 ? `שיק ${i + 1}/${valid.length}` : null),
       status: "pending",
-      kind: chkMaster.kind,
-      loan_transaction_id: chkMaster.kind === "repayment" ? (chkMaster.loan_transaction_id || null) : null,
+      kind: "repayment", // כל השיקים הם לפירעון חוב
+      loan_transaction_id: chkMaster.loan_transaction_id || null,
     }));
     const { error } = await supabase.from("checks").insert(rows);
     setSavingChks(false);
     if (error) { alert("שגיאה: " + error.message); return; }
-    setChkMaster({ amount: "", due_date: "", count: "1", loan_transaction_id: "", kind: "repayment" });
+    setChkMaster({ amount: "", due_date: "", count: "1", loan_transaction_id: "" });
     setChkDrafts([{ amount: "", due_date: "", notes: "" }]);
     load();
   }
@@ -166,27 +175,32 @@ export default function MemberDetail() {
   // התקדמות פירעון: כמה מהחוב כבר נפרע בשיקים וכמה צפוי להיפרע
   const checkStats = useMemo(() => {
     const pend = checks.filter(c => c.status === "pending");
+    const cashed = checks.filter(c => c.status === "cashed");
     const pendSum = pend.reduce((s, c) => s + c.amount, 0);
-    const cashedSum = checks.filter(c => c.status === "cashed").reduce((s, c) => s + c.amount, 0);
+    const cashedSum = cashed.reduce((s, c) => s + c.amount, 0);
     const debt = member ? Math.max(0, member.loan_balance ?? 0) : 0; // חוב הלוואות בפועל
     const projectedDebt = Math.max(0, debt - pendSum);               // יתרת חוב צפויה אחרי פדיון כל הממתינים
     const planTotal = cashedSum + pendSum;                           // סך תכנית הפירעון בשיקים
     const progressPct = planTotal > 0 ? Math.round((cashedSum / planTotal) * 100) : 0;
-    return { pend, pendSum, cashedSum, debt, projectedDebt, planTotal, progressPct };
+    return {
+      pend, pendSum, cashedSum, debt, projectedDebt, planTotal, progressPct,
+      total: checks.length, pendCount: pend.length, cashedCount: cashed.length,
+    };
   }, [checks, member]);
 
-  // פדיון שיק → יוצר הפקדה ומקשר אותה לשיק.
-  // שיק פרעון מקטין את חוב ההלוואה (category=repayment); שיק פיקדון מגדיל חיסכון (category=deposit).
+  // פדיון שיק → יוצר הפקדת פרעון שמקטינה את חוב ההלוואה ומקשר אותה לשיק.
   async function markCashed(c: Check) {
     if (!member) return;
-    const isRepay = c.kind !== "deposit";
-    if (!confirm(`לסמן שיק על סך ${ils(c.amount)} כנפדה? ${isRepay ? "תיווצר הפקדה שתקטין את חוב ההלוואה." : "תיווצר הפקדת חיסכון."}`)) return;
+    if (!confirm(`לסמן שיק על סך ${ils(c.amount)} כנפדה? תיווצר הפקדה שתקטין את חוב ההלוואה.`)) return;
     setChkBusy(c.id);
+    // הפניה להלוואה שהשיק פורע — תופיע בהערות הפעולה
+    const loan = c.loan_transaction_id ? txns.find(t => t.id === c.loan_transaction_id) : null;
+    const loanRef = loan ? ` · פרעון הלוואה ע״ס ${ils(loan.amount)}${loan.greg_date ? " מ-" + gdate(loan.greg_date) : ""}` : " (פרעון)";
     const { data: txn, error: tErr } = await supabase.from("transactions").insert({
       member_id: member.id, amount: c.amount, type: "הפקדה", method: "צ'יקים",
       greg_date: c.due_date, heb_date: c.hebrew_due,
-      notes: (isRepay ? "פדיון שיק (פרעון)" : "פדיון שיק (פיקדון)") + (c.notes ? " · " + c.notes : ""),
-      category: isRepay ? "repayment" : "deposit",
+      notes: "פדיון שיק" + loanRef + (c.notes ? " · " + c.notes : ""),
+      category: "repayment",
     }).select("id").single();
     if (tErr) { setChkBusy(null); alert("שגיאה ביצירת ההפקדה: " + tErr.message); return; }
     await supabase.from("checks").update({ status: "cashed", cashed_at: new Date().toISOString(), transaction_id: (txn as any)?.id || null }).eq("id", c.id);
@@ -248,7 +262,7 @@ export default function MemberDetail() {
     const newLoanId = (txn as any)?.id || "";
     await load();
     if (goChecks && newLoanId) {
-      setChkMaster(f => ({ ...f, kind: "repayment", loan_transaction_id: newLoanId }));
+      setChkMaster(f => ({ ...f, loan_transaction_id: newLoanId }));
       setTimeout(() => document.getElementById("checks-section")?.scrollIntoView({ behavior: "smooth", block: "start" }), 150);
     }
   }
@@ -399,22 +413,28 @@ export default function MemberDetail() {
             </div>
           )}
         </Card>
-        <Card style={{ flex: 1, minWidth: 240, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-          <div style={{ fontSize: ".85rem", color: "#7a8699" }}>יתרה נוכחית</div>
-          <div style={{ fontSize: "2rem", fontWeight: 800, color: member.balance >= 0 ? "var(--brand)" : "#c0392b" }}>
+        <Card style={{ flex: 1, minWidth: 260, display: "flex", flexDirection: "column", justifyContent: "center", gap: 6 }}>
+          <div style={{ fontSize: ".8rem", color: "#7a8699" }}>יתרה נוכחית</div>
+          <div style={{ fontSize: "2rem", fontWeight: 800, lineHeight: 1.1, color: member.balance >= 0 ? "var(--brand)" : "#c0392b" }}>
             {ils(member.balance)}
           </div>
-          <div style={{ display: "flex", gap: 14, marginTop: 8, flexWrap: "wrap" }}>
-            <div style={{ fontSize: ".82rem" }}>
-              <span style={{ color: "#7a8699" }}>חוב הלוואות: </span>
-              <b style={{ color: (member.loan_balance ?? 0) > 0 ? "#c0392b" : "var(--brand)" }}>{ils(Math.max(0, member.loan_balance ?? 0))}</b>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 4 }}>
+            <div style={{ background: "#fef2f2", borderRadius: 8, padding: "0.4rem 0.6rem" }}>
+              <div style={{ fontSize: ".72rem", color: "#7a8699" }}>חוב הלוואות</div>
+              <div style={{ fontWeight: 800, color: (member.loan_balance ?? 0) > 0 ? "#c0392b" : "var(--brand)" }}>{ils(Math.max(0, member.loan_balance ?? 0))}</div>
             </div>
-            <div style={{ fontSize: ".82rem" }}>
-              <span style={{ color: "#7a8699" }}>יתרת חיסכון: </span>
-              <b style={{ color: "var(--brand)" }}>{ils(member.savings_balance ?? 0)}</b>
+            <div style={{ background: "#f0faf6", borderRadius: 8, padding: "0.4rem 0.6rem" }}>
+              <div style={{ fontSize: ".72rem", color: "#7a8699" }}>יתרת חיסכון</div>
+              <div style={{ fontWeight: 800, color: "var(--brand)" }}>{ils(member.savings_balance ?? 0)}</div>
             </div>
           </div>
-          <div style={{ fontSize: ".85rem", color: "#7a8699", marginTop: 6 }}>{member.txn_count} פעולות</div>
+          {checkStats.total > 0 && (
+            <div style={{ marginTop: 2, fontSize: ".78rem", color: "#5a6b7b", background: "#f8fafc", borderRadius: 8, padding: "0.5rem 0.65rem", lineHeight: 1.7 }}>
+              <div><b style={{ color: "#1a1a2e" }}>שיקים:</b> {checkStats.total} במערכת · נפדו {checkStats.cashedCount} · ממתינים {checkStats.pendCount}</div>
+              <div>צפי פרעון (ממתינים): <b>{ils(checkStats.pendSum)}</b> · נותר חוב: <b style={{ color: checkStats.projectedDebt > 0 ? "#c0392b" : "var(--brand)" }}>{ils(checkStats.projectedDebt)}</b></div>
+            </div>
+          )}
+          <div style={{ fontSize: ".78rem", color: "#9aa5b5", marginTop: 2 }}>{member.txn_count} פעולות</div>
         </Card>
       </div>
 
@@ -505,11 +525,6 @@ export default function MemberDetail() {
         {/* התקדמות פירעון ההלוואה בשיקים */}
         {checks.length > 0 && (
           <div style={{ padding: "0.75rem 1.25rem 0" }}>
-            <div style={{ display: "flex", gap: 18, flexWrap: "wrap", fontSize: ".85rem", color: "#445" }}>
-              <div>חוב נוכחי: <b style={{ color: checkStats.debt > 0 ? "#c0392b" : BRAND }}>{ils(checkStats.debt)}</b></div>
-              <div>שיקים ממתינים לפדיון: <b>{ils(checkStats.pendSum)}</b>{checkStats.pend.length > 0 ? ` (${checkStats.pend.length})` : ""}</div>
-              <div>יתרת חוב צפויה אחרי פדיון הכל: <b style={{ color: checkStats.projectedDebt > 0 ? "#c0392b" : BRAND }}>{ils(checkStats.projectedDebt)}</b></div>
-            </div>
             {checkStats.planTotal > 0 && (
               <div style={{ marginTop: 8 }}>
                 <div style={{ height: 8, background: "#eef2f1", borderRadius: 999, overflow: "hidden" }}>
@@ -523,7 +538,8 @@ export default function MemberDetail() {
           </div>
         )}
 
-        {/* עורך שיקים: מילוי מלמעלה → שכפול לכל השורות → עריכה ידנית → שמירה */}
+        {/* עורך שיקים — זמין רק לחבר עם הלוואה פעילה (כל השיקים הם לפירעון חוב) */}
+        {(member.loan_balance ?? 0) > 0 ? (
         <div className="no-print" style={{ padding: "0.75rem 1.25rem 1rem", borderBottom: "1px solid #f0f2f5" }}>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "flex-end" }}>
             <div style={{ width: 120 }}>
@@ -538,18 +554,11 @@ export default function MemberDetail() {
               <label style={lbl}>מספר שיקים</label>
               <input type="number" min={0} max={60} value={chkMaster.count} onChange={e => setMasterCount(e.target.value)} style={inp} />
             </div>
-            <div style={{ width: 140 }}>
-              <label style={lbl}>סוג</label>
-              <select value={chkMaster.kind} onChange={e => setChkMaster(f => ({ ...f, kind: e.target.value as "repayment" | "deposit", loan_transaction_id: e.target.value === "deposit" ? "" : f.loan_transaction_id }))} style={inp}>
-                <option value="repayment">פרעון הלוואה</option>
-                <option value="deposit">פיקדון (חיסכון)</option>
-              </select>
-            </div>
-            {chkMaster.kind === "repayment" && loans.length > 0 && (
-              <div style={{ flex: 1, minWidth: 200 }}>
-                <label style={lbl}>שיוך להלוואה (משיכה)</label>
+            {loans.length > 0 && (
+              <div style={{ flex: 1, minWidth: 220 }}>
+                <label style={lbl}>{loans.length > 1 ? "לאיזו הלוואה השיקים מיועדים? (חובה)" : "שיוך להלוואה (משיכה)"}</label>
                 <select value={chkMaster.loan_transaction_id} onChange={e => setChkMaster(f => ({ ...f, loan_transaction_id: e.target.value }))} style={inp}>
-                  <option value="">— ללא שיוך —</option>
+                  {loans.length > 1 && <option value="">— בחר הלוואה —</option>}
                   {loans.map(l => (
                     <option key={l.id} value={l.id}>הלוואה {ils(l.amount)} · {gregOf(l)}{l.notes ? ` · ${l.notes}` : ""}</option>
                   ))}
@@ -594,6 +603,11 @@ export default function MemberDetail() {
             })()}
           </div>
         </div>
+        ) : (
+          <div className="no-print" style={{ padding: "0.9rem 1.25rem", color: "#7a8699", fontSize: ".85rem", borderBottom: "1px solid #f0f2f5" }}>
+            שיקים זמינים רק לחבר עם הלוואה פעילה (כל השיקים הם לפירעון החוב). כדי להזין שיקים — רשום משיכה (הלוואה) ובחר "אופן החזר → שיקים".
+          </div>
+        )}
 
         {checks.length === 0 ? (
           <Empty text="אין שיקים לחבר זה" />
