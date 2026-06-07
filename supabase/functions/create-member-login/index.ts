@@ -42,6 +42,23 @@ Deno.serve(async (req) => {
     }
     const lowerEmail = String(email).toLowerCase().trim();
 
+    // ---- הגנות למניעת דריסת חשבון קיים בטעות ----
+    // 1) אסור להשתמש במייל של המנהל המחובר עבור חבר (זה אותו חשבון!)
+    if (lowerEmail === callerEmail) {
+      return new Response(JSON.stringify({ error: "לא ניתן להגדיר את המייל שלך (מנהל) כהתחברות של חבר. השתמש במייל הפרטי של החבר." }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+    }
+    // 2) המייל הנוכחי השמור לחבר הזה (כדי לאפשר איפוס סיסמה רק לחשבון של החבר עצמו)
+    let currentMemberEmail: string | null = null;
+    if (memberId) {
+      const { data: mRow } = await admin.from("members").select("email").eq("id", memberId).maybeSingle();
+      currentMemberEmail = (mRow?.email || "").toLowerCase() || null;
+    }
+    // 3) המייל כבר משויך לחבר אחר?
+    const { data: otherMember } = await admin.from("members").select("id").ilike("email", lowerEmail).neq("id", memberId || "00000000-0000-0000-0000-000000000000").maybeSingle();
+    if (otherMember) {
+      return new Response(JSON.stringify({ error: "המייל כבר משויך לחבר אחר." }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+    }
+
     // יצירת המשתמש (מאומת מראש, ללא צורך באישור מייל)
     const { data: created, error: cErr } = await admin.auth.admin.createUser({
       email: lowerEmail,
@@ -57,6 +74,11 @@ Deno.serve(async (req) => {
       const alreadyExists = /already.*registered|already.*exists|duplicate|been registered/i.test(cErr.message || "");
       if (!alreadyExists) {
         return new Response(JSON.stringify({ error: cErr.message }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+      }
+      // 4) המייל כבר קיים במערכת — מותר לעדכן סיסמה רק אם זה כבר המייל של החבר הזה.
+      //    אחרת מדובר בחשבון אחר (מנהל / חבר אחר) ואסור לדרוס לו את הסיסמה.
+      if (lowerEmail !== currentMemberEmail) {
+        return new Response(JSON.stringify({ error: "המייל הזה כבר קיים במערכת (חשבון מנהל או חבר אחר). בחר מייל אחר עבור החבר." }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
       }
       // איתור המשתמש הקיים לפי מייל
       let found: any = null;
