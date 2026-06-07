@@ -13,6 +13,7 @@ create table if not exists checks (
   id             uuid primary key default gen_random_uuid(),
   member_id      uuid not null references members(id) on delete cascade,
   transaction_id uuid references transactions(id) on delete set null, -- ההפקדה שנוצרה בעת הפדיון
+  loan_transaction_id uuid references transactions(id) on delete set null, -- ההלוואה (משיכה) שהשיק משויך אליה
   amount         numeric not null,
   due_date       date,
   hebrew_due     text,

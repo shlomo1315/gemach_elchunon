@@ -103,9 +103,64 @@ export default function MemberDetail() {
 
   // A5: שיקים
   const [checks, setChecks] = useState<Check[]>([]);
-  const [chkForm, setChkForm] = useState({ amount: "", due_date: "", count: "1", notes: "" });
-  const [addingChk, setAddingChk] = useState(false);
   const [chkBusy, setChkBusy] = useState<string | null>(null);
+  // עורך שיקים מרובים: מקלידים מספר → נפתחות שורות; ממלאים מלמעלה והסכום משתכפל; עורכים ידנית; שומרים
+  type ChkDraft = { amount: string; due_date: string; notes: string };
+  const [chkMaster, setChkMaster] = useState({ amount: "", due_date: "", count: "1", loan_transaction_id: "" });
+  const [chkDrafts, setChkDrafts] = useState<ChkDraft[]>([{ amount: "", due_date: "", notes: "" }]);
+  const [savingChks, setSavingChks] = useState(false);
+
+  // ההלוואות של החבר (פעולות משיכה) — לשיוך שיקים אליהן
+  const loans = useMemo(() => txns.filter(t => t.type === "משיכה"), [txns]);
+
+  // תאריך השיק ה-i: חודש עוקב מהתאריך הראשון (חישוב ב-UTC כדי לא להיסחף עקב אזור זמן)
+  function monthlyISO(firstISO: string, i: number): string {
+    if (!firstISO) return "";
+    const [y, m, d] = firstISO.split("-").map(Number);
+    return new Date(Date.UTC(y, (m - 1) + i, d)).toISOString().slice(0, 10);
+  }
+  function setMasterCount(v: string) {
+    const n = Math.max(0, Math.min(60, Number(v) || 0));
+    setChkMaster(f => ({ ...f, count: v }));
+    setChkDrafts(prev => Array.from({ length: n }, (_, i) => prev[i] || { amount: chkMaster.amount, due_date: monthlyISO(chkMaster.due_date, i), notes: "" }));
+  }
+  function setMasterAmount(v: string) {
+    setChkMaster(f => ({ ...f, amount: v }));
+    setChkDrafts(ds => ds.map(d => ({ ...d, amount: v }))); // משתכפל לכל השורות
+  }
+  function setMasterDate(v: string) {
+    setChkMaster(f => ({ ...f, due_date: v }));
+    setChkDrafts(ds => ds.map((d, i) => ({ ...d, due_date: monthlyISO(v, i) }))); // פריסה חודשית
+  }
+  function updateDraft(i: number, field: keyof ChkDraft, v: string) {
+    setChkDrafts(ds => ds.map((d, idx) => idx === i ? { ...d, [field]: v } : d));
+  }
+  function removeDraft(i: number) {
+    setChkDrafts(ds => ds.filter((_, idx) => idx !== i));
+    setChkMaster(f => ({ ...f, count: String(Math.max(0, chkDrafts.length - 1)) }));
+  }
+
+  async function saveChecks() {
+    if (!member) return;
+    const valid = chkDrafts.filter(d => Number(d.amount) > 0 && d.due_date);
+    if (valid.length === 0) { alert("אין שיקים תקינים לשמירה (סכום חיובי ותאריך פירעון לכל שיק)"); return; }
+    setSavingChks(true);
+    const rows = valid.map((d, i) => ({
+      member_id: member.id,
+      amount: Number(d.amount),
+      due_date: d.due_date,
+      hebrew_due: toHebrewDate(d.due_date),
+      notes: d.notes || (valid.length > 1 ? `שיק ${i + 1}/${valid.length}` : null),
+      status: "pending",
+      loan_transaction_id: chkMaster.loan_transaction_id || null,
+    }));
+    const { error } = await supabase.from("checks").insert(rows);
+    setSavingChks(false);
+    if (error) { alert("שגיאה: " + error.message); return; }
+    setChkMaster({ amount: "", due_date: "", count: "1", loan_transaction_id: "" });
+    setChkDrafts([{ amount: "", due_date: "", notes: "" }]);
+    load();
+  }
 
   // התקדמות פירעון: כמה מהחוב כבר נפרע בשיקים וכמה צפוי להיפרע
   const checkStats = useMemo(() => {
@@ -118,29 +173,6 @@ export default function MemberDetail() {
     const progressPct = planTotal > 0 ? Math.round((cashedSum / planTotal) * 100) : 0;
     return { pend, pendSum, cashedSum, debt, projectedDebt, planTotal, progressPct };
   }, [checks, member]);
-
-  async function addCheck() {
-    if (!member) return;
-    const amt = Number(chkForm.amount);
-    if (!amt || amt <= 0) { alert("יש להזין סכום חיובי"); return; }
-    if (!chkForm.due_date) { alert("יש לבחור תאריך פירעון"); return; }
-    const count = Math.max(1, Math.min(60, Number(chkForm.count) || 1));
-    setAddingChk(true);
-    // בניית שורות השיקים: כל שיק בחודש עוקב מתאריך הפירעון הראשון (חישוב ב-UTC כדי לא להיסחף עקב אזור זמן)
-    const [y, m, d] = chkForm.due_date.split("-").map(Number);
-    const rows = Array.from({ length: count }, (_, i) => {
-      const iso = new Date(Date.UTC(y, (m - 1) + i, d)).toISOString().slice(0, 10);
-      const note = chkForm.notes
-        ? (count > 1 ? `${chkForm.notes} (${i + 1}/${count})` : chkForm.notes)
-        : (count > 1 ? `שיק ${i + 1}/${count}` : null);
-      return { member_id: member.id, amount: amt, due_date: iso, hebrew_due: toHebrewDate(iso), notes: note, status: "pending" };
-    });
-    const { error } = await supabase.from("checks").insert(rows);
-    setAddingChk(false);
-    if (error) { alert("שגיאה: " + error.message); return; }
-    setChkForm({ amount: "", due_date: "", count: "1", notes: "" });
-    load();
-  }
 
   // פדיון שיק → יוצר הפקדה (מקטין את החוב) ומקשר אותה לשיק
   async function markCashed(c: Check) {
@@ -467,33 +499,69 @@ export default function MemberDetail() {
           </div>
         )}
 
-        {/* טופס הוספת שיק */}
-        <div className="no-print" style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "flex-end", padding: "0.75rem 1.25rem" }}>
-          <div style={{ width: 120 }}>
-            <label style={lbl}>סכום ₪</label>
-            <input type="number" value={chkForm.amount} onChange={e => setChkForm(f => ({ ...f, amount: e.target.value }))} style={inp} />
+        {/* עורך שיקים: מילוי מלמעלה → שכפול לכל השורות → עריכה ידנית → שמירה */}
+        <div className="no-print" style={{ padding: "0.75rem 1.25rem 1rem", borderBottom: "1px solid #f0f2f5" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "flex-end" }}>
+            <div style={{ width: 120 }}>
+              <label style={lbl}>סכום לכל שיק ₪</label>
+              <input type="number" value={chkMaster.amount} onChange={e => setMasterAmount(e.target.value)} style={inp} placeholder="0" />
+            </div>
+            <div style={{ width: 150 }}>
+              <label style={lbl}>תאריך פירעון (ראשון)</label>
+              <input type="date" value={chkMaster.due_date} onChange={e => setMasterDate(e.target.value)} style={inp} />
+            </div>
+            <div style={{ width: 100 }}>
+              <label style={lbl}>מספר שיקים</label>
+              <input type="number" min={0} max={60} value={chkMaster.count} onChange={e => setMasterCount(e.target.value)} style={inp} />
+            </div>
+            {loans.length > 0 && (
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <label style={lbl}>שיוך להלוואה (משיכה)</label>
+                <select value={chkMaster.loan_transaction_id} onChange={e => setChkMaster(f => ({ ...f, loan_transaction_id: e.target.value }))} style={inp}>
+                  <option value="">— ללא שיוך —</option>
+                  {loans.map(l => (
+                    <option key={l.id} value={l.id}>הלוואה {ils(l.amount)} · {gregOf(l)}{l.notes ? ` · ${l.notes}` : ""}</option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
-          <div style={{ width: 150 }}>
-            <label style={lbl}>תאריך פירעון (ראשון)</label>
-            <input type="date" value={chkForm.due_date} onChange={e => setChkForm(f => ({ ...f, due_date: e.target.value }))} style={inp} />
-            {chkForm.due_date && <div style={{ fontSize: ".72rem", color: BRAND, marginTop: 3, fontWeight: 600 }}>{toHebrewDate(chkForm.due_date)}</div>}
+          <div style={{ fontSize: ".76rem", color: "#7a8699", marginTop: 6 }}>
+            הזן מספר שיקים → ייפתחו שורות לעריכה. הסכום מלמעלה משתכפל לכולן והתאריך נפרס חודש-חודש; אפשר לערוך כל שורה ידנית ואז לשמור.
           </div>
-          <div style={{ width: 90 }}>
-            <label style={lbl}>מספר שיקים</label>
-            <input type="number" min={1} max={60} value={chkForm.count} onChange={e => setChkForm(f => ({ ...f, count: e.target.value }))} style={inp} />
-          </div>
-          <div style={{ flex: 1, minWidth: 140 }}>
-            <label style={lbl}>הערות</label>
-            <input value={chkForm.notes} onChange={e => setChkForm(f => ({ ...f, notes: e.target.value }))} style={inp} placeholder="מס' שיק / בנק / פרטים" />
-          </div>
-          <button onClick={addCheck} disabled={addingChk} style={{ padding: "0.5rem 1.1rem", background: BRAND, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".85rem", cursor: "pointer", whiteSpace: "nowrap" }}>
-            {addingChk ? "מוסיף…" : (Number(chkForm.count) > 1 ? `＋ הוסף ${Number(chkForm.count)} שיקים` : "＋ הוסף שיק")}
-          </button>
-          {Number(chkForm.count) > 1 && chkForm.amount && (
-            <div style={{ width: "100%", fontSize: ".76rem", color: "#7a8699" }}>
-              ייווצרו {Number(chkForm.count)} שיקים בני {ils(Number(chkForm.amount))} כל אחד (סה״כ {ils(Number(chkForm.amount) * Number(chkForm.count))}), אחד בכל חודש החל מתאריך הפירעון.
+
+          {/* שורות עריכה */}
+          {chkDrafts.length > 0 && (
+            <div style={{ marginTop: 10, border: "1px solid #e2e8f0", borderRadius: 10, overflow: "hidden" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "32px 1fr 1.4fr 1.4fr 36px", gap: 8, background: "#f8fafc", padding: "0.4rem 0.6rem", fontSize: ".74rem", fontWeight: 700, color: "#7a8699" }}>
+                <div>#</div><div>סכום ₪</div><div>תאריך פירעון</div><div>הערות</div><div></div>
+              </div>
+              <div style={{ maxHeight: 320, overflowY: "auto" }}>
+                {chkDrafts.map((d, i) => (
+                  <div key={i} style={{ display: "grid", gridTemplateColumns: "32px 1fr 1.4fr 1.4fr 36px", gap: 8, alignItems: "center", padding: "0.35rem 0.6rem", borderTop: "1px solid #f0f2f5" }}>
+                    <div style={{ fontSize: ".8rem", color: "#9aa5b5", fontWeight: 700 }}>{i + 1}</div>
+                    <input type="number" value={d.amount} onChange={e => updateDraft(i, "amount", e.target.value)} style={{ ...inp, padding: "0.35rem 0.5rem" }} />
+                    <div>
+                      <input type="date" value={d.due_date} onChange={e => updateDraft(i, "due_date", e.target.value)} style={{ ...inp, padding: "0.35rem 0.5rem" }} />
+                      {d.due_date && <div style={{ fontSize: ".68rem", color: BRAND, marginTop: 2 }}>{toHebrewDate(d.due_date)}</div>}
+                    </div>
+                    <input value={d.notes} onChange={e => updateDraft(i, "notes", e.target.value)} style={{ ...inp, padding: "0.35rem 0.5rem" }} placeholder="מס' שיק / בנק" />
+                    <button onClick={() => removeDraft(i)} title="הסר שורה" style={{ background: "none", border: "none", color: "#c0392b", cursor: "pointer", fontSize: "1rem" }}>✕</button>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
+
+          <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 10 }}>
+            <button onClick={saveChecks} disabled={savingChks || chkDrafts.length === 0} style={{ padding: "0.55rem 1.4rem", background: BRAND, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".88rem", cursor: "pointer" }}>
+              {savingChks ? "שומר…" : `✓ שמור ${chkDrafts.length || ""} שיקים`}
+            </button>
+            {(() => {
+              const total = chkDrafts.reduce((s, d) => s + (Number(d.amount) || 0), 0);
+              return total > 0 ? <span style={{ fontSize: ".82rem", color: "#7a8699" }}>סה״כ {ils(total)}</span> : null;
+            })()}
+          </div>
         </div>
 
         {checks.length === 0 ? (
@@ -516,7 +584,13 @@ export default function MemberDetail() {
                   const overdue = c.status === "pending" && c.due_date && new Date(c.due_date) <= new Date();
                   return (
                     <tr key={c.id} style={{ background: overdue ? "#fff7ed" : "" }}>
-                      <td style={{ fontWeight: 700 }}>{ils(c.amount)}</td>
+                      <td style={{ fontWeight: 700 }}>
+                        {ils(c.amount)}
+                        {c.loan_transaction_id && (() => {
+                          const l = txns.find(t => t.id === c.loan_transaction_id);
+                          return l ? <div style={{ fontSize: ".68rem", color: "#7a8699", fontWeight: 500 }}>↳ הלוואה {ils(l.amount)}</div> : null;
+                        })()}
+                      </td>
                       <td dir="ltr" style={{ textAlign: "right" }}>{c.due_date ? gdate(c.due_date) : "—"}{overdue ? " ⚠️" : ""}</td>
                       <td>{c.hebrew_due || "—"}</td>
                       <td>
