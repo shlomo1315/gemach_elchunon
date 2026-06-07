@@ -528,7 +528,7 @@ export default function MemberDetail() {
       {/* A5: שיקים */}
       <Card id="checks-section" style={{ padding: 0, marginTop: 18 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem 1.25rem 0", flexWrap: "wrap", gap: 8 }}>
-          <h3 style={{ margin: 0 }}>שיקים</h3>
+          <h3 style={{ margin: 0 }}>שיקים לפרעון</h3>
           {(() => {
             const pend = checks.filter(c => c.status === "pending");
             const sum = pend.reduce((s, c) => s + c.amount, 0);
