@@ -52,7 +52,6 @@ function LoginPage({ onLogin }: { onLogin: (u: User) => void }) {
           <h1 style={{ margin: 0, fontSize: "1.5rem", fontWeight: 800, color: BRAND_DARK }}>
             גמ״ח חסדי אהרן
           </h1>
-          <p style={{ margin: "0.3rem 0 0", color: "#9aa5b5", fontSize: ".85rem" }}>מערכת ניהול פנימית</p>
         </div>
 
         <form onSubmit={handleLogin}>

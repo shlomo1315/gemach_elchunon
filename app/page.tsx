@@ -155,20 +155,25 @@ export default function Dashboard() {
     setRequestsList(orList);
     setPendingChanges(pcList.length);
     setOpenRequests(orList.length);
-    setDueChecks((ck.data as any[]) || []);
+    const ckList = (ck.data as any[]) || [];
+    setDueChecks(ckList);
     setLoading(false);
+    // שיקים לפרעון תוך 3 ימים (לצורך טריגר ההתראות)
+    const soonLimit = new Date(); soonLimit.setHours(23, 59, 59, 999); soonLimit.setDate(soonLimit.getDate() + 3);
+    const dueSoonCount = ckList.filter(c => c.due_date && new Date(c.due_date) <= soonLimit).length;
     // הצגת חלונית ההתראות פעם אחת בכל כניסה למערכת (לפי session)
-    if (pcList.length + orList.length > 0 && typeof window !== "undefined" && !sessionStorage.getItem("notif_seen")) {
+    if (pcList.length + orList.length + dueSoonCount > 0 && typeof window !== "undefined" && !sessionStorage.getItem("notif_seen")) {
       setNotifOpen(true);
       sessionStorage.setItem("notif_seen", "1");
     }
   }
 
-  // שיקים שהגיע מועד פירעונם (תזכורת יומית עד פדיון)
-  const checksDueNow = useMemo(() => {
-    const today = new Date(); today.setHours(23, 59, 59, 999);
-    return dueChecks.filter(c => c.due_date && new Date(c.due_date) <= today);
+  // שיקים לפרעון תוך 3 ימים הקרובים (כולל כאלה שכבר הגיע מועדם)
+  const checksDueSoon = useMemo(() => {
+    const limit = new Date(); limit.setHours(23, 59, 59, 999); limit.setDate(limit.getDate() + 3);
+    return dueChecks.filter(c => c.due_date && new Date(c.due_date) <= limit);
   }, [dueChecks]);
+  const checksDueSoonSum = useMemo(() => checksDueSoon.reduce((s, c) => s + (Number(c.amount) || 0), 0), [checksDueSoon]);
 
   // סטטיסטיקות לפי התקופה הנבחרת (יום/שבוע/חודש/שנה)
   const periodStats = useMemo(() => {
@@ -595,25 +600,28 @@ export default function Dashboard() {
         </Link>
       )}
 
-      {/* תזכורת: שיקים שהגיע מועד פירעונם */}
-      {checksDueNow.length > 0 && (
+      {/* פרעון שיקים — לפרעון תוך 3 ימים (לחיצה פותחת את כרטיס החבר לסימון פדיון) */}
+      {checksDueSoon.length > 0 && (
         <div style={{ background: "linear-gradient(135deg,#fef2f2,#fff7ed)", border: "1px solid #f5c2a8", borderRadius: 16, padding: "1rem 1.25rem", marginBottom: 20 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
             <span style={{ fontSize: "1.2rem" }}>🔔</span>
-            <div style={{ fontWeight: 800, color: "#1a1a2e" }}>שיקים שהגיע מועד פירעונם ({checksDueNow.length})</div>
-            <span style={{ fontSize: ".8rem", color: "#b45309" }}>— יש לסמן כנפדה לאחר הפקדה בבנק</span>
+            <div style={{ fontWeight: 800, color: "#1a1a2e" }}>פרעון שיקים — תוך 3 ימים ({checksDueSoon.length})</div>
+            <span style={{ fontSize: ".82rem", color: "#b45309" }}>· סה״כ {ils(checksDueSoonSum)} — לחיצה פותחת את כרטיס החבר לסימון פדיון</span>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {checksDueNow.slice(0, 8).map(c => (
-              <Link key={c.id} href={`/members/${c.member_id}`} style={{ textDecoration: "none" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, background: "#fff", borderRadius: 10, padding: "0.5rem 0.85rem", fontSize: ".86rem" }}>
-                  <span style={{ color: "#1a1a2e", fontWeight: 600 }}>{c.members?.name || "—"}</span>
-                  <span style={{ color: "#7a8699" }}>{c.due_date ? gdate(c.due_date) : ""}{c.notes ? ` · ${c.notes}` : ""}</span>
-                  <span style={{ fontWeight: 800, color: "#c0392b" }}>{ils(c.amount)}</span>
-                </div>
-              </Link>
-            ))}
-            {checksDueNow.length > 8 && <div style={{ fontSize: ".8rem", color: "#b45309" }}>ועוד {checksDueNow.length - 8}…</div>}
+            {checksDueSoon.slice(0, 10).map(c => {
+              const overdue = c.due_date && new Date(c.due_date) < new Date(new Date().setHours(0, 0, 0, 0));
+              return (
+                <Link key={c.id} href={`/members/${c.member_id}`} style={{ textDecoration: "none" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, background: "#fff", borderRadius: 10, padding: "0.5rem 0.85rem", fontSize: ".86rem" }}>
+                    <span style={{ color: "#1a1a2e", fontWeight: 600 }}>{c.members?.name || "—"}</span>
+                    <span style={{ color: overdue ? "#c0392b" : "#7a8699" }}>{c.due_date ? gdate(c.due_date) : ""}{overdue ? " · באיחור" : ""}</span>
+                    <span style={{ fontWeight: 800, color: "#c0392b" }}>{ils(c.amount)}</span>
+                  </div>
+                </Link>
+              );
+            })}
+            {checksDueSoon.length > 10 && <div style={{ fontSize: ".8rem", color: "#b45309" }}>ועוד {checksDueSoon.length - 10}…</div>}
           </div>
         </div>
       )}
@@ -896,8 +904,8 @@ export default function Dashboard() {
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <Bell size={22} />
                 <div>
-                  <div style={{ fontWeight: 800, fontSize: "1.05rem" }}>בקשות ופניות ממתינות</div>
-                  <div style={{ fontSize: ".8rem", opacity: .85 }}>{pendingChanges + openRequests} פריטים מחכים לטיפול</div>
+                  <div style={{ fontWeight: 800, fontSize: "1.05rem" }}>התראות לטיפול</div>
+                  <div style={{ fontSize: ".8rem", opacity: .85 }}>{pendingChanges + openRequests + checksDueSoon.length} פריטים — בקשות, פניות ושיקים לפרעון</div>
                 </div>
               </div>
               <button onClick={() => setNotifOpen(false)} title="סגור" style={{ background: "rgba(255,255,255,.18)", border: "none", color: "#fff", width: 32, height: 32, borderRadius: "50%", fontSize: "1.1rem", cursor: "pointer", lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>✕</button>
@@ -930,6 +938,17 @@ export default function Dashboard() {
                     </div>
                   </div>
                 </div>
+              ))}
+              {checksDueSoon.map(c => (
+                <Link key={c.id} href={`/members/${c.member_id}`} onClick={() => setNotifOpen(false)} style={{ textDecoration: "none" }}>
+                  <div style={notifRow}>
+                    <div style={{ ...notifDot, background: "#c0392b" }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 700, color: "#1a1a2e", fontSize: ".9rem" }}>{c.members?.name || "—"} · פרעון שיק</div>
+                      <div style={{ fontSize: ".78rem", color: "#7a8699" }}>{ils(c.amount)} · פירעון {c.due_date ? gdate(c.due_date) : ""}</div>
+                    </div>
+                  </div>
+                </Link>
               ))}
             </div>
 
