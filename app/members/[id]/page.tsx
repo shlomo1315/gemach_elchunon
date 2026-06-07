@@ -106,7 +106,7 @@ export default function MemberDetail() {
   const [chkBusy, setChkBusy] = useState<string | null>(null);
   // עורך שיקים מרובים: מקלידים מספר → נפתחות שורות; ממלאים מלמעלה והסכום משתכפל; עורכים ידנית; שומרים
   type ChkDraft = { amount: string; due_date: string; notes: string };
-  const [chkMaster, setChkMaster] = useState({ amount: "", due_date: "", count: "1", loan_transaction_id: "" });
+  const [chkMaster, setChkMaster] = useState({ amount: "", due_date: "", count: "1", loan_transaction_id: "", kind: "repayment" as "repayment" | "deposit" });
   const [chkDrafts, setChkDrafts] = useState<ChkDraft[]>([{ amount: "", due_date: "", notes: "" }]);
   const [savingChks, setSavingChks] = useState(false);
 
@@ -152,12 +152,13 @@ export default function MemberDetail() {
       hebrew_due: toHebrewDate(d.due_date),
       notes: d.notes || (valid.length > 1 ? `שיק ${i + 1}/${valid.length}` : null),
       status: "pending",
-      loan_transaction_id: chkMaster.loan_transaction_id || null,
+      kind: chkMaster.kind,
+      loan_transaction_id: chkMaster.kind === "repayment" ? (chkMaster.loan_transaction_id || null) : null,
     }));
     const { error } = await supabase.from("checks").insert(rows);
     setSavingChks(false);
     if (error) { alert("שגיאה: " + error.message); return; }
-    setChkMaster({ amount: "", due_date: "", count: "1", loan_transaction_id: "" });
+    setChkMaster({ amount: "", due_date: "", count: "1", loan_transaction_id: "", kind: "repayment" });
     setChkDrafts([{ amount: "", due_date: "", notes: "" }]);
     load();
   }
@@ -167,21 +168,25 @@ export default function MemberDetail() {
     const pend = checks.filter(c => c.status === "pending");
     const pendSum = pend.reduce((s, c) => s + c.amount, 0);
     const cashedSum = checks.filter(c => c.status === "cashed").reduce((s, c) => s + c.amount, 0);
-    const debt = member && member.balance < 0 ? -member.balance : 0; // חוב נוכחי בפועל
+    const debt = member ? Math.max(0, member.loan_balance ?? 0) : 0; // חוב הלוואות בפועל
     const projectedDebt = Math.max(0, debt - pendSum);               // יתרת חוב צפויה אחרי פדיון כל הממתינים
     const planTotal = cashedSum + pendSum;                           // סך תכנית הפירעון בשיקים
     const progressPct = planTotal > 0 ? Math.round((cashedSum / planTotal) * 100) : 0;
     return { pend, pendSum, cashedSum, debt, projectedDebt, planTotal, progressPct };
   }, [checks, member]);
 
-  // פדיון שיק → יוצר הפקדה (מקטין את החוב) ומקשר אותה לשיק
+  // פדיון שיק → יוצר הפקדה ומקשר אותה לשיק.
+  // שיק פרעון מקטין את חוב ההלוואה (category=repayment); שיק פיקדון מגדיל חיסכון (category=deposit).
   async function markCashed(c: Check) {
     if (!member) return;
-    if (!confirm(`לסמן שיק על סך ${ils(c.amount)} כנפדה? תיווצר הפקדה שתקטין את החוב.`)) return;
+    const isRepay = c.kind !== "deposit";
+    if (!confirm(`לסמן שיק על סך ${ils(c.amount)} כנפדה? ${isRepay ? "תיווצר הפקדה שתקטין את חוב ההלוואה." : "תיווצר הפקדת חיסכון."}`)) return;
     setChkBusy(c.id);
     const { data: txn, error: tErr } = await supabase.from("transactions").insert({
       member_id: member.id, amount: c.amount, type: "הפקדה", method: "צ'יקים",
-      greg_date: c.due_date, heb_date: c.hebrew_due, notes: "פדיון שיק" + (c.notes ? " · " + c.notes : ""),
+      greg_date: c.due_date, heb_date: c.hebrew_due,
+      notes: (isRepay ? "פדיון שיק (פרעון)" : "פדיון שיק (פיקדון)") + (c.notes ? " · " + c.notes : ""),
+      category: isRepay ? "repayment" : "deposit",
     }).select("id").single();
     if (tErr) { setChkBusy(null); alert("שגיאה ביצירת ההפקדה: " + tErr.message); return; }
     await supabase.from("checks").update({ status: "cashed", cashed_at: new Date().toISOString(), transaction_id: (txn as any)?.id || null }).eq("id", c.id);
@@ -214,11 +219,11 @@ export default function MemberDetail() {
 
   // הוספת פעולה חדשה לחבר הנוכחי
   const [addTxn, setAddTxn] = useState(false);
-  const [addForm, setAddForm] = useState({ amount: "", type: "הפקדה", method: "", greg_date: "", heb_date: "", notes: "" });
+  const [addForm, setAddForm] = useState({ amount: "", type: "הפקדה", method: "", greg_date: "", heb_date: "", notes: "", repay: "" });
   const [savingAdd, setSavingAdd] = useState(false);
 
   function openAdd() {
-    setAddForm({ amount: "", type: "הפקדה", method: "", greg_date: "", heb_date: "", notes: "" });
+    setAddForm({ amount: "", type: "הפקדה", method: "", greg_date: "", heb_date: "", notes: "", repay: "" });
     setAddTxn(true);
   }
   function setAddGreg(val: string) { setAddForm(f => ({ ...f, greg_date: val, heb_date: toHebrewDate(val) })); }
@@ -228,15 +233,24 @@ export default function MemberDetail() {
     if (!addForm.method) { alert("יש לבחור אופן"); return; }
     if (!addForm.greg_date) { alert("יש לבחור תאריך"); return; }
     setSavingAdd(true);
-    const { error } = await supabase.from("transactions").insert({
+    // משיכה = הלוואה; הפקדה ידנית = פיקדון/חיסכון
+    const category = addForm.type === "משיכה" ? "loan" : "deposit";
+    const { data: txn, error } = await supabase.from("transactions").insert({
       member_id: member.id, amount: Number(addForm.amount), type: addForm.type,
       method: addForm.method || null, greg_date: addForm.greg_date || null,
-      heb_date: addForm.heb_date || null, notes: addForm.notes || null,
-    });
+      heb_date: addForm.heb_date || null, notes: addForm.notes || null, category,
+    }).select("id").single();
     setSavingAdd(false);
     if (error) { alert("שגיאה: " + error.message); return; }
     setAddTxn(false);
-    load();
+    // אם זו הלוואה שתוחזר בשיקים — פתיחת עורך השיקים משויך להלוואה זו
+    const goChecks = addForm.type === "משיכה" && addForm.repay === "שיקים";
+    const newLoanId = (txn as any)?.id || "";
+    await load();
+    if (goChecks && newLoanId) {
+      setChkMaster(f => ({ ...f, kind: "repayment", loan_transaction_id: newLoanId }));
+      setTimeout(() => document.getElementById("checks-section")?.scrollIntoView({ behavior: "smooth", block: "start" }), 150);
+    }
   }
 
   // בחירת תאריך לועזי → חישוב עברי אוטומטי
@@ -390,7 +404,17 @@ export default function MemberDetail() {
           <div style={{ fontSize: "2rem", fontWeight: 800, color: member.balance >= 0 ? "var(--brand)" : "#c0392b" }}>
             {ils(member.balance)}
           </div>
-          <div style={{ fontSize: ".85rem", color: "#7a8699" }}>{member.txn_count} פעולות</div>
+          <div style={{ display: "flex", gap: 14, marginTop: 8, flexWrap: "wrap" }}>
+            <div style={{ fontSize: ".82rem" }}>
+              <span style={{ color: "#7a8699" }}>חוב הלוואות: </span>
+              <b style={{ color: (member.loan_balance ?? 0) > 0 ? "#c0392b" : "var(--brand)" }}>{ils(Math.max(0, member.loan_balance ?? 0))}</b>
+            </div>
+            <div style={{ fontSize: ".82rem" }}>
+              <span style={{ color: "#7a8699" }}>יתרת חיסכון: </span>
+              <b style={{ color: "var(--brand)" }}>{ils(member.savings_balance ?? 0)}</b>
+            </div>
+          </div>
+          <div style={{ fontSize: ".85rem", color: "#7a8699", marginTop: 6 }}>{member.txn_count} פעולות</div>
         </Card>
       </div>
 
@@ -468,7 +492,7 @@ export default function MemberDetail() {
       </Card>
 
       {/* A5: שיקים */}
-      <Card style={{ padding: 0, marginTop: 18 }}>
+      <Card id="checks-section" style={{ padding: 0, marginTop: 18 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem 1.25rem 0", flexWrap: "wrap", gap: 8 }}>
           <h3 style={{ margin: 0 }}>שיקים</h3>
           {(() => {
@@ -514,7 +538,14 @@ export default function MemberDetail() {
               <label style={lbl}>מספר שיקים</label>
               <input type="number" min={0} max={60} value={chkMaster.count} onChange={e => setMasterCount(e.target.value)} style={inp} />
             </div>
-            {loans.length > 0 && (
+            <div style={{ width: 140 }}>
+              <label style={lbl}>סוג</label>
+              <select value={chkMaster.kind} onChange={e => setChkMaster(f => ({ ...f, kind: e.target.value as "repayment" | "deposit", loan_transaction_id: e.target.value === "deposit" ? "" : f.loan_transaction_id }))} style={inp}>
+                <option value="repayment">פרעון הלוואה</option>
+                <option value="deposit">פיקדון (חיסכון)</option>
+              </select>
+            </div>
+            {chkMaster.kind === "repayment" && loans.length > 0 && (
               <div style={{ flex: 1, minWidth: 200 }}>
                 <label style={lbl}>שיוך להלוואה (משיכה)</label>
                 <select value={chkMaster.loan_transaction_id} onChange={e => setChkMaster(f => ({ ...f, loan_transaction_id: e.target.value }))} style={inp}>
@@ -701,6 +732,18 @@ export default function MemberDetail() {
                   {TXN_METHODS.map(t => <option key={t}>{t}</option>)}
                 </select>
               </div>
+              {addForm.type === "משיכה" && (
+                <div>
+                  <label style={lbl}>אופן החזר ההלוואה</label>
+                  <select value={addForm.repay} onChange={e => setAddForm(f => ({ ...f, repay: e.target.value }))} style={inp}>
+                    <option value="">— טרם נקבע —</option>
+                    <option value="שיקים">שיקים (הזנה מיד)</option>
+                    <option value="מזומן">מזומן</option>
+                    <option value="העברה">העברה בנקאית</option>
+                    <option value="אחר">אחר</option>
+                  </select>
+                </div>
+              )}
               <div>
                 <label style={lbl}>תאריך לועזי</label>
                 <input type="date" value={addForm.greg_date} onChange={e => setAddGreg(e.target.value)} style={inp} />
