@@ -68,6 +68,7 @@ export type Check = {
   id: string;
   member_id: string;
   transaction_id: string | null;
+  loan_transaction_id: string | null; // ההלוואה (משיכה) שהשיק משויך אליה
   amount: number;
   due_date: string | null;
   hebrew_due: string | null;
