@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { Pencil } from "lucide-react";
+import { Pencil, CheckCircle2 } from "lucide-react";
 import { supabase, fnErrMessage } from "@/lib/supabase";
 import { ils, gdate, toHebrewDate, TXN_TYPES, TXN_METHODS } from "@/lib/format";
 import { hebTextToGreg } from "@/lib/hebrewParse";
@@ -35,6 +35,17 @@ export default function MemberDetail() {
   const [loginPass, setLoginPass] = useState("");
   const [creatingLogin, setCreatingLogin] = useState(false);
   const [loginMsg, setLoginMsg] = useState("");
+  // פופאפ הצלחה ליצירת/עדכון התחברות (נסגר אוטומטית באיטיות כלפי פנים)
+  const [loginPopup, setLoginPopup] = useState<string | null>(null);
+  const [loginPopupClosing, setLoginPopupClosing] = useState(false);
+
+  useEffect(() => {
+    if (!loginPopup) return;
+    setLoginPopupClosing(false);
+    const tClose = setTimeout(() => setLoginPopupClosing(true), 1400);
+    const tDone = setTimeout(() => setLoginPopup(null), 2000);
+    return () => { clearTimeout(tClose); clearTimeout(tDone); };
+  }, [loginPopup]);
 
   function startEditInfo() {
     if (!member) return;
@@ -71,7 +82,8 @@ export default function MemberDetail() {
       setLoginMsg("שגיאה: " + (await fnErrMessage(error, data)));
       return;
     }
-    setLoginMsg((data as any)?.updated ? "✓ הסיסמה עודכנה בהצלחה" : "✓ חשבון ההתחברות נוצר בהצלחה");
+    setLoginMsg("");
+    setLoginPopup((data as any)?.updated ? "הפרטים עודכנו בהצלחה" : "חשבון ההתחברות נוצר בהצלחה");
     setLoginPass("");
     load();
   }
@@ -307,22 +319,24 @@ export default function MemberDetail() {
                 <label style={lbl}>כתובת</label>
                 <input value={info.address} onChange={e => setInfo(f => ({ ...f, address: e.target.value }))} style={inp} />
               </div>
-              <div style={{ gridColumn: "1/-1" }}>
-                <label style={lbl}>מייל להתחברות (פורטל אישי)</label>
-                <input value={info.email} onChange={e => setInfo(f => ({ ...f, email: e.target.value }))} style={inp} dir="ltr" type="email" placeholder="member@example.com" />
-              </div>
-
-              {/* יצירת חשבון התחברות */}
-              <div style={{ gridColumn: "1/-1", background: "#f4faf8", borderRadius: 10, padding: "0.85rem 1rem", border: "1px solid #d7e9e2" }}>
-                <div style={{ fontSize: ".82rem", fontWeight: 700, color: BRAND, marginBottom: 6 }}>🔐 התחברות לפורטל האישי (צפייה בלבד)</div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                  <input value={loginPass} onChange={e => setLoginPass(e.target.value)} style={{ ...inp, flex: 1, minWidth: 140 }} dir="ltr" type="text" placeholder="סיסמה לחבר (לפחות 6 תווים)" />
-                  <button onClick={createLogin} disabled={creatingLogin} style={{ padding: "0.5rem 1rem", background: BRAND, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".85rem", cursor: "pointer", whiteSpace: "nowrap" }}>
-                    {creatingLogin ? "יוצר…" : "צור התחברות"}
-                  </button>
+              {/* התחברות לפורטל האישי — מייל + סיסמה חצי/חצי, כפתור רוחב מלא מתחת */}
+              <div style={{ gridColumn: "1/-1", background: "#f4faf8", borderRadius: 12, padding: "1rem", border: "1px solid #d7e9e2" }}>
+                <div style={{ fontSize: ".82rem", fontWeight: 700, color: BRAND, marginBottom: 10 }}>🔐 התחברות לפורטל האישי (צפייה בלבד)</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.8rem" }}>
+                  <div>
+                    <label style={lbl}>מייל להתחברות</label>
+                    <input value={info.email} onChange={e => setInfo(f => ({ ...f, email: e.target.value }))} style={inp} dir="ltr" type="email" placeholder="member@example.com" />
+                  </div>
+                  <div>
+                    <label style={lbl}>סיסמה (לפחות 6 תווים)</label>
+                    <input value={loginPass} onChange={e => setLoginPass(e.target.value)} style={inp} dir="ltr" type="text" placeholder="סיסמה לחבר" />
+                  </div>
                 </div>
+                <button onClick={createLogin} disabled={creatingLogin} style={{ width: "100%", marginTop: 12, padding: "0.6rem", background: BRAND, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".9rem", cursor: creatingLogin ? "default" : "pointer" }}>
+                  {creatingLogin ? "שומר…" : member.email ? "עדכן פרטים" : "צור התחברות"}
+                </button>
                 {loginMsg && <div style={{ fontSize: ".78rem", marginTop: 6, color: loginMsg.startsWith("✓") ? BRAND : "#c0392b" }}>{loginMsg}</div>}
-                <div style={{ fontSize: ".72rem", color: "#9aa5b5", marginTop: 6 }}>החבר יתחבר עם המייל שלמעלה והסיסמה שתגדיר כאן.</div>
+                <div style={{ fontSize: ".72rem", color: "#9aa5b5", marginTop: 6 }}>החבר יתחבר עם המייל והסיסמה המוגדרים כאן.</div>
               </div>
 
               <div style={{ gridColumn: "1/-1", display: "flex", gap: 10 }}>
@@ -455,6 +469,7 @@ export default function MemberDetail() {
           <div style={{ width: 160 }}>
             <label style={lbl}>תאריך פירעון</label>
             <input type="date" value={chkForm.due_date} onChange={e => setChkForm(f => ({ ...f, due_date: e.target.value }))} style={inp} />
+            {chkForm.due_date && <div style={{ fontSize: ".72rem", color: BRAND, marginTop: 3, fontWeight: 600 }}>{toHebrewDate(chkForm.due_date)}</div>}
           </div>
           <div style={{ flex: 1, minWidth: 140 }}>
             <label style={lbl}>הערות</label>
@@ -495,15 +510,15 @@ export default function MemberDetail() {
                       </td>
                       <td style={{ color: "#7a8699" }}>{c.notes || "—"}</td>
                       <td className="no-print">
-                        {c.status === "pending" && (
-                          <div style={{ display: "flex", gap: 6 }}>
-                            <button onClick={() => markCashed(c)} disabled={chkBusy === c.id} style={{ padding: "0.3rem 0.7rem", background: BRAND, color: "#fff", border: "none", borderRadius: 7, fontSize: ".78rem", fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>נפדה ✓</button>
-                            <button onClick={() => markBounced(c)} disabled={chkBusy === c.id} style={{ padding: "0.3rem 0.7rem", background: "#fde8e8", color: "#c0392b", border: "none", borderRadius: 7, fontSize: ".78rem", fontWeight: 700, cursor: "pointer" }}>חזר</button>
-                          </div>
-                        )}
-                        {c.status !== "pending" && (
-                          <button onClick={() => deleteCheck(c)} disabled={chkBusy === c.id} style={{ padding: "0.3rem 0.7rem", background: "none", color: "#9aa5b5", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: ".78rem", cursor: "pointer" }}>מחק</button>
-                        )}
+                        <div style={{ display: "flex", gap: 6 }}>
+                          {c.status === "pending" && (
+                            <>
+                              <button onClick={() => markCashed(c)} disabled={chkBusy === c.id} style={{ padding: "0.3rem 0.7rem", background: BRAND, color: "#fff", border: "none", borderRadius: 7, fontSize: ".78rem", fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>נפדה ✓</button>
+                              <button onClick={() => markBounced(c)} disabled={chkBusy === c.id} style={{ padding: "0.3rem 0.7rem", background: "#fde8e8", color: "#c0392b", border: "none", borderRadius: 7, fontSize: ".78rem", fontWeight: 700, cursor: "pointer" }}>חזר</button>
+                            </>
+                          )}
+                          <button onClick={() => deleteCheck(c)} disabled={chkBusy === c.id} title="מחק שיק" style={{ padding: "0.3rem 0.7rem", background: "none", color: "#9aa5b5", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: ".78rem", cursor: "pointer" }}>🗑 מחק</button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -615,6 +630,18 @@ export default function MemberDetail() {
               <button onClick={saveAdd} disabled={savingAdd} style={{ padding: "0.55rem 1.2rem", background: BRAND, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".9rem", cursor: "pointer" }}>{savingAdd ? "שומר…" : "✓ הוסף פעולה"}</button>
               <button onClick={() => setAddTxn(false)} style={{ padding: "0.55rem 1.2rem", background: "#eef2f1", color: BRAND, border: "none", borderRadius: 8, fontWeight: 600, fontSize: ".9rem", cursor: "pointer" }}>ביטול</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* פופאפ הצלחה ליצירת/עדכון התחברות — נסגר באיטיות כלפי פנים */}
+      {loginPopup && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem", backdropFilter: "blur(2px)", opacity: loginPopupClosing ? 0 : 1, transition: "opacity .55s ease" }}>
+          <div style={{ background: "#fff", borderRadius: 18, boxShadow: "0 24px 70px rgba(0,0,0,.25)", width: "100%", maxWidth: 380, padding: "1.8rem", direction: "rtl", textAlign: "center", transform: loginPopupClosing ? "scale(.55)" : "scale(1)", opacity: loginPopupClosing ? 0 : 1, transition: "transform .6s cubic-bezier(.4,0,.2,1), opacity .6s ease" }}>
+            <div style={{ width: 60, height: 60, borderRadius: "50%", background: "#e8f5f0", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
+              <CheckCircle2 size={34} color={BRAND} />
+            </div>
+            <div style={{ fontSize: "1.1rem", fontWeight: 800, color: BRAND }}>{loginPopup}</div>
           </div>
         </div>
       )}
