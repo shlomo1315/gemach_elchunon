@@ -153,6 +153,20 @@ export default function MemberDetail() {
     if (valid.length === 0) { alert("אין שיקים תקינים לשמירה (סכום חיובי ותאריך פירעון לכל שיק)"); return; }
     // אם יש יותר מהלוואה אחת — חובה לבחור לאיזו הלוואה השיקים מיועדים
     if (loans.length > 1 && !chkMaster.loan_transaction_id) { alert("יש לבחור לאיזו הלוואה השיקים מיועדים"); return; }
+    // סך השיקים להלוואה לא יכול לחרוג מסכום ההלוואה
+    const loanId = chkMaster.loan_transaction_id;
+    if (loanId) {
+      const loan = loans.find(l => l.id === loanId);
+      if (loan) {
+        const existingSum = checks.filter(c => c.loan_transaction_id === loanId && c.status !== "bounced").reduce((s, c) => s + c.amount, 0);
+        const newSum = valid.reduce((s, d) => s + Number(d.amount), 0);
+        if (existingSum + newSum > loan.amount + 0.001) {
+          const remaining = Math.max(0, loan.amount - existingSum);
+          alert(`סכום השיקים חורג מסכום ההלוואה.\nהלוואה: ${ils(loan.amount)}\nשיקים קיימים להלוואה זו: ${ils(existingSum)}\nניתן להוסיף עוד עד ${ils(remaining)} (ניסית להוסיף ${ils(newSum)}).`);
+          return;
+        }
+      }
+    }
     setSavingChks(true);
     const rows = valid.map((d, i) => ({
       member_id: member.id,
@@ -569,6 +583,20 @@ export default function MemberDetail() {
           <div style={{ fontSize: ".76rem", color: "#7a8699", marginTop: 6 }}>
             הזן מספר שיקים → ייפתחו שורות לעריכה. הסכום מלמעלה משתכפל לכולן והתאריך נפרס חודש-חודש; אפשר לערוך כל שורה ידנית ואז לשמור.
           </div>
+          {(() => {
+            const loan = chkMaster.loan_transaction_id ? loans.find(l => l.id === chkMaster.loan_transaction_id) : null;
+            if (!loan) return null;
+            const existingSum = checks.filter(c => c.loan_transaction_id === loan.id && c.status !== "bounced").reduce((s, c) => s + c.amount, 0);
+            const draftsSum = chkDrafts.reduce((s, d) => s + (Number(d.amount) || 0), 0);
+            const remaining = loan.amount - existingSum;
+            const over = draftsSum > remaining + 0.001;
+            return (
+              <div style={{ fontSize: ".78rem", marginTop: 4, color: over ? "#c0392b" : "#5a6b7b", fontWeight: over ? 700 : 400 }}>
+                הלוואה {ils(loan.amount)} · שויכו כבר {ils(existingSum)} · נותר לשיוך <b>{ils(Math.max(0, remaining))}</b>
+                {draftsSum > 0 ? ` · בטיוטה ${ils(draftsSum)}` : ""}{over ? " — חורג מסכום ההלוואה!" : ""}
+              </div>
+            );
+          })()}
 
           {/* שורות עריכה */}
           {chkDrafts.length > 0 && (
