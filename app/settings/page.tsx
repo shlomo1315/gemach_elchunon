@@ -1,9 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/AuthGuard";
 import { PageTitle, Card } from "@/components/ui";
+import { ils, gdate } from "@/lib/format";
+
+const BRAND = "#1e6f5c";
+const RED = "#e05252";
 
 const inp: React.CSSProperties = {
   width: "100%", padding: "0.65rem 0.9rem",
@@ -12,10 +16,10 @@ const inp: React.CSSProperties = {
 };
 const lbl: React.CSSProperties = { fontSize: ".82rem", fontWeight: 600, color: "#4a5568", display: "block", marginBottom: 6 };
 const btn: React.CSSProperties = {
-  padding: "0.6rem 1.4rem", background: "#1e6f5c", color: "#fff",
+  padding: "0.6rem 1.4rem", background: BRAND, color: "#fff",
   border: "none", borderRadius: 9, fontWeight: 700, fontSize: ".9rem", cursor: "pointer",
 };
-const ghostBtn: React.CSSProperties = { ...btn, background: "#eef2f1", color: "#1e6f5c" };
+const ghostBtn: React.CSSProperties = { ...btn, background: "#eef2f1", color: BRAND };
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -28,8 +32,159 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
+function TabBtn({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
+  return (
+    <button onClick={onClick} style={{
+      padding: "0.5rem 1.3rem", borderRadius: 999, border: "none", cursor: "pointer",
+      fontWeight: 700, fontSize: ".9rem",
+      background: active ? BRAND : "#eef2f1",
+      color: active ? "#fff" : "#7a8699",
+    }}>{label}</button>
+  );
+}
+
+type DeletedTxn = {
+  id: string;
+  original_id: string;
+  member_id: string | null;
+  member_name: string | null;
+  amount: number | null;
+  type: string | null;
+  method: string | null;
+  greg_date: string | null;
+  heb_date: string | null;
+  notes: string | null;
+  category: string | null;
+  original_created_at: string | null;
+  deleted_at: string;
+  deleted_by: string | null;
+};
+
+function DeletedTransactionsTab() {
+  const [rows, setRows] = useState<DeletedTxn[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [restoring, setRestoring] = useState<string | null>(null);
+  const [errMsg, setErrMsg] = useState("");
+
+  async function load() {
+    setLoading(true);
+    setErrMsg("");
+    const { data, error } = await supabase
+      .from("deleted_transactions")
+      .select("*")
+      .order("deleted_at", { ascending: false });
+    if (error) {
+      setErrMsg("לא ניתן לטעון ארכיון — ייתכן שטבלת deleted_transactions עדיין לא נוצרה. הרץ את supabase/deleted-transactions-schema.sql בלוח הניהול של Supabase.");
+      setLoading(false);
+      return;
+    }
+    setRows((data as DeletedTxn[]) || []);
+    setLoading(false);
+  }
+
+  useEffect(() => { load(); }, []);
+
+  async function restore(row: DeletedTxn) {
+    if (!confirm(`לשחזר פעולה זו לחבר "${row.member_name || "—"}"?`)) return;
+    setRestoring(row.id);
+    const { error } = await supabase.from("transactions").insert({
+      member_id: row.member_id,
+      amount: row.amount,
+      type: row.type,
+      method: row.method,
+      greg_date: row.greg_date,
+      heb_date: row.heb_date,
+      notes: row.notes,
+      category: row.category,
+    });
+    if (error) { alert("שגיאת שחזור: " + error.message); setRestoring(null); return; }
+    await supabase.from("deleted_transactions").delete().eq("id", row.id);
+    setRestoring(null);
+    load();
+  }
+
+  async function permanentDelete(row: DeletedTxn) {
+    if (!confirm("למחוק לצמיתות מהארכיון? לא ניתן לשחזר.")) return;
+    await supabase.from("deleted_transactions").delete().eq("id", row.id);
+    load();
+  }
+
+  const th: React.CSSProperties = { padding: "0.6rem 0.85rem", textAlign: "right", fontWeight: 700, color: "#4a5568", background: "#f8fafc", whiteSpace: "nowrap" };
+  const td: React.CSSProperties = { padding: "0.55rem 0.85rem", borderBottom: "1px solid #f0f2f5", verticalAlign: "middle" };
+
+  if (loading) return <div style={{ padding: 32, textAlign: "center", color: "#9aa5b5" }}>טוען ארכיון…</div>;
+
+  if (errMsg) return (
+    <Card>
+      <div style={{ color: RED, fontSize: ".88rem", lineHeight: 1.7 }}>{errMsg}</div>
+    </Card>
+  );
+
+  if (rows.length === 0) return (
+    <Card>
+      <div style={{ textAlign: "center", color: "#9aa5b5", padding: "2.5rem", fontSize: ".95rem" }}>
+        אין פעולות מחוקות בארכיון
+      </div>
+    </Card>
+  );
+
+  return (
+    <div>
+      <div style={{ marginBottom: 14, fontSize: ".82rem", color: "#7a8699", background: "#f8fafc", padding: "0.65rem 1rem", borderRadius: 10, lineHeight: 1.6 }}>
+        💡 כל פעולה שנמחקת מהמערכת נשמרת כאן עם תאריך המחיקה. ניתן לשחזר כל פעולה בנפרד לכרטסת החבר.
+      </div>
+      <div style={{ overflowX: "auto", background: "#fff", borderRadius: 14, boxShadow: "0 2px 8px rgba(0,0,0,.06)" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: ".87rem" }}>
+          <thead>
+            <tr>
+              <th style={th}>חבר</th>
+              <th style={th}>סוג</th>
+              <th style={th}>סכום</th>
+              <th style={th}>תאריך פעולה</th>
+              <th style={th}>נמחק בתאריך</th>
+              <th style={th}>הערות</th>
+              <th style={th}></th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(row => (
+              <tr key={row.id}>
+                <td style={td}>{row.member_name || "—"}</td>
+                <td style={td}>{row.type || "—"}</td>
+                <td style={{ ...td, fontWeight: 700, color: row.type === "משיכה" ? RED : BRAND }}>
+                  {row.type === "משיכה" ? "−" : "+"}{ils(row.amount || 0)}
+                </td>
+                <td style={{ ...td }} dir="ltr">
+                  {row.greg_date ? gdate(row.greg_date) : row.heb_date || "—"}
+                </td>
+                <td style={{ ...td, color: "#7a8699" }} dir="ltr">
+                  {new Date(row.deleted_at).toLocaleString("he-IL")}
+                </td>
+                <td style={{ ...td, color: "#9aa5b5", maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {row.notes || "—"}
+                </td>
+                <td style={{ ...td, whiteSpace: "nowrap" }}>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button onClick={() => restore(row)} disabled={restoring === row.id} style={{ padding: "0.3rem 0.8rem", background: BRAND, color: "#fff", border: "none", borderRadius: 7, fontWeight: 700, fontSize: ".8rem", cursor: "pointer" }}>
+                      {restoring === row.id ? "משחזר…" : "שחזר"}
+                    </button>
+                    <button onClick={() => permanentDelete(row)} disabled={restoring === row.id} style={{ padding: "0.3rem 0.8rem", background: "#fde8e8", color: RED, border: "none", borderRadius: 7, fontWeight: 700, fontSize: ".8rem", cursor: "pointer" }}>
+                      מחק
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const { user } = useAuth();
+  const [tab, setTab] = useState<"account" | "trash">("account");
   const [displayName, setDisplayName] = useState(user?.user_metadata?.full_name || "");
   const [savingName, setSavingName] = useState(false);
   const [nameMsg, setNameMsg] = useState("");
@@ -38,7 +193,6 @@ export default function SettingsPage() {
   const [savingEmail, setSavingEmail] = useState(false);
   const [emailMsg, setEmailMsg] = useState("");
 
-  const [oldPass, setOldPass] = useState("");
   const [newPass, setNewPass] = useState("");
   const [confirmPass, setConfirmPass] = useState("");
   const [savingPass, setSavingPass] = useState(false);
@@ -67,80 +221,89 @@ export default function SettingsPage() {
     setSavingPass(false);
     if (error) { setPassMsg(`שגיאה: ${error.message}`); return; }
     setPassMsg("✓ הסיסמה עודכנה בהצלחה");
-    setOldPass(""); setNewPass(""); setConfirmPass("");
+    setNewPass(""); setConfirmPass("");
   }
 
   return (
     <div>
-      <PageTitle>הגדרות חשבון</PageTitle>
+      <PageTitle>הגדרות</PageTitle>
 
-      <div style={{ maxWidth: 560 }}>
-        <Section title="👤 פרטים אישיים">
-          <div style={{ marginBottom: "1rem" }}>
-            <label style={lbl}>שם תצוגה</label>
-            <input value={displayName} onChange={e => setDisplayName(e.target.value)} style={inp} placeholder="השם שיוצג במערכת" />
-          </div>
-          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-            <button onClick={saveDisplayName} disabled={savingName} style={btn}>
-              {savingName ? "שומר…" : "שמור שם"}
-            </button>
-            {nameMsg && <span style={{ fontSize: ".82rem", color: nameMsg.startsWith("✓") ? "#1e6f5c" : "#e05252" }}>{nameMsg}</span>}
-          </div>
-        </Section>
-
-        <Section title="📧 כתובת מייל">
-          <div style={{ marginBottom: "1rem" }}>
-            <label style={lbl}>מייל נוכחי</label>
-            <div style={{ fontSize: ".9rem", color: "#4a5568", padding: "0.5rem 0", fontWeight: 600 }}>{user?.email}</div>
-          </div>
-          <div style={{ marginBottom: "1rem" }}>
-            <label style={lbl}>מייל חדש</label>
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)} style={inp} dir="ltr" />
-          </div>
-          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-            <button onClick={saveEmail} disabled={savingEmail} style={btn}>
-              {savingEmail ? "שומר…" : "עדכן מייל"}
-            </button>
-            {emailMsg && <span style={{ fontSize: ".82rem", color: emailMsg.startsWith("✓") ? "#1e6f5c" : "#e05252" }}>{emailMsg}</span>}
-          </div>
-        </Section>
-
-        <Section title="🔒 שינוי סיסמה">
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.9rem", marginBottom: "1rem" }}>
-            <div>
-              <label style={lbl}>סיסמה חדשה</label>
-              <input type="password" value={newPass} onChange={e => setNewPass(e.target.value)} style={inp} placeholder="מינימום 6 תווים" dir="ltr" />
-            </div>
-            <div>
-              <label style={lbl}>אישור סיסמה</label>
-              <input type="password" value={confirmPass} onChange={e => setConfirmPass(e.target.value)} style={inp} placeholder="הקלד שוב" dir="ltr" />
-            </div>
-          </div>
-          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-            <button onClick={savePassword} disabled={savingPass} style={btn}>
-              {savingPass ? "שומר…" : "שנה סיסמה"}
-            </button>
-            <button onClick={() => { setNewPass(""); setConfirmPass(""); setPassMsg(""); }} style={ghostBtn}>נקה</button>
-            {passMsg && <span style={{ fontSize: ".82rem", color: passMsg.startsWith("✓") ? "#1e6f5c" : "#e05252" }}>{passMsg}</span>}
-          </div>
-        </Section>
-
-        <Section title="ℹ️ פרטי חשבון">
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
-            {[
-              ["מזהה משתמש", user?.id?.slice(0, 8) + "…"],
-              ["ספק כניסה", "Email"],
-              ["נוצר ב", user?.created_at ? new Date(user.created_at).toLocaleDateString("he-IL") : "—"],
-              ["כניסה אחרונה", user?.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString("he-IL") : "—"],
-            ].map(([l, v]) => (
-              <div key={l}>
-                <div style={{ fontSize: ".73rem", color: "#9aa5b5" }}>{l}</div>
-                <div style={{ fontWeight: 600, fontSize: ".88rem", fontFamily: "monospace" }}>{v}</div>
-              </div>
-            ))}
-          </div>
-        </Section>
+      <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+        <TabBtn active={tab === "account"} onClick={() => setTab("account")} label="⚙️ הגדרות חשבון" />
+        <TabBtn active={tab === "trash"} onClick={() => setTab("trash")} label="🗑️ פעולות מחוקות" />
       </div>
+
+      {tab === "account" && (
+        <div style={{ maxWidth: 560 }}>
+          <Section title="👤 פרטים אישיים">
+            <div style={{ marginBottom: "1rem" }}>
+              <label style={lbl}>שם תצוגה</label>
+              <input value={displayName} onChange={e => setDisplayName(e.target.value)} style={inp} placeholder="השם שיוצג במערכת" />
+            </div>
+            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              <button onClick={saveDisplayName} disabled={savingName} style={btn}>
+                {savingName ? "שומר…" : "שמור שם"}
+              </button>
+              {nameMsg && <span style={{ fontSize: ".82rem", color: nameMsg.startsWith("✓") ? BRAND : RED }}>{nameMsg}</span>}
+            </div>
+          </Section>
+
+          <Section title="📧 כתובת מייל">
+            <div style={{ marginBottom: "1rem" }}>
+              <label style={lbl}>מייל נוכחי</label>
+              <div style={{ fontSize: ".9rem", color: "#4a5568", padding: "0.5rem 0", fontWeight: 600 }}>{user?.email}</div>
+            </div>
+            <div style={{ marginBottom: "1rem" }}>
+              <label style={lbl}>מייל חדש</label>
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} style={inp} dir="ltr" />
+            </div>
+            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              <button onClick={saveEmail} disabled={savingEmail} style={btn}>
+                {savingEmail ? "שומר…" : "עדכן מייל"}
+              </button>
+              {emailMsg && <span style={{ fontSize: ".82rem", color: emailMsg.startsWith("✓") ? BRAND : RED }}>{emailMsg}</span>}
+            </div>
+          </Section>
+
+          <Section title="🔒 שינוי סיסמה">
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.9rem", marginBottom: "1rem" }}>
+              <div>
+                <label style={lbl}>סיסמה חדשה</label>
+                <input type="password" value={newPass} onChange={e => setNewPass(e.target.value)} style={inp} placeholder="מינימום 6 תווים" dir="ltr" />
+              </div>
+              <div>
+                <label style={lbl}>אישור סיסמה</label>
+                <input type="password" value={confirmPass} onChange={e => setConfirmPass(e.target.value)} style={inp} placeholder="הקלד שוב" dir="ltr" />
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              <button onClick={savePassword} disabled={savingPass} style={btn}>
+                {savingPass ? "שומר…" : "שנה סיסמה"}
+              </button>
+              <button onClick={() => { setNewPass(""); setConfirmPass(""); setPassMsg(""); }} style={ghostBtn}>נקה</button>
+              {passMsg && <span style={{ fontSize: ".82rem", color: passMsg.startsWith("✓") ? BRAND : RED }}>{passMsg}</span>}
+            </div>
+          </Section>
+
+          <Section title="ℹ️ פרטי חשבון">
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+              {[
+                ["מזהה משתמש", user?.id?.slice(0, 8) + "…"],
+                ["ספק כניסה", "Email"],
+                ["נוצר ב", user?.created_at ? new Date(user.created_at).toLocaleDateString("he-IL") : "—"],
+                ["כניסה אחרונה", user?.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString("he-IL") : "—"],
+              ].map(([l, v]) => (
+                <div key={l}>
+                  <div style={{ fontSize: ".73rem", color: "#9aa5b5" }}>{l}</div>
+                  <div style={{ fontWeight: 600, fontSize: ".88rem", fontFamily: "monospace" }}>{v}</div>
+                </div>
+              ))}
+            </div>
+          </Section>
+        </div>
+      )}
+
+      {tab === "trash" && <DeletedTransactionsTab />}
     </div>
   );
 }

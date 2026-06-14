@@ -7,6 +7,7 @@ import { ils, gdate, toHebrewDate, TXN_TYPES, TXN_METHODS } from "@/lib/format";
 import { Card, PageTitle, Button, Badge, Loading, Empty, SuccessPopup } from "@/components/ui";
 import DatePicker from "@/components/DatePicker";
 import type { Transaction, Member, MemberBalance } from "@/types";
+import { archiveTransactions } from "@/lib/archive";
 
 type Row = Transaction & { members: { name: string } | null };
 
@@ -200,6 +201,8 @@ export default function TransactionsPage() {
 
   async function deleteTxn(id: string) {
     setDeleting(id);
+    const row = rows.find(r => r.id === id);
+    if (row) await archiveTransactions([row]);
     await supabase.from("transactions").delete().eq("id", id);
     setDeleting(null);
     load();
