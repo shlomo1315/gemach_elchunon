@@ -223,9 +223,9 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   // מנהל → המערכת המלאה
   return (
     <AuthContext.Provider value={{ user, logout, theme, toggleTheme }}>
-      <div style={{ display: "flex", minHeight: "100vh", filter: showSplash ? "blur(5px)" : "none", transition: "filter 0.4s" }}>
+      <div style={{ display: "flex", height: "100vh", overflow: "hidden", filter: showSplash ? "blur(5px)" : "none", transition: "filter 0.4s" }}>
         <Sidebar />
-        <main className="app-main" style={{ flex: 1, padding: "1.5rem", overflowX: "auto" }}>
+        <main className="app-main" style={{ flex: 1, padding: "1.5rem", overflowX: "auto", overflowY: "auto" }}>
           {children}
         </main>
       </div>

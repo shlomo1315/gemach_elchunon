@@ -10,6 +10,7 @@ import { hebTextToGreg } from "@/lib/hebrewParse";
 import { Card, PageTitle, Button, Badge, Loading, Empty } from "@/components/ui";
 import DatePicker from "@/components/DatePicker";
 import type { MemberBalance, Transaction, Check } from "@/types";
+import { archiveTransactions } from "@/lib/archive";
 
 const BRAND = "#1e6f5c";
 
@@ -323,6 +324,9 @@ export default function MemberDetail() {
     const rows = snap.txns.map((t: Transaction) => { const { id: _id, created_at: _ca, ...rest } = t; return rest; });
     const { error } = await supabase.from("transactions").insert(rows);
     if (error) { alert("שגיאת שחזור: " + error.message); return; }
+    // הסרה מהארכיון הקבוע (בוטל תוך 8 שניות — לא נחשב למחיקה)
+    const ids = snap.txns.map((t: Transaction) => t.id);
+    await supabase.from("deleted_transactions").delete().in("original_id", ids);
     load();
   }
 
@@ -331,6 +335,7 @@ export default function MemberDetail() {
     if (!confirm("למחוק את הפעולה?")) return;
     const snapshot = editing;
     setSaving(true);
+    await archiveTransactions([snapshot], member?.name);
     await supabase.from("transactions").delete().eq("id", editing.id);
     setSaving(false);
     setEditing(null);
@@ -345,6 +350,7 @@ export default function MemberDetail() {
     if (!confirm(`למחוק את כל ${txns.length} הפעולות של "${member.name}"?\n\nפעולה זו אינה ניתנת לביטול!`)) return;
     if (!confirm("אישור אחרון — כל הפעולות יימחקו לצמיתות. להמשיך?")) return;
     setDeletingAll(true);
+    await archiveTransactions(txns, member.name);
     const { error } = await supabase.from("transactions").delete().eq("member_id", member.id);
     setDeletingAll(false);
     if (error) { alert("שגיאה: " + error.message); return; }
@@ -365,6 +371,7 @@ export default function MemberDetail() {
     if (!confirm(`למחוק ${selected.size} פעולות שנבחרו?\n\nניתן לשחזר תוך 8 שניות.`)) return;
     const snapshot = txns.filter(t => selected.has(t.id));
     setDeletingSel(true);
+    await archiveTransactions(snapshot, member?.name);
     const { error } = await supabase.from("transactions").delete().in("id", Array.from(selected));
     setDeletingSel(false);
     if (error) { alert("שגיאה: " + error.message); return; }

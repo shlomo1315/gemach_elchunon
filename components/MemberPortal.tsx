@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { LogOut, Wallet, ArrowDownCircle, ArrowUpCircle, ListChecks, KeyRound, MessageSquarePlus, Pencil, CheckCircle2 } from "lucide-react";
+import { LogOut, Wallet, ArrowDownCircle, ArrowUpCircle, ListChecks, KeyRound, MessageSquarePlus, Pencil, CheckCircle2, Banknote } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { ils, gdate, toHebrewDate, TXN_TYPES, TXN_METHODS } from "@/lib/format";
 import { hebTextToGreg } from "@/lib/hebrewParse";
@@ -54,6 +54,10 @@ export default function MemberPortal({ memberId, logout }: { memberId: string; l
   const [propTxn, setPropTxn] = useState<Transaction | null>(null);
   const [propForm, setPropForm] = useState({ amount: "", type: "הפקדה", method: "", greg_date: "", heb_date: "", notes: "", member_note: "" });
   const [savingProp, setSavingProp] = useState(false);
+  // בקשת הלוואה חדשה
+  const [loanOpen, setLoanOpen] = useState(false);
+  const [loanForm, setLoanForm] = useState({ amount: "", purpose: "" });
+  const [savingLoan, setSavingLoan] = useState(false);
   // הגשת פעולה חדשה לאישור (kind='add') עם מסמך תיעוד
   const [addReqOpen, setAddReqOpen] = useState(false);
   const [addForm, setAddForm] = useState({ amount: "", type: "הפקדה", method: "", greg_date: "", heb_date: "", notes: "", member_note: "" });
@@ -71,6 +75,95 @@ export default function MemberPortal({ memberId, logout }: { memberId: string; l
     const tDone = setTimeout(() => setSuccessInfo(null), 3000);     // הסרה מהמסך
     return () => { clearTimeout(tClose); clearTimeout(tDone); };
   }, [successInfo]);
+
+  function openLoan() {
+    setLoanForm({ amount: "", purpose: "" });
+    setLoanOpen(true);
+  }
+
+  function downloadLoanShtarChov() {
+    const amount = Number(loanForm.amount) || 0;
+    const w = window.open("", "_blank", "width=820,height=1100");
+    if (!w) { alert("לא ניתן לפתוח חלון — בדוק חסימת חלונות קופצים"); return; }
+    const fmt = new Intl.NumberFormat("he-IL", { style: "currency", currency: "ILS", minimumFractionDigits: 0 });
+    w.document.write(`<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head><meta charset="UTF-8"><title>שטר חוב — ${member?.name || ""}</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, serif; font-size: 14px; line-height: 1.9; direction: rtl; padding: 28px 38px; color: #111; }
+  .center { text-align: center; }
+  .title { font-size: 21px; font-weight: bold; font-style: italic; }
+  .sub { font-size: 13px; }
+  .hr1 { border: none; border-top: 2.5px solid #1e6f5c; margin: 7px 0 3px; }
+  .hr2 { border: none; border-top: 1px solid #888; margin: 3px 0 12px; }
+  .f { display: inline-block; border-bottom: 1px solid #000; min-width: 120px; padding-bottom: 1px; vertical-align: bottom; }
+  .fl { min-width: 200px; }
+  .s { margin: 7px 0; }
+  .legal { font-size: 12.5px; text-align: justify; line-height: 1.7; margin: 8px 0; }
+  .gtitle { font-size: 12.5px; text-align: justify; margin: 14px 0 6px; }
+  @media print { .no-print { display: none; } }
+</style>
+</head>
+<body>
+<div class="center">
+  <div class="title">שטר חוב</div>
+  <div class="sub">גמ"ח חסדי אהרן</div>
+</div>
+<hr class="hr1"/><hr class="hr2"/>
+<p class="s">אני הח"מ <span class="f fl">${member?.name || ""}</span>
+ת.ז. <span class="f" style="min-width:130px"></span>
+מרחוב <span class="f fl">${member?.address || ""}</span>
+טל: <span class="f">${member?.phone || ""}</span></p>
+<p class="s">מתחייב/ת לשלם לגמ"ח חסדי אהרן את הסך של:
+<strong><span class="f fl">${amount ? fmt.format(amount) : "_________"}</span></strong>
+(בספרות: <span class="f fl">${amount ? String(amount) : "_____"}</span> ₪)
+עד לתאריך: <span class="f"></span></p>
+<p class="gtitle"><strong>ערבות:</strong></p>
+<p class="s">אני הח"מ <span class="f fl"></span>
+ת.ז. <span class="f" style="min-width:130px"></span>
+מרחוב <span class="f fl"></span>
+טל: <span class="f"></span>
+מתחייב/ת לשלם במקום הלווה במקרה שלא יפרע.</p>
+<p class="legal">
+הנני מסכים/ה לתנאי שטר חוב זה ומאשר/ת קבלת ההלוואה בסכום הנ"ל.
+הלווה מתחייב לפרוע את החוב במועד שנקבע ולעמוד בכל תנאי ההלוואה שנקבעו עמו/ה בעל-פה.
+</p>
+<br/><br/>
+<div style="display:flex;justify-content:space-between;margin-top:20px">
+  <div>חתימת הלווה: <span class="f" style="min-width:170px"></span></div>
+  <div>חתימת הערב: <span class="f" style="min-width:170px"></span></div>
+</div>
+<div style="margin-top:30px;display:flex;justify-content:space-between">
+  <div>חתימת נציג הגמ"ח: <span class="f" style="min-width:150px"></span></div>
+  <div>תאריך: <span class="f" style="min-width:130px"></span></div>
+</div>
+<br/>
+<div class="no-print" style="text-align:center;margin-top:24px">
+  <button onclick="window.print()" style="padding:10px 28px;background:#1e6f5c;color:#fff;border:none;border-radius:8px;font-size:15px;cursor:pointer;font-family:Arial">🖨️ הדפס שטר חוב</button>
+</div>
+</body></html>`);
+    w.document.close();
+  }
+
+  async function submitLoanRequest() {
+    const amount = Number(loanForm.amount);
+    if (!amount || amount <= 0) { alert("יש להזין סכום חיובי"); return; }
+    setSavingLoan(true);
+    const { error } = await supabase.from("member_requests").insert({
+      member_id: memberId,
+      type: "loan",
+      status: "open",
+      subject: "בקשת הלוואה חדשה",
+      body: loanForm.purpose || null,
+      amount,
+    });
+    setSavingLoan(false);
+    if (error) { alert("שגיאה: " + error.message); return; }
+    setLoanOpen(false);
+    setLoanForm({ amount: "", purpose: "" });
+    loadRequests();
+  }
 
   function openAddReq() {
     setAddForm({ amount: "", type: "הפקדה", method: "", greg_date: "", heb_date: "", notes: "", member_note: "" });
@@ -229,6 +322,19 @@ export default function MemberPortal({ memberId, logout }: { memberId: string; l
           <Stat label="מספר פעולות" value={String(txns.length)} color="#3b82f6" icon={<ListChecks size={20} />} />
         </div>
 
+        {/* בקשת הלוואה חדשה */}
+        <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 2px 8px rgba(0,0,0,.06)", padding: "1.1rem 1.25rem", marginBottom: 18, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+          <div>
+            <div style={{ fontWeight: 800, color: "#1a1a2e", display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+              <Banknote size={18} color={BRAND} /> בקשת הלוואה חדשה
+            </div>
+            <div style={{ fontSize: ".82rem", color: "#9aa5b5" }}>הגש בקשה להלוואה — הגבאי יאשר ויזין לכרטסת שלך</div>
+          </div>
+          <button onClick={openLoan} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "0.55rem 1.3rem", background: BRAND, color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: ".9rem", cursor: "pointer", whiteSpace: "nowrap" }}>
+            💳 בקש הלוואה
+          </button>
+        </div>
+
         {/* שינוי סיסמה */}
         <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 2px 8px rgba(0,0,0,.06)", overflow: "hidden", marginBottom: 18 }}>
           <button onClick={() => { setShowPass(s => !s); setPassMsg(""); }} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "1.1rem 1.25rem", background: "none", border: "none", cursor: "pointer", fontWeight: 800, color: "#1a1a2e", fontSize: ".95rem" }}>
@@ -362,6 +468,50 @@ export default function MemberPortal({ memberId, logout }: { memberId: string; l
           אזור אישי לצפייה בלבד · לשאלות פנה לגבאי הגמ״ח
         </div>
       </div>
+
+      {/* מודאל בקשת הלוואה */}
+      {loanOpen && (
+        <div onClick={e => { if (e.target === e.currentTarget) setLoanOpen(false); }}
+          style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem", backdropFilter: "blur(2px)" }}>
+          <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 20px 60px rgba(0,0,0,.2)", width: "100%", maxWidth: 480, padding: "1.6rem", direction: "rtl" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+              <h2 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 800, color: BRAND, display: "flex", alignItems: "center", gap: 8 }}>
+                <Banknote size={20} /> בקשת הלוואה חדשה
+              </h2>
+              <button onClick={() => setLoanOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.2rem", color: "#9aa5b5" }}>✕</button>
+            </div>
+            <div style={{ fontSize: ".82rem", color: "#7a8699", marginBottom: 16, lineHeight: 1.6 }}>
+              מלא את פרטי הבקשה ושלח לגבאי. הגבאי יאשר ויזין את ההלוואה לכרטסת שלך.
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.9rem" }}>
+              <div>
+                <label style={lblS}>סכום מבוקש ₪ *</label>
+                <input type="number" value={loanForm.amount} onChange={e => setLoanForm(f => ({ ...f, amount: e.target.value }))} style={inp} autoFocus placeholder="הזן סכום" />
+              </div>
+              <div>
+                <label style={lblS}>מטרת ההלוואה (אופציונלי)</label>
+                <textarea value={loanForm.purpose} onChange={e => setLoanForm(f => ({ ...f, purpose: e.target.value }))} rows={3} style={{ ...inp, resize: "vertical" }} placeholder="לדוגמה: חתן, בריאות, דירה…" />
+              </div>
+              {loanForm.amount && Number(loanForm.amount) > 0 && (
+                <div style={{ background: "#f0faf6", borderRadius: 10, padding: "0.75rem 1rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                  <div style={{ fontSize: ".85rem", color: "#4a5568" }}>
+                    📄 הורד שטר חוב ממולא מראש עם הסכום המבוקש
+                  </div>
+                  <button onClick={downloadLoanShtarChov} style={{ padding: "0.4rem 0.9rem", background: BRAND_DARK, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".82rem", cursor: "pointer", whiteSpace: "nowrap" }}>
+                    הורד שטר חוב
+                  </button>
+                </div>
+              )}
+            </div>
+            <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+              <button onClick={submitLoanRequest} disabled={savingLoan} style={{ padding: "0.55rem 1.3rem", background: BRAND, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".9rem", cursor: "pointer" }}>
+                {savingLoan ? "שולח…" : "שלח בקשה"}
+              </button>
+              <button onClick={() => setLoanOpen(false)} style={{ padding: "0.55rem 1.3rem", background: "#eef2f1", color: BRAND, border: "none", borderRadius: 8, fontWeight: 600, fontSize: ".9rem", cursor: "pointer" }}>ביטול</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* מודאל הצעת תיקון לפעולה */}
       {propTxn && (
