@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Pencil, CheckCircle2 } from "lucide-react";
@@ -8,6 +8,7 @@ import { supabase, fnErrMessage } from "@/lib/supabase";
 import { ils, gdate, toHebrewDate, TXN_TYPES, TXN_METHODS } from "@/lib/format";
 import { hebTextToGreg } from "@/lib/hebrewParse";
 import { Card, PageTitle, Button, Badge, Loading, Empty } from "@/components/ui";
+import DatePicker from "@/components/DatePicker";
 import type { MemberBalance, Transaction, Check } from "@/types";
 
 const BRAND = "#1e6f5c";
@@ -35,6 +36,9 @@ export default function MemberDetail() {
   const [loginPass, setLoginPass] = useState("");
   const [creatingLogin, setCreatingLogin] = useState(false);
   const [loginMsg, setLoginMsg] = useState("");
+  // שחזור מחיקה
+  const [undoSnap, setUndoSnap] = useState<{txns: Transaction[]; label: string} | null>(null);
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // פופאפ הצלחה ליצירת/עדכון התחברות (נסגר אוטומטית באיטיות כלפי פנים)
   const [loginPopup, setLoginPopup] = useState<string | null>(null);
   const [loginPopupClosing, setLoginPopupClosing] = useState(false);
@@ -247,11 +251,12 @@ export default function MemberDetail() {
 
   // הוספת פעולה חדשה לחבר הנוכחי
   const [addTxn, setAddTxn] = useState(false);
-  const [addForm, setAddForm] = useState({ amount: "", type: "הפקדה", method: "", greg_date: "", heb_date: "", notes: "", repay: "" });
+  const [addForm, setAddForm] = useState({ amount: "", type: "הפקדה", method: "", greg_date: "", heb_date: "", notes: "", repay: "", subtype: "" });
   const [savingAdd, setSavingAdd] = useState(false);
 
   function openAdd() {
-    setAddForm({ amount: "", type: "הפקדה", method: "", greg_date: "", heb_date: "", notes: "", repay: "" });
+    const defSubtype = (member?.savings_balance ?? 0) > 0 ? "refund" : "loan";
+    setAddForm({ amount: "", type: "הפקדה", method: "", greg_date: "", heb_date: "", notes: "", repay: "", subtype: defSubtype });
     setAddTxn(true);
   }
   function setAddGreg(val: string) { setAddForm(f => ({ ...f, greg_date: val, heb_date: toHebrewDate(val) })); }
@@ -261,8 +266,8 @@ export default function MemberDetail() {
     if (!addForm.method) { alert("יש לבחור אופן"); return; }
     if (!addForm.greg_date) { alert("יש לבחור תאריך"); return; }
     setSavingAdd(true);
-    // משיכה = הלוואה; הפקדה ידנית = פיקדון/חיסכון
-    const category = addForm.type === "משיכה" ? "loan" : "deposit";
+    const effectiveSubtype = addForm.subtype || ((member.savings_balance ?? 0) > 0 ? "refund" : "loan");
+    const category = addForm.type === "משיכה" ? effectiveSubtype : "deposit";
     const { data: txn, error } = await supabase.from("transactions").insert({
       member_id: member.id, amount: Number(addForm.amount), type: addForm.type,
       method: addForm.method || null, greg_date: addForm.greg_date || null,
@@ -272,7 +277,7 @@ export default function MemberDetail() {
     if (error) { alert("שגיאה: " + error.message); return; }
     setAddTxn(false);
     // אם זו הלוואה שתוחזר בשיקים — פתיחת עורך השיקים משויך להלוואה זו
-    const goChecks = addForm.type === "משיכה" && addForm.repay === "שיקים";
+    const goChecks = addForm.type === "משיכה" && addForm.repay === "שיקים" && effectiveSubtype === "loan";
     const newLoanId = (txn as any)?.id || "";
     await load();
     if (goChecks && newLoanId) {
@@ -304,13 +309,32 @@ export default function MemberDetail() {
     load();
   }
 
+  function scheduleUndo(txns: Transaction[], label: string) {
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    setUndoSnap({ txns, label });
+    undoTimerRef.current = setTimeout(() => { setUndoSnap(null); undoTimerRef.current = null; }, 8000);
+  }
+
+  async function restoreDeleted() {
+    if (!undoSnap) return;
+    if (undoTimerRef.current) { clearTimeout(undoTimerRef.current); undoTimerRef.current = null; }
+    const snap = undoSnap;
+    setUndoSnap(null);
+    const rows = snap.txns.map((t: Transaction) => { const { id: _id, created_at: _ca, ...rest } = t; return rest; });
+    const { error } = await supabase.from("transactions").insert(rows);
+    if (error) { alert("שגיאת שחזור: " + error.message); return; }
+    load();
+  }
+
   async function remove() {
     if (!editing) return;
     if (!confirm("למחוק את הפעולה?")) return;
+    const snapshot = editing;
     setSaving(true);
     await supabase.from("transactions").delete().eq("id", editing.id);
     setSaving(false);
     setEditing(null);
+    scheduleUndo([snapshot], "הפעולה נמחקה");
     load();
   }
 
@@ -338,13 +362,94 @@ export default function MemberDetail() {
   }
   async function deleteSelected() {
     if (selected.size === 0) return;
-    if (!confirm(`למחוק ${selected.size} פעולות שנבחרו?\n\nפעולה זו אינה ניתנת לביטול!`)) return;
+    if (!confirm(`למחוק ${selected.size} פעולות שנבחרו?\n\nניתן לשחזר תוך 8 שניות.`)) return;
+    const snapshot = txns.filter(t => selected.has(t.id));
     setDeletingSel(true);
     const { error } = await supabase.from("transactions").delete().in("id", Array.from(selected));
     setDeletingSel(false);
     if (error) { alert("שגיאה: " + error.message); return; }
     setSelected(new Set());
+    scheduleUndo(snapshot, `${snapshot.length} פעולות נמחקו`);
     load();
+  }
+
+  function downloadShtarChov() {
+    const loan = txns.filter(t => t.type === "משיכה" && (t.category === "loan" || !t.category)).at(-1);
+    const loanAmount = loan ? ils(loan.amount) : "_________";
+    const loanDate = loan?.greg_date ? gdate(loan.greg_date) : (loan?.heb_date || "_________");
+    const w = window.open("", "_blank", "width=820,height=1100");
+    if (!w) { alert("לא ניתן לפתוח חלון — בדוק חסימת חלונות קופצים"); return; }
+    w.document.write(`<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="UTF-8">
+<title>שטר חוב — ${member?.name || ""}</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, serif; font-size: 14px; line-height: 1.9; direction: rtl; padding: 28px 38px; color: #111; }
+  .center { text-align: center; }
+  .title { font-size: 21px; font-weight: bold; font-style: italic; }
+  .sub { font-size: 13px; }
+  .hr1 { border: none; border-top: 2.5px solid #1e6f5c; margin: 7px 0 3px; }
+  .hr2 { border: none; border-top: 1px solid #888; margin: 3px 0 12px; }
+  .f { display: inline-block; border-bottom: 1px solid #000; min-width: 120px; padding-bottom: 1px; vertical-align: bottom; }
+  .fl { min-width: 200px; }
+  .s { margin: 7px 0; }
+  .legal { font-size: 12.5px; text-align: justify; line-height: 1.7; margin: 8px 0; }
+  .gtitle { font-size: 12.5px; text-align: justify; margin: 14px 0 6px; }
+  .gbox { border: 1px solid #888; padding: 8px 14px; margin-top: 8px; }
+  .bsd { text-align: left; font-size: 13px; }
+  @media print { .noprint { display:none!important; } body { padding: 12px 22px; } }
+</style>
+</head>
+<body>
+<div class="bsd">בס"ד</div>
+<div class="center">
+  <div class="title">גמ&quot;ח &#x27;זכרון אהרן&#x27;</div>
+  <div class="sub">ע&quot;ש הנה&quot;ח ר&#x27; אהרן אייזנבלט זצ&quot;ל</div>
+  <div class="sub">קהילת באיאן מודיעין עילית</div>
+</div>
+<hr class="hr1"><hr class="hr2">
+
+<div class="s">תאריך <span class="f fl">${loanDate}</span></div>
+<div class="s">אני הח&quot;מ, שם: <span class="f fl">${member?.name || ""}</span> &nbsp; כתובת: <span class="f fl">${member?.address || ""}</span></div>
+<div class="s">טלפון: <span class="f" style="min-width:75px">&nbsp;</span> &nbsp; נייד: <span class="f" style="min-width:120px">${member?.phone || ""}</span></div>
+
+<div class="s">מאשר בזה כי קיבלתי הלוואה מגמ&quot;ח &#x27;זכרון אהרן&#x27; בהנהלת אלחנן אייזנבלט</div>
+<div class="s">סך: <span class="f">${loanAmount}</span> &nbsp; במילים: <span class="f" style="min-width:230px">&nbsp;</span></div>
+<div class="s">ומתחייב אני להחזירו בל&quot;נ עד: <span class="f fl">&nbsp;</span></div>
+<div class="s">&#9711; בתשלומים חודשיים בסך <span class="f">&nbsp;</span> &nbsp;&nbsp;&nbsp; &#9711; בתשלום אחד</div>
+<div class="s">ומסרתי עבור שיקים לפרעון החוב</div>
+
+<div class="legal">
+  והנני מתחייב בזה, על כל בעיה שבגינה לא יכובד, גם אם אינו באשמתי, על לדאוג להעביר למלוא את סכום התשלום בתוספת עמלת הבנק (עמלה זו היא רק אם ההחזרה היתה באשמתי) תוך עשרה ימים מיום חזרתו, גם אם לא נדרשתי לכך מהמלווה. ואם לא אעמוד בזה, עלי להחזיר מיידית את כל סכום יתרת ההלוואה – אני או הערבים.<br>
+  וכן אני מתחייב שבכל שיתעורר, המכריע היחיד יהיה רב השכונה הרב ליוש שליט&quot;א.<br>
+  כל פעולות הגמ&quot;ח הם ע&quot;פ היתר עיסקא ברית פנחס.
+</div>
+
+<div class="s">ועז באתי עה&quot;ח: <span class="f" style="min-width:290px">&nbsp;</span></div>
+<hr class="hr2">
+
+<div class="gtitle">
+  אני הח&quot;מ ערב קבלן [כל אחד מאיתנו בנפרד על כל הסכום], על ההלוואה הנ&quot;ל, שאמרתי: תן לו ואני קבלן. והנני מתחייב על כל ההלוואה, ועל כל תשלום בנפרד, לשלומו מיד לכשידרוש ממני המלווה כל התנאים דלעיל, האמורים לגבי הלווה.
+</div>
+
+<div class="gbox">
+  <div>שם <span class="f fl">&nbsp;</span> &nbsp; כתובת: <span class="f fl">&nbsp;</span></div>
+  <div>טלפון: <span class="f" style="min-width:60px">0</span>___&#8209;_______ &nbsp; נייד: 05__&#8209;<span class="f" style="min-width:80px">&nbsp;</span></div>
+  <div>חתימה: <span class="f" style="min-width:180px">&nbsp;</span></div>
+</div>
+<div class="gbox" style="margin-top:8px">
+  <div>שם <span class="f fl">&nbsp;</span> &nbsp; כתובת: <span class="f fl">&nbsp;</span></div>
+  <div>טלפון: <span class="f" style="min-width:60px">0</span>___&#8209;_______ &nbsp; נייד: 05__&#8209;<span class="f" style="min-width:80px">&nbsp;</span></div>
+  <div>חתימה: <span class="f" style="min-width:180px">&nbsp;</span></div>
+</div>
+
+<div class="noprint" style="margin-top:22px;text-align:center">
+  <button onclick="window.print()" style="padding:9px 28px;background:#1e6f5c;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-weight:bold">🖨️ הדפסה / שמירה כ-PDF</button>
+</div>
+</body></html>`);
+    w.document.close(); w.focus();
   }
 
   if (loading) return <Loading />;
@@ -436,6 +541,11 @@ export default function MemberDetail() {
             <div style={{ background: "#fef2f2", borderRadius: 8, padding: "0.4rem 0.6rem" }}>
               <div style={{ fontSize: ".72rem", color: "#7a8699" }}>חוב הלוואות</div>
               <div style={{ fontWeight: 800, color: (member.loan_balance ?? 0) > 0 ? "#c0392b" : "var(--brand)" }}>{ils(Math.max(0, member.loan_balance ?? 0))}</div>
+              {(member.loan_balance ?? 0) > 0 && (
+                <button className="no-print" onClick={downloadShtarChov} style={{ marginTop: 5, padding: "0.25rem 0.6rem", background: BRAND, color: "#fff", border: "none", borderRadius: 6, fontSize: ".72rem", fontWeight: 700, cursor: "pointer" }}>
+                  📄 שטר חוב
+                </button>
+              )}
             </div>
             <div style={{ background: "#f0faf6", borderRadius: 8, padding: "0.4rem 0.6rem" }}>
               <div style={{ fontSize: ".72rem", color: "#7a8699" }}>יתרת חיסכון</div>
@@ -562,7 +672,7 @@ export default function MemberDetail() {
             </div>
             <div style={{ width: 150 }}>
               <label style={lbl}>תאריך פירעון (ראשון)</label>
-              <input type="date" value={chkMaster.due_date} onChange={e => setMasterDate(e.target.value)} style={inp} />
+              <DatePicker value={chkMaster.due_date} onChange={setMasterDate} />
             </div>
             <div style={{ width: 100 }}>
               <label style={lbl}>מספר שיקים</label>
@@ -610,7 +720,7 @@ export default function MemberDetail() {
                     <div style={{ fontSize: ".8rem", color: "#9aa5b5", fontWeight: 700 }}>{i + 1}</div>
                     <input type="number" value={d.amount} onChange={e => updateDraft(i, "amount", e.target.value)} style={{ ...inp, padding: "0.35rem 0.5rem" }} />
                     <div>
-                      <input type="date" value={d.due_date} onChange={e => updateDraft(i, "due_date", e.target.value)} style={{ ...inp, padding: "0.35rem 0.5rem" }} />
+                      <DatePicker value={d.due_date} onChange={v => updateDraft(i, "due_date", v)} />
                       {d.due_date && <div style={{ fontSize: ".68rem", color: BRAND, marginTop: 2 }}>{toHebrewDate(d.due_date)}</div>}
                     </div>
                     <input value={d.notes} onChange={e => updateDraft(i, "notes", e.target.value)} style={{ ...inp, padding: "0.35rem 0.5rem" }} placeholder="מס' שיק / בנק" />
@@ -721,7 +831,7 @@ export default function MemberDetail() {
               </div>
               <div>
                 <label style={lbl}>תאריך לועזי</label>
-                <input type="date" value={form.greg_date} onChange={e => setGreg(e.target.value)} style={inp} />
+                <DatePicker value={form.greg_date} onChange={setGreg} />
               </div>
               <div style={{ gridColumn: "1/-1" }}>
                 <label style={lbl}>תאריך עברי (טקסט)</label>
@@ -775,20 +885,39 @@ export default function MemberDetail() {
                 </select>
               </div>
               {addForm.type === "משיכה" && (
-                <div>
-                  <label style={lbl}>אופן החזר ההלוואה</label>
-                  <select value={addForm.repay} onChange={e => setAddForm(f => ({ ...f, repay: e.target.value }))} style={inp}>
-                    <option value="">— טרם נקבע —</option>
-                    <option value="שיקים">שיקים (הזנה מיד)</option>
-                    <option value="מזומן">מזומן</option>
-                    <option value="העברה">העברה בנקאית</option>
-                    <option value="אחר">אחר</option>
-                  </select>
-                </div>
+                <>
+                  <div style={{ gridColumn: "1/-1" }}>
+                    <label style={lbl}>סיווג המשיכה</label>
+                    {(member.savings_balance ?? 0) > 0 && (
+                      <div style={{ fontSize: ".78rem", background: "#f0faf6", border: "1px solid #c6e9d8", borderRadius: 7, padding: "0.35rem 0.6rem", marginBottom: 6, color: BRAND }}>
+                        יתרת חיסכון לחבר זה: <strong>{ils(member.savings_balance)}</strong> — זוהי משיכת פיקדון כברירת מחדל
+                      </div>
+                    )}
+                    <select
+                      value={addForm.subtype || ((member.savings_balance ?? 0) > 0 ? "refund" : "loan")}
+                      onChange={e => setAddForm(f => ({ ...f, subtype: e.target.value, repay: e.target.value === "refund" ? "" : f.repay }))}
+                      style={inp}>
+                      <option value="refund">משיכת פיקדון (החזר חיסכון)</option>
+                      <option value="loan">הלוואה</option>
+                    </select>
+                  </div>
+                  {(addForm.subtype === "loan" || (!addForm.subtype && (member.savings_balance ?? 0) <= 0)) && (
+                    <div>
+                      <label style={lbl}>אופן החזר ההלוואה</label>
+                      <select value={addForm.repay} onChange={e => setAddForm(f => ({ ...f, repay: e.target.value }))} style={inp}>
+                        <option value="">— טרם נקבע —</option>
+                        <option value="שיקים">שיקים (הזנה מיד)</option>
+                        <option value="מזומן">מזומן</option>
+                        <option value="העברה">העברה בנקאית</option>
+                        <option value="אחר">אחר</option>
+                      </select>
+                    </div>
+                  )}
+                </>
               )}
               <div>
                 <label style={lbl}>תאריך לועזי</label>
-                <input type="date" value={addForm.greg_date} onChange={e => setAddGreg(e.target.value)} style={inp} />
+                <DatePicker value={addForm.greg_date} onChange={setAddGreg} />
               </div>
               <div style={{ gridColumn: "1/-1" }}>
                 <label style={lbl}>תאריך עברי (מחושב אוטומטית)</label>
@@ -818,6 +947,15 @@ export default function MemberDetail() {
             </div>
             <div style={{ fontSize: "1.1rem", fontWeight: 800, color: BRAND }}>{loginPopup}</div>
           </div>
+        </div>
+      )}
+
+      {/* טוסט שחזור מחיקה */}
+      {undoSnap && (
+        <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 2000, background: "#1a1a2e", color: "#fff", borderRadius: 12, padding: "0.75rem 1.2rem", boxShadow: "0 8px 32px rgba(0,0,0,.35)", display: "flex", alignItems: "center", gap: 14, direction: "rtl", animation: "modalIn 0.2s ease" }}>
+          <span style={{ fontSize: ".9rem" }}>{undoSnap.label}</span>
+          <button onClick={restoreDeleted} style={{ padding: "0.35rem 0.9rem", background: BRAND, color: "#fff", border: "none", borderRadius: 7, fontWeight: 700, fontSize: ".85rem", cursor: "pointer", whiteSpace: "nowrap" }}>↩ שחזר</button>
+          <button onClick={() => { if (undoTimerRef.current) clearTimeout(undoTimerRef.current); setUndoSnap(null); }} style={{ background: "none", border: "none", color: "#9aa5b5", cursor: "pointer", fontSize: "1rem", padding: "0 4px" }}>✕</button>
         </div>
       )}
     </div>

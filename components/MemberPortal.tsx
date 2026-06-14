@@ -6,6 +6,8 @@ import { supabase } from "@/lib/supabase";
 import { ils, gdate, toHebrewDate, TXN_TYPES, TXN_METHODS } from "@/lib/format";
 import { hebTextToGreg } from "@/lib/hebrewParse";
 import { Badge, Loading } from "@/components/ui";
+import HebrewInfoBar from "@/components/HebrewInfoBar";
+import DatePicker from "@/components/DatePicker";
 import type { MemberBalance, Transaction, ChangeRequest, MemberRequest } from "@/types";
 
 const REQ_TYPE_LABEL: Record<string, string> = { message: "פנייה / הודעה", loan: "בקשת הלוואה", deposit_refund: "בקשת החזר פיקדון" };
@@ -207,6 +209,11 @@ export default function MemberPortal({ memberId, logout }: { memberId: string; l
       </div>
 
       <div style={{ maxWidth: 900, margin: "0 auto", padding: "1.5rem" }}>
+        {/* שורת מידע יומי — זהה לממשק הניהול */}
+        <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 2px 8px rgba(0,0,0,.06)", padding: "1.1rem 1.25rem", marginBottom: 18 }}>
+          <HebrewInfoBar />
+        </div>
+
         {/* יתרה גדולה */}
         <div style={{ background: "#fff", borderRadius: 20, padding: "2rem", textAlign: "center", boxShadow: "0 4px 16px rgba(0,0,0,.07)", marginBottom: 18 }}>
           <div style={{ fontSize: ".9rem", color: "#9aa5b5", fontWeight: 600 }}>היתרה שלך בגמ״ח</div>
@@ -386,7 +393,7 @@ export default function MemberPortal({ memberId, logout }: { memberId: string; l
               </div>
               <div>
                 <label style={lblS}>תאריך לועזי</label>
-                <input type="date" value={propForm.greg_date} onChange={e => propGreg(e.target.value)} style={inp} />
+                <DatePicker value={propForm.greg_date} onChange={propGreg} />
               </div>
               <div style={{ gridColumn: "1/-1" }}>
                 <label style={lblS}>תאריך עברי (מחושב)</label>
@@ -439,7 +446,7 @@ export default function MemberPortal({ memberId, logout }: { memberId: string; l
               </div>
               <div>
                 <label style={lblS}>תאריך לועזי</label>
-                <input type="date" value={addForm.greg_date} onChange={e => addGreg(e.target.value)} style={inp} />
+                <DatePicker value={addForm.greg_date} onChange={addGreg} />
               </div>
               <div style={{ gridColumn: "1/-1" }}>
                 <label style={lblS}>תאריך עברי (מחושב)</label>
