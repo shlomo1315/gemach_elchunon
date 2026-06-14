@@ -59,6 +59,7 @@ export default function DatePicker({ value, onChange, placeholder = "בחר תא
   const [mode, setMode] = useState<"heb" | "greg">("heb");
   const [picker, setPicker] = useState<null | "month" | "year">(null);
   const ref = useRef<HTMLDivElement>(null);
+  const [popupPos, setPopupPos] = useState({ top: 0, right: 0 });
 
   const selected = useMemo(() => isoToLocalDate(value), [value]);
   const today = useMemo(() => { const d = new Date(); d.setHours(12, 0, 0, 0); return d; }, []);
@@ -70,9 +71,16 @@ export default function DatePicker({ value, onChange, placeholder = "בחר תא
     return { gy: base.getFullYear(), gm: base.getMonth(), hy: h.getFullYear(), hm: h.getMonth() };
   });
 
-  // בכל פתיחה — מיישרים את התצוגה לתאריך הנבחר (או היום)
+  // בכל פתיחה — מיישרים את התצוגה לתאריך הנבחר (או היום) ומחשבים מיקום fixed
   useEffect(() => {
     if (!open) { setPicker(null); return; }
+    if (ref.current) {
+      const rect = ref.current.getBoundingClientRect();
+      const popupW = 308;
+      const rightFromViewport = window.innerWidth - rect.right;
+      const finalRight = Math.max(8, Math.min(rightFromViewport, window.innerWidth - popupW - 8));
+      setPopupPos({ top: rect.bottom + 6, right: finalRight });
+    }
     const base = selected || today;
     const h = new HDate(base);
     setView({ gy: base.getFullYear(), gm: base.getMonth(), hy: h.getFullYear(), hm: h.getMonth() });
@@ -183,7 +191,7 @@ export default function DatePicker({ value, onChange, placeholder = "בחר תא
 
       {open && (
         <div style={{
-          position: "absolute", top: "calc(100% + 6px)", right: 0, zIndex: 1300,
+          position: "fixed", top: popupPos.top, right: popupPos.right, zIndex: 9999,
           background: "#fff", border: "1px solid #e2e8f0", borderRadius: 14,
           boxShadow: "0 12px 40px rgba(0,0,0,.18)", padding: 12, width: 300, direction: "rtl",
         }}>

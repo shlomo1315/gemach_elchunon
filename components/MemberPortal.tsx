@@ -57,6 +57,7 @@ export default function MemberPortal({ memberId, logout }: { memberId: string; l
   // בקשת הלוואה חדשה
   const [loanOpen, setLoanOpen] = useState(false);
   const [loanForm, setLoanForm] = useState({ amount: "", purpose: "" });
+  const [loanFile, setLoanFile] = useState<File | null>(null);
   const [savingLoan, setSavingLoan] = useState(false);
   // הגשת פעולה חדשה לאישור (kind='add') עם מסמך תיעוד
   const [addReqOpen, setAddReqOpen] = useState(false);
@@ -166,7 +167,12 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
   async function submitLoanRequest() {
     const amount = Number(loanForm.amount);
     if (!amount || amount <= 0) { alert("יש להזין סכום חיובי"); return; }
+    if (!loanFile) { alert("יש לצרף שטר חוב חתום"); return; }
     setSavingLoan(true);
+    const safe = loanFile.name.replace(/[^\w.\-]+/g, "_");
+    const path = `${memberId}/loan-${Date.now()}-${safe}`;
+    const { error: upErr } = await supabase.storage.from("member-docs").upload(path, loanFile, { upsert: false });
+    if (upErr) { setSavingLoan(false); alert("שגיאה בהעלאת המסמך: " + upErr.message); return; }
     const { error } = await supabase.from("member_requests").insert({
       member_id: memberId,
       type: "loan",
@@ -174,11 +180,13 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
       subject: "בקשת הלוואה חדשה",
       body: loanForm.purpose || null,
       amount,
+      document_url: path,
     });
     setSavingLoan(false);
     if (error) { alert("שגיאה: " + error.message); return; }
     setLoanOpen(false);
     setLoanForm({ amount: "", purpose: "" });
+    setLoanFile(null);
     loadRequests();
   }
 
@@ -225,13 +233,29 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
   const [savingReq, setSavingReq] = useState(false);
   const [reqMsg, setReqMsg] = useState("");
 
+  const [loanNotif, setLoanNotif] = useState<MemberRequest | null>(null);
+
   async function loadRequests() {
     const [c, r] = await Promise.all([
       supabase.from("transaction_change_requests").select("*").eq("member_id", memberId).order("created_at", { ascending: false }),
       supabase.from("member_requests").select("*").eq("member_id", memberId).order("created_at", { ascending: false }),
     ]);
     setMyChanges((c.data as ChangeRequest[]) || []);
-    setMyRequests((r.data as MemberRequest[]) || []);
+    const reqs = (r.data as MemberRequest[]) || [];
+    setMyRequests(reqs);
+    // בדוק בקשות הלוואה שאושרו/נדחו ועדיין לא נראו
+    const seenKey = `loan_notif_seen_${memberId}`;
+    const seen: string[] = JSON.parse(localStorage.getItem(seenKey) || "[]");
+    const unseen = reqs.find(req => req.type === "loan" && (req.status === "done" || req.status === "rejected") && !seen.includes(req.id));
+    if (unseen) setLoanNotif(unseen);
+  }
+
+  function dismissLoanNotif() {
+    if (!loanNotif) return;
+    const seenKey = `loan_notif_seen_${memberId}`;
+    const seen: string[] = JSON.parse(localStorage.getItem(seenKey) || "[]");
+    localStorage.setItem(seenKey, JSON.stringify([...seen, loanNotif.id]));
+    setLoanNotif(null);
   }
 
   function openPropose(t: Transaction) {
@@ -457,14 +481,18 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
               <div style={{ fontWeight: 700, color: "#4a5568", marginBottom: 8, fontSize: ".9rem" }}>הבקשות שלי</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {myRequests.map(r => (
-                  <div key={r.id} style={{ ...rowCard, display: "block" }}>
+                  <div key={r.id} style={{ ...rowCard, display: "block", border: r.type === "loan" ? `1.5px solid ${STATUS_COLOR[r.status] || "#e2e8f0"}` : undefined }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-                      <span>{REQ_TYPE_LABEL[r.type]}{r.subject ? ` · ${r.subject}` : ""}{r.amount ? ` · ${ils(r.amount)}` : ""}</span>
+                      <span style={{ fontWeight: r.type === "loan" ? 700 : 400 }}>
+                        {r.type === "loan" ? "💳 " : ""}{REQ_TYPE_LABEL[r.type]}{r.amount ? ` · ${ils(r.amount)}` : ""}
+                      </span>
                       <span style={{ ...miniPill, background: STATUS_COLOR[r.status] }}>{REQ_STATUS_LABEL[r.status]}</span>
                     </div>
+                    {r.body && r.type === "loan" && <div style={{ fontSize: ".8rem", color: "#7a8699", marginTop: 4 }}>מטרה: {r.body}</div>}
+                    <div style={{ fontSize: ".72rem", color: "#b0bac7", marginTop: 4 }}>{new Date(r.created_at).toLocaleDateString("he-IL")}</div>
                     {r.admin_note && (
-                      <div style={{ marginTop: 8, background: "#eef6f3", borderInlineStart: `3px solid ${BRAND}`, borderRadius: 8, padding: "0.5rem 0.7rem" }}>
-                        <div style={{ fontSize: ".74rem", fontWeight: 700, color: BRAND, marginBottom: 2 }}>תשובת הגבאי</div>
+                      <div style={{ marginTop: 8, background: r.status === "done" ? "#eef6f3" : "#fde8e8", borderInlineStart: `3px solid ${r.status === "done" ? BRAND : "#c0392b"}`, borderRadius: 8, padding: "0.5rem 0.7rem" }}>
+                        <div style={{ fontSize: ".74rem", fontWeight: 700, color: r.status === "done" ? BRAND : "#c0392b", marginBottom: 2 }}>תשובת הגבאי</div>
                         <div style={{ fontSize: ".84rem", color: "#1a1a2e", whiteSpace: "pre-wrap" }}>{r.admin_note}</div>
                       </div>
                     )}
@@ -485,6 +513,34 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
           אזור אישי לצפייה בלבד · לשאלות פנה לגבאי הגמ״ח
         </div>
       </div>
+
+      {/* פופאפ התראה — אישור/דחיית הלוואה */}
+      {loanNotif && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 2000, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem", backdropFilter: "blur(3px)" }}>
+          <div style={{ background: "#fff", borderRadius: 18, boxShadow: "0 24px 70px rgba(0,0,0,.25)", width: "100%", maxWidth: 420, padding: "2rem", direction: "rtl", textAlign: "center" }}>
+            <div style={{ fontSize: "3rem", marginBottom: 12 }}>{loanNotif.status === "done" ? "✅" : "❌"}</div>
+            <div style={{ fontSize: "1.2rem", fontWeight: 800, color: loanNotif.status === "done" ? BRAND : "#c0392b", marginBottom: 8 }}>
+              {loanNotif.status === "done" ? "בקשת ההלוואה אושרה!" : "בקשת ההלוואה נדחתה"}
+            </div>
+            {loanNotif.amount && (
+              <div style={{ fontSize: "1.5rem", fontWeight: 800, color: "#1a1a2e", marginBottom: 8 }}>
+                {ils(loanNotif.amount)}
+              </div>
+            )}
+            {loanNotif.body && (
+              <div style={{ fontSize: ".88rem", color: "#4a5568", marginBottom: 8 }}>מטרה: {loanNotif.body}</div>
+            )}
+            {loanNotif.admin_note && (
+              <div style={{ background: loanNotif.status === "done" ? "#eef6f3" : "#fde8e8", borderRadius: 10, padding: "0.75rem 1rem", fontSize: ".88rem", color: "#1a1a2e", marginBottom: 16, whiteSpace: "pre-wrap" }}>
+                <strong>הגבאי:</strong> {loanNotif.admin_note}
+              </div>
+            )}
+            <button onClick={dismissLoanNotif} style={{ padding: "0.6rem 1.8rem", background: BRAND, color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: ".95rem", cursor: "pointer" }}>
+              הבנתי
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* מודאל בקשת הלוואה */}
       {loanOpen && (
@@ -519,12 +575,25 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
                   </button>
                 </div>
               )}
+              <div>
+                <label style={{ ...lblS, color: "#c0392b" }}>📎 שטר חוב חתום — חובה לצרף *</label>
+                <input
+                  type="file"
+                  accept="image/*,application/pdf"
+                  onChange={e => setLoanFile(e.target.files?.[0] || null)}
+                  style={{ ...inp, padding: "0.4rem", cursor: "pointer" }}
+                />
+                {loanFile && (
+                  <div style={{ fontSize: ".78rem", color: BRAND, marginTop: 4, fontWeight: 600 }}>✓ {loanFile.name}</div>
+                )}
+                <div style={{ fontSize: ".75rem", color: "#9aa5b5", marginTop: 3 }}>יש להוריד, להדפיס, לחתום ולצלם/לסרוק</div>
+              </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
-              <button onClick={submitLoanRequest} disabled={savingLoan} style={{ padding: "0.55rem 1.3rem", background: BRAND, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".9rem", cursor: "pointer" }}>
+              <button onClick={submitLoanRequest} disabled={savingLoan || !loanFile} style={{ padding: "0.55rem 1.3rem", background: loanFile ? BRAND : "#9aa5b5", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".9rem", cursor: loanFile ? "pointer" : "not-allowed" }}>
                 {savingLoan ? "שולח…" : "שלח בקשה"}
               </button>
-              <button onClick={() => setLoanOpen(false)} style={{ padding: "0.55rem 1.3rem", background: "#eef2f1", color: BRAND, border: "none", borderRadius: 8, fontWeight: 600, fontSize: ".9rem", cursor: "pointer" }}>ביטול</button>
+              <button onClick={() => { setLoanOpen(false); setLoanFile(null); }} style={{ padding: "0.55rem 1.3rem", background: "#eef2f1", color: BRAND, border: "none", borderRadius: 8, fontWeight: 600, fontSize: ".9rem", cursor: "pointer" }}>ביטול</button>
             </div>
           </div>
         </div>

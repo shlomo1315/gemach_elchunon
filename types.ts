@@ -97,6 +97,7 @@ export type MemberRequest = {
   amount: number | null;
   status: "open" | "in_progress" | "done" | "rejected";
   admin_note: string | null;
+  document_url: string | null;
   created_at: string;
   resolved_at: string | null;
   members?: { name: string } | null;

@@ -190,6 +190,7 @@ export default function RequestsPage() {
                   <span style={{ ...pill, background: STATUS_COLOR[r.status] }}>{REQ_STATUS_LABEL[r.status]}</span>
                 </div>
                 {r.body && <div style={{ fontSize: ".88rem", color: "#4a5568", marginTop: 6, whiteSpace: "pre-wrap" }}>מטרה: {r.body}</div>}
+                {r.document_url && <DocPreview path={r.document_url} />}
                 {r.admin_note && (
                   <div style={{ marginTop: 8, background: r.status === "done" ? "#eef6f3" : "#fde8e8", borderInlineStart: `3px solid ${r.status === "done" ? BRAND : RED}`, borderRadius: 8, padding: "0.5rem 0.75rem", fontSize: ".85rem", color: "#1a1a2e" }}>
                     {r.admin_note}
