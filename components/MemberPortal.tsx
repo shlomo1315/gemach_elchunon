@@ -565,18 +565,16 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
                 <label style={lblS}>מטרת ההלוואה (אופציונלי)</label>
                 <textarea value={loanForm.purpose} onChange={e => setLoanForm(f => ({ ...f, purpose: e.target.value }))} rows={3} style={{ ...inp, resize: "vertical" }} placeholder="לדוגמה: חתן, בריאות, דירה…" />
               </div>
-              {loanForm.amount && Number(loanForm.amount) > 0 && (
-                <div style={{ background: "#f0faf6", borderRadius: 10, padding: "0.75rem 1rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                  <div style={{ fontSize: ".85rem", color: "#4a5568" }}>
-                    📄 הורד שטר חוב ממולא מראש עם הסכום המבוקש
-                  </div>
-                  <button onClick={downloadLoanShtarChov} style={{ padding: "0.4rem 0.9rem", background: BRAND_DARK, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".82rem", cursor: "pointer", whiteSpace: "nowrap" }}>
-                    הורד שטר חוב
-                  </button>
+              <div style={{ background: "#f0faf6", borderRadius: 10, padding: "0.75rem 1rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, border: "1px solid #d1ede6" }}>
+                <div style={{ fontSize: ".85rem", color: "#4a5568" }}>
+                  <strong>שלב 1:</strong> 📄 הורד שטר חוב{loanForm.amount && Number(loanForm.amount) > 0 ? " ממולא מראש" : ""}, הדפס וחתום
                 </div>
-              )}
+                <button onClick={downloadLoanShtarChov} style={{ padding: "0.4rem 0.9rem", background: BRAND_DARK, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".82rem", cursor: "pointer", whiteSpace: "nowrap" }}>
+                  הורד שטר חוב
+                </button>
+              </div>
               <div>
-                <label style={{ ...lblS, color: "#c0392b" }}>📎 שטר חוב חתום — חובה לצרף *</label>
+                <label style={{ ...lblS, color: "#c0392b" }}><strong>שלב 2:</strong> 📎 העלה שטר חוב חתום — חובה *</label>
                 <input
                   type="file"
                   accept="image/*,application/pdf"
@@ -586,7 +584,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
                 {loanFile && (
                   <div style={{ fontSize: ".78rem", color: BRAND, marginTop: 4, fontWeight: 600 }}>✓ {loanFile.name}</div>
                 )}
-                <div style={{ fontSize: ".75rem", color: "#9aa5b5", marginTop: 3 }}>יש להוריד, להדפיס, לחתום ולצלם/לסרוק</div>
+                <div style={{ fontSize: ".75rem", color: "#9aa5b5", marginTop: 3 }}>צלם או סרוק את השטר החתום והעלה אותו כאן</div>
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
