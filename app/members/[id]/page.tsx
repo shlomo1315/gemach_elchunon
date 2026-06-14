@@ -380,82 +380,91 @@ export default function MemberDetail() {
     load();
   }
 
-  function downloadShtarChov() {
-    const loan = txns.filter(t => t.type === "משיכה" && (t.category === "loan" || !t.category)).at(-1);
-    const loanAmount = loan ? ils(loan.amount) : "_________";
-    const loanDate = loan?.greg_date ? gdate(loan.greg_date) : (loan?.heb_date || "_________");
-    const w = window.open("", "_blank", "width=820,height=1100");
-    if (!w) { alert("לא ניתן לפתוח חלון — בדוק חסימת חלונות קופצים"); return; }
-    w.document.write(`<!DOCTYPE html>
+  function buildShtarChov(name: string, address: string, phone: string, amount: string, date: string) {
+    return `<!DOCTYPE html>
 <html dir="rtl" lang="he">
-<head>
-<meta charset="UTF-8">
-<title>שטר חוב — ${member?.name || ""}</title>
+<head><meta charset="UTF-8"><title>שטר חוב — ${name}</title>
 <style>
-  * { box-sizing: border-box; }
-  body { font-family: Arial, serif; font-size: 14px; line-height: 1.9; direction: rtl; padding: 28px 38px; color: #111; }
-  .center { text-align: center; }
-  .title { font-size: 21px; font-weight: bold; font-style: italic; }
-  .sub { font-size: 13px; }
-  .hr1 { border: none; border-top: 2.5px solid #1e6f5c; margin: 7px 0 3px; }
-  .hr2 { border: none; border-top: 1px solid #888; margin: 3px 0 12px; }
-  .f { display: inline-block; border-bottom: 1px solid #000; min-width: 120px; padding-bottom: 1px; vertical-align: bottom; }
-  .fl { min-width: 200px; }
-  .s { margin: 7px 0; }
-  .legal { font-size: 12.5px; text-align: justify; line-height: 1.7; margin: 8px 0; }
-  .gtitle { font-size: 12.5px; text-align: justify; margin: 14px 0 6px; }
-  .gbox { border: 1px solid #888; padding: 8px 14px; margin-top: 8px; }
-  .bsd { text-align: left; font-size: 13px; }
-  @media print { .noprint { display:none!important; } body { padding: 12px 22px; } }
-</style>
-</head>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px;color:#000;line-height:1.75}
+.wrap{border:1.5px solid #555;padding:16px 22px 22px}
+.hdr{text-align:center;margin-bottom:5px}
+.ttl{font-size:19px;font-weight:bold}
+.sub{font-size:12px;margin-top:1px}
+.hr1{border:none;border-top:2.5px solid #2a5fa8;margin:5px 0 2px}
+.hr2{border:none;border-top:1px solid #2a5fa8;margin:1px 0 10px}
+.bsd{text-align:right;font-size:12px;margin-bottom:2px}
+.r{margin:5px 0}
+.f{display:inline-block;border-bottom:1px solid #000;vertical-align:bottom;padding-bottom:1px}
+.sm{min-width:65px}.md{min-width:125px}.lg{min-width:185px}.xl{min-width:240px}
+.lg2{min-width:200px}
+.jus{font-size:12px;text-align:justify;line-height:1.6;margin:6px 0}
+.sep{border:none;border-top:1px solid #aaa;margin:10px 0}
+.np{display:block;text-align:center;margin-top:18px}
+@media print{.np{display:none!important}body{padding:12px 20px}}
+</style></head>
 <body>
-<div class="bsd">בס"ד</div>
-<div class="center">
-  <div class="title">גמ&quot;ח &#x27;זכרון אהרן&#x27;</div>
+<div class="wrap">
+<div class="bsd">בס&quot;ד</div>
+<div class="hdr">
+  <div class="ttl">גמ&quot;ח &#x27;זכרון אהרן&#x27;</div>
   <div class="sub">ע&quot;ש הנה&quot;ח ר&#x27; אהרן אייזנבלט זצ&quot;ל</div>
   <div class="sub">קהילת באיאן מודיעין עילית</div>
 </div>
 <hr class="hr1"><hr class="hr2">
 
-<div class="s">תאריך <span class="f fl">${loanDate}</span></div>
-<div class="s">אני הח&quot;מ, שם: <span class="f fl">${member?.name || ""}</span> &nbsp; כתובת: <span class="f fl">${member?.address || ""}</span></div>
-<div class="s">טלפון: <span class="f" style="min-width:75px">&nbsp;</span> &nbsp; נייד: <span class="f" style="min-width:120px">${member?.phone || ""}</span></div>
+<div class="r">תאריך <span class="f lg2">${date}</span></div>
+<div class="r">אני הח&quot;מ, שם: <span class="f lg">${name}</span> &nbsp; כתובת: <span class="f lg">${address}</span></div>
+<div class="r">טלפון: <span class="f md">${phone}</span> &nbsp; נייד: <span class="f md"></span></div>
 
-<div class="s">מאשר בזה כי קיבלתי הלוואה מגמ&quot;ח &#x27;זכרון אהרן&#x27; בהנהלת אלחנן אייזנבלט</div>
-<div class="s">סך: <span class="f">${loanAmount}</span> &nbsp; במילים: <span class="f" style="min-width:230px">&nbsp;</span></div>
-<div class="s">ומתחייב אני להחזירו בל&quot;נ עד: <span class="f fl">&nbsp;</span></div>
-<div class="s">&#9711; בתשלומים חודשיים בסך <span class="f">&nbsp;</span> &nbsp;&nbsp;&nbsp; &#9711; בתשלום אחד</div>
-<div class="s">ומסרתי עבור שיקים לפרעון החוב</div>
+<div class="r" style="margin:9px 0">מאשר בזה כי קיבלתי הלוואה מגמ&quot;ח &#x27;זכרון אהרן&#x27; בהנהלת אלחנן אייזנבלט</div>
 
-<div class="legal">
-  והנני מתחייב בזה, על כל בעיה שבגינה לא יכובד, גם אם אינו באשמתי, על לדאוג להעביר למלוא את סכום התשלום בתוספת עמלת הבנק (עמלה זו היא רק אם ההחזרה היתה באשמתי) תוך עשרה ימים מיום חזרתו, גם אם לא נדרשתי לכך מהמלווה. ואם לא אעמוד בזה, עלי להחזיר מיידית את כל סכום יתרת ההלוואה – אני או הערבים.<br>
-  וכן אני מתחייב שבכל שיתעורר, המכריע היחיד יהיה רב השכונה הרב ליוש שליט&quot;א.<br>
-  כל פעולות הגמ&quot;ח הם ע&quot;פ היתר עיסקא ברית פנחס.
+<div class="r">סך: <span class="f md">${amount}</span> &nbsp; במילים: <span class="f xl"></span></div>
+<div class="r">ומתחייב אני להחזירו בל&quot;נ עד: <span class="f lg2"></span></div>
+<div class="r">○ בתשלומים חודשיים בסך <span class="f sm"></span> &nbsp;&nbsp;&nbsp; ○ בתשלום אחד</div>
+<div class="r">ומסרתי עבורן שיקים לפרעון החוב.</div>
+
+<div class="jus" style="margin-top:9px">
+  והנני מתחייב בזה, על כל תשלום בנפרד, שבכל בעיה שבגינה לא יכובד, גם אם אינני באשמתי,
+  עלי לדאוג להעביר למלוא את סכום התשלום בתוספת עמלת הבנק (עמלה זו היא
+  רק אם ההחזרה היתה באשמתי) תוך עשרה ימים מיום חזרתו, גם אם לא נדרשתי לכך מהמלוה.
+  ואם לא אעמוד בזה, עלי להחזיר מיידית את כל סכום יתרת ההלוואה – אני או הערבים.
+</div>
+<div class="jus">וכן אני מתחייב שבכל ד&quot;ד שיתעורר, המכריע היחיד יהיה רב השכונה הרב ליוש שליט&quot;א.</div>
+<div class="jus">כל פעולות הגמ&quot;ח הם ע&quot;פ היתר עיסקא ברית פנחס.</div>
+
+<div class="r" style="margin-top:11px">ו&quot;ז באתי עה&quot;ח: <span class="f" style="min-width:220px"></span></div>
+
+<hr class="sep">
+
+<div class="jus">
+  אני הח&quot;מ נעשיתי ערב קבלן [כל אחד מאיתנו בנפרד], על הלוואה הנ&quot;ל, שאמרתי:
+  תן לו ואני קבלן. והנני מתחייב על כל ההלוואה, ועל כל תשלום בנפרד, לשלמו מיד לכשידרוש
+  ממני המלוה כל התנאים דלעיל, האמורים לגבי הלוה.
 </div>
 
-<div class="s">ועז באתי עה&quot;ח: <span class="f" style="min-width:290px">&nbsp;</span></div>
-<hr class="hr2">
+<div style="margin-top:10px">
+  <div class="r">שם <span class="f lg"></span> &nbsp; כתובת: <span class="f lg"></span></div>
+  <div class="r">טלפון: 05<span class="f sm"></span>-<span class="f sm"></span> &nbsp;&nbsp; נייד: 0<span class="f sm"></span>-<span class="f md"></span></div>
+  <div class="r">חתימה: <span class="f" style="min-width:185px"></span></div>
+</div>
+<div style="margin-top:10px">
+  <div class="r">שם <span class="f lg"></span> &nbsp; כתובת: <span class="f lg"></span></div>
+  <div class="r">טלפון: 0<span class="f sm"></span>-<span class="f md"></span> &nbsp;&nbsp; נייד: 0<span class="f sm"></span>-<span class="f md"></span></div>
+  <div class="r">חתימה: <span class="f" style="min-width:185px"></span></div>
+</div>
+</div>
+<div class="np"><button onclick="window.print()" style="padding:9px 26px;background:#1e6f5c;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-family:Arial">🖨️ הדפסה / שמירה כ-PDF</button></div>
+</body></html>`;
+  }
 
-<div class="gtitle">
-  אני הח&quot;מ ערב קבלן [כל אחד מאיתנו בנפרד על כל הסכום], על ההלוואה הנ&quot;ל, שאמרתי: תן לו ואני קבלן. והנני מתחייב על כל ההלוואה, ועל כל תשלום בנפרד, לשלומו מיד לכשידרוש ממני המלווה כל התנאים דלעיל, האמורים לגבי הלווה.
-</div>
-
-<div class="gbox">
-  <div>שם <span class="f fl">&nbsp;</span> &nbsp; כתובת: <span class="f fl">&nbsp;</span></div>
-  <div>טלפון: <span class="f" style="min-width:60px">0</span>___&#8209;_______ &nbsp; נייד: 05__&#8209;<span class="f" style="min-width:80px">&nbsp;</span></div>
-  <div>חתימה: <span class="f" style="min-width:180px">&nbsp;</span></div>
-</div>
-<div class="gbox" style="margin-top:8px">
-  <div>שם <span class="f fl">&nbsp;</span> &nbsp; כתובת: <span class="f fl">&nbsp;</span></div>
-  <div>טלפון: <span class="f" style="min-width:60px">0</span>___&#8209;_______ &nbsp; נייד: 05__&#8209;<span class="f" style="min-width:80px">&nbsp;</span></div>
-  <div>חתימה: <span class="f" style="min-width:180px">&nbsp;</span></div>
-</div>
-
-<div class="noprint" style="margin-top:22px;text-align:center">
-  <button onclick="window.print()" style="padding:9px 28px;background:#1e6f5c;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-weight:bold">🖨️ הדפסה / שמירה כ-PDF</button>
-</div>
-</body></html>`);
+  function downloadShtarChov() {
+    const loan = txns.filter(t => t.type === "משיכה" && (t.category === "loan" || !t.category)).at(-1);
+    const loanAmount = loan ? ils(loan.amount) : "";
+    const loanDate = loan?.greg_date ? gdate(loan.greg_date) : (loan?.heb_date || "");
+    const w = window.open("", "_blank", "width=820,height=1120");
+    if (!w) { alert("לא ניתן לפתוח חלון — בדוק חסימת חלונות קופצים"); return; }
+    w.document.write(buildShtarChov(member?.name || "", member?.address || "", member?.phone || "", loanAmount, loanDate));
     w.document.close(); w.focus();
   }
 
