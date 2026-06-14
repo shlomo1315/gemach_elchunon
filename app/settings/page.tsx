@@ -109,12 +109,13 @@ function DeletedTransactionsTab() {
     load();
   }
 
-  const TH = (w: string): React.CSSProperties => ({
-    padding: "0.65rem 1rem", textAlign: "right", fontWeight: 700, color: "#4a5568",
-    background: "#f8fafc", borderBottom: "2px solid #e8edf2", whiteSpace: "nowrap", width: w,
+  const TH = (minW: string, extra?: React.CSSProperties): React.CSSProperties => ({
+    padding: "0.65rem 0.9rem", textAlign: "right", fontWeight: 700, color: "#4a5568",
+    background: "#f8fafc", borderBottom: "2px solid #e8edf2", whiteSpace: "nowrap",
+    minWidth: minW, ...extra,
   });
   const TD: React.CSSProperties = {
-    padding: "0.6rem 1rem", borderBottom: "1px solid #f0f2f5", verticalAlign: "middle", fontSize: ".86rem",
+    padding: "0.7rem 0.9rem", borderBottom: "1px solid #f0f2f5", verticalAlign: "middle", fontSize: ".86rem",
   };
 
   if (loading) return <div style={{ padding: 36, textAlign: "center", color: "#9aa5b5" }}>טוען ארכיון…</div>;
@@ -139,54 +140,45 @@ function DeletedTransactionsTab() {
         💡 כל פעולה שנמחקת מהמערכת נשמרת כאן עם תאריך המחיקה. ניתן לשחזר כל פעולה בנפרד לכרטסת החבר.
       </div>
       <div style={{ overflowX: "auto", background: "#fff", borderRadius: 14, boxShadow: "0 2px 10px rgba(0,0,0,.07)", border: "1px solid #eef0f4" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: ".86rem", tableLayout: "fixed" }}>
-          <colgroup>
-            <col style={{ width: "15%" }} />
-            <col style={{ width: "8%" }} />
-            <col style={{ width: "12%" }} />
-            <col style={{ width: "12%" }} />
-            <col style={{ width: "19%" }} />
-            <col style={{ width: "18%" }} />
-            <col style={{ width: "16%" }} />
-          </colgroup>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: ".86rem", tableLayout: "auto" }}>
           <thead>
             <tr>
-              <th style={TH("15%")}>חבר</th>
-              <th style={TH("8%")}>סוג</th>
-              <th style={TH("12%")}>סכום</th>
-              <th style={TH("12%")}>תאריך פעולה</th>
-              <th style={TH("19%")}>נמחק בתאריך</th>
-              <th style={TH("18%")}>הערות</th>
-              <th style={TH("16%")}></th>
+              <th style={TH("130px")}>חבר</th>
+              <th style={TH("72px", { textAlign: "center" })}>סוג</th>
+              <th style={TH("110px", { textAlign: "left" })}>סכום</th>
+              <th style={TH("110px")}>תאריך פעולה</th>
+              <th style={TH("170px")}>נמחק בתאריך</th>
+              <th style={TH("100px")}>הערות</th>
+              <th style={TH("140px", { textAlign: "center" })}></th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row, i) => (
               <tr key={row.id} style={{ background: i % 2 === 0 ? "#fff" : "#fafbfc" }}>
-                <td style={{ ...TD, fontWeight: 600, color: "#1a1a2e" }}>{row.member_name || "—"}</td>
-                <td style={TD}>
-                  <span style={{ display: "inline-block", padding: "0.15rem 0.55rem", borderRadius: 999, fontSize: ".78rem", fontWeight: 700, background: row.type === "משיכה" ? "#fde8e8" : "#e8f5f0", color: row.type === "משיכה" ? RED : BRAND }}>
+                <td style={{ ...TD, fontWeight: 700, color: "#1a1a2e", whiteSpace: "nowrap" }}>{row.member_name || "—"}</td>
+                <td style={{ ...TD, textAlign: "center" }}>
+                  <span style={{ display: "inline-block", padding: "0.18rem 0.6rem", borderRadius: 999, fontSize: ".76rem", fontWeight: 700, whiteSpace: "nowrap", background: row.type === "משיכה" ? "#fde8e8" : "#e8f5f0", color: row.type === "משיכה" ? RED : BRAND }}>
                     {row.type || "—"}
                   </span>
                 </td>
-                <td style={{ ...TD, fontWeight: 700, color: row.type === "משיכה" ? RED : BRAND }}>
+                <td style={{ ...TD, fontWeight: 700, color: row.type === "משיכה" ? RED : BRAND, whiteSpace: "nowrap", textAlign: "left" }} dir="ltr">
                   {row.type === "משיכה" ? "−" : "+"}{ils(row.amount || 0)}
                 </td>
-                <td style={{ ...TD, color: "#4a5568" }} dir="ltr">
+                <td style={{ ...TD, color: "#4a5568", whiteSpace: "nowrap" }} dir="ltr">
                   {row.greg_date ? gdate(row.greg_date) : row.heb_date || "—"}
                 </td>
-                <td style={{ ...TD, color: "#7a8699", fontSize: ".8rem" }} dir="ltr">
+                <td style={{ ...TD, color: "#7a8699", fontSize: ".8rem", whiteSpace: "nowrap" }} dir="ltr">
                   {new Date(row.deleted_at).toLocaleString("he-IL")}
                 </td>
-                <td style={{ ...TD, color: "#9aa5b5", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {row.notes || "—"}
+                <td style={{ ...TD, color: "#9aa5b5", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {row.notes || <span style={{ color: "#d0d5dd" }}>—</span>}
                 </td>
-                <td style={{ ...TD }}>
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={() => restore(row)} disabled={restoring === row.id} style={{ flex: 1, padding: "0.3rem 0", background: BRAND, color: "#fff", border: "none", borderRadius: 7, fontWeight: 700, fontSize: ".78rem", cursor: restoring === row.id ? "default" : "pointer" }}>
+                <td style={{ ...TD, textAlign: "center" }}>
+                  <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
+                    <button onClick={() => restore(row)} disabled={restoring === row.id} style={{ padding: "0.28rem 0.8rem", background: BRAND, color: "#fff", border: "none", borderRadius: 7, fontWeight: 700, fontSize: ".78rem", cursor: restoring === row.id ? "default" : "pointer", whiteSpace: "nowrap" }}>
                       {restoring === row.id ? "…" : "שחזר"}
                     </button>
-                    <button onClick={() => permanentDelete(row)} disabled={restoring === row.id} style={{ flex: 1, padding: "0.3rem 0", background: "#fde8e8", color: RED, border: "none", borderRadius: 7, fontWeight: 700, fontSize: ".78rem", cursor: "pointer" }}>
+                    <button onClick={() => permanentDelete(row)} disabled={restoring === row.id} style={{ padding: "0.28rem 0.8rem", background: "#fde8e8", color: RED, border: "none", borderRadius: 7, fontWeight: 700, fontSize: ".78rem", cursor: "pointer", whiteSpace: "nowrap" }}>
                       מחק
                     </button>
                   </div>
