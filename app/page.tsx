@@ -10,6 +10,7 @@ import { Badge, Loading, SuccessPopup } from "@/components/ui";
 import type { FundSummary, Transaction, MemberBalance, Member, ChangeRequest, MemberRequest } from "@/types";
 import { useAuth } from "@/components/AuthGuard";
 import HebrewInfoBar from "@/components/HebrewInfoBar";
+import DatePicker from "@/components/DatePicker";
 import { Users, ArrowDownCircle, ArrowUpCircle, Wallet, UserPlus, CreditCard, BarChart3, Clock, Bell } from "lucide-react";
 
 type Recent = Transaction & { members: { name: string } | null };
@@ -590,8 +591,7 @@ export default function Dashboard() {
               )}
               <div>
                 <label style={lbl}>תאריך <Req /></label>
-                <input type="date" value={txnForm.greg_date} onChange={e => setTxnGregDate(e.target.value)}
-                  style={{ ...inp, borderColor: formErr.date ? RED : undefined }} />
+                <DatePicker value={txnForm.greg_date} onChange={setTxnGregDate} error={!!formErr.date} />
                 {formErr.date && <Err>{formErr.date}</Err>}
               </div>
               {txnForm.heb_date && (

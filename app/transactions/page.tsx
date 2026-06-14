@@ -5,6 +5,7 @@ import { Eye, Pencil, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { ils, gdate, toHebrewDate, TXN_TYPES, TXN_METHODS } from "@/lib/format";
 import { Card, PageTitle, Button, Badge, Loading, Empty, SuccessPopup } from "@/components/ui";
+import DatePicker from "@/components/DatePicker";
 import type { Transaction, Member, MemberBalance } from "@/types";
 
 type Row = Transaction & { members: { name: string } | null };
@@ -283,8 +284,7 @@ export default function TransactionsPage() {
               )}
               <div style={{ gridColumn: "1/-1" }}>
                 <label style={lbl}>תאריך <Req /></label>
-                <input type="date" value={form.greg_date} onChange={e => setGregDate(e.target.value)}
-                  style={{ ...inp, width: "100%", boxSizing: "border-box", borderColor: formErr.date ? "#e05252" : undefined }} />
+                <DatePicker value={form.greg_date} onChange={setGregDate} error={!!formErr.date} />
                 {form.heb_date && (
                   <div style={{ marginTop: 5, fontSize: ".82rem", color: "#1e6f5c", fontWeight: 600 }}>
                     תאריך עברי: {form.heb_date}
@@ -429,8 +429,7 @@ export default function TransactionsPage() {
               </div>
               <div>
                 <label style={lbl}>תאריך</label>
-                <input type="date" value={editForm.greg_date} onChange={e => setEditGregDate(e.target.value)}
-                  style={{ ...inp, width: "100%", boxSizing: "border-box" }} />
+                <DatePicker value={editForm.greg_date} onChange={setEditGregDate} />
                 {editForm.heb_date && <div style={{ fontSize: ".78rem", color: "#1e6f5c", marginTop: 4 }}>{editForm.heb_date}</div>}
               </div>
               <div style={{ gridColumn: "1/-1" }}>

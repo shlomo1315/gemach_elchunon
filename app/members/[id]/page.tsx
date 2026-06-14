@@ -8,6 +8,7 @@ import { supabase, fnErrMessage } from "@/lib/supabase";
 import { ils, gdate, toHebrewDate, TXN_TYPES, TXN_METHODS } from "@/lib/format";
 import { hebTextToGreg } from "@/lib/hebrewParse";
 import { Card, PageTitle, Button, Badge, Loading, Empty } from "@/components/ui";
+import DatePicker from "@/components/DatePicker";
 import type { MemberBalance, Transaction, Check } from "@/types";
 
 const BRAND = "#1e6f5c";
@@ -671,7 +672,7 @@ export default function MemberDetail() {
             </div>
             <div style={{ width: 150 }}>
               <label style={lbl}>תאריך פירעון (ראשון)</label>
-              <input type="date" value={chkMaster.due_date} onChange={e => setMasterDate(e.target.value)} style={inp} />
+              <DatePicker value={chkMaster.due_date} onChange={setMasterDate} />
             </div>
             <div style={{ width: 100 }}>
               <label style={lbl}>מספר שיקים</label>
@@ -719,7 +720,7 @@ export default function MemberDetail() {
                     <div style={{ fontSize: ".8rem", color: "#9aa5b5", fontWeight: 700 }}>{i + 1}</div>
                     <input type="number" value={d.amount} onChange={e => updateDraft(i, "amount", e.target.value)} style={{ ...inp, padding: "0.35rem 0.5rem" }} />
                     <div>
-                      <input type="date" value={d.due_date} onChange={e => updateDraft(i, "due_date", e.target.value)} style={{ ...inp, padding: "0.35rem 0.5rem" }} />
+                      <DatePicker value={d.due_date} onChange={v => updateDraft(i, "due_date", v)} />
                       {d.due_date && <div style={{ fontSize: ".68rem", color: BRAND, marginTop: 2 }}>{toHebrewDate(d.due_date)}</div>}
                     </div>
                     <input value={d.notes} onChange={e => updateDraft(i, "notes", e.target.value)} style={{ ...inp, padding: "0.35rem 0.5rem" }} placeholder="מס' שיק / בנק" />
@@ -830,7 +831,7 @@ export default function MemberDetail() {
               </div>
               <div>
                 <label style={lbl}>תאריך לועזי</label>
-                <input type="date" value={form.greg_date} onChange={e => setGreg(e.target.value)} style={inp} />
+                <DatePicker value={form.greg_date} onChange={setGreg} />
               </div>
               <div style={{ gridColumn: "1/-1" }}>
                 <label style={lbl}>תאריך עברי (טקסט)</label>
@@ -916,7 +917,7 @@ export default function MemberDetail() {
               )}
               <div>
                 <label style={lbl}>תאריך לועזי</label>
-                <input type="date" value={addForm.greg_date} onChange={e => setAddGreg(e.target.value)} style={inp} />
+                <DatePicker value={addForm.greg_date} onChange={setAddGreg} />
               </div>
               <div style={{ gridColumn: "1/-1" }}>
                 <label style={lbl}>תאריך עברי (מחושב אוטומטית)</label>

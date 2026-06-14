@@ -7,6 +7,7 @@ import { ils, gdate, toHebrewDate, TXN_TYPES, TXN_METHODS } from "@/lib/format";
 import { hebTextToGreg } from "@/lib/hebrewParse";
 import { Badge, Loading } from "@/components/ui";
 import HebrewInfoBar from "@/components/HebrewInfoBar";
+import DatePicker from "@/components/DatePicker";
 import type { MemberBalance, Transaction, ChangeRequest, MemberRequest } from "@/types";
 
 const REQ_TYPE_LABEL: Record<string, string> = { message: "פנייה / הודעה", loan: "בקשת הלוואה", deposit_refund: "בקשת החזר פיקדון" };
@@ -392,7 +393,7 @@ export default function MemberPortal({ memberId, logout }: { memberId: string; l
               </div>
               <div>
                 <label style={lblS}>תאריך לועזי</label>
-                <input type="date" value={propForm.greg_date} onChange={e => propGreg(e.target.value)} style={inp} />
+                <DatePicker value={propForm.greg_date} onChange={propGreg} />
               </div>
               <div style={{ gridColumn: "1/-1" }}>
                 <label style={lblS}>תאריך עברי (מחושב)</label>
@@ -445,7 +446,7 @@ export default function MemberPortal({ memberId, logout }: { memberId: string; l
               </div>
               <div>
                 <label style={lblS}>תאריך לועזי</label>
-                <input type="date" value={addForm.greg_date} onChange={e => addGreg(e.target.value)} style={inp} />
+                <DatePicker value={addForm.greg_date} onChange={addGreg} />
               </div>
               <div style={{ gridColumn: "1/-1" }}>
                 <label style={lblS}>תאריך עברי (מחושב)</label>
