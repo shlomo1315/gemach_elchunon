@@ -574,17 +574,31 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
                 </button>
               </div>
               <div>
-                <label style={{ ...lblS, color: "#c0392b" }}><strong>שלב 2:</strong> 📎 העלה שטר חוב חתום — חובה *</label>
-                <input
-                  type="file"
-                  accept="image/*,application/pdf"
-                  onChange={e => setLoanFile(e.target.files?.[0] || null)}
-                  style={{ ...inp, padding: "0.4rem", cursor: "pointer" }}
-                />
-                {loanFile && (
-                  <div style={{ fontSize: ".78rem", color: BRAND, marginTop: 4, fontWeight: 600 }}>✓ {loanFile.name}</div>
+                <label style={{ ...lblS, color: "#c0392b", marginBottom: 6 }}><strong>שלב 2:</strong> 📎 העלה שטר חוב חתום — חובה *</label>
+                {!loanFile ? (
+                  <label style={{
+                    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6,
+                    border: "2px dashed #c8d2dd", borderRadius: 12, padding: "1.4rem 1rem", cursor: "pointer",
+                    background: "#fafbfc", transition: "all .15s", textAlign: "center",
+                  }}>
+                    <input type="file" accept="image/*,application/pdf" onChange={e => setLoanFile(e.target.files?.[0] || null)} style={{ display: "none" }} />
+                    <div style={{ fontSize: "1.8rem", lineHeight: 1 }}>📤</div>
+                    <div style={{ fontSize: ".88rem", fontWeight: 700, color: BRAND }}>לחץ לבחירת קובץ</div>
+                    <div style={{ fontSize: ".75rem", color: "#9aa5b5" }}>צלם או סרוק את השטר החתום · תמונה או PDF</div>
+                  </label>
+                ) : (
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: 10,
+                    border: `1.5px solid ${BRAND}`, borderRadius: 12, padding: "0.7rem 0.9rem", background: "#f0faf6",
+                  }}>
+                    <div style={{ fontSize: "1.4rem", lineHeight: 1 }}>{/\.pdf$/i.test(loanFile.name) ? "📄" : "🖼️"}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: ".85rem", fontWeight: 700, color: "#1a1a2e", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{loanFile.name}</div>
+                      <div style={{ fontSize: ".72rem", color: BRAND }}>✓ הקובץ מוכן לשליחה</div>
+                    </div>
+                    <button onClick={() => setLoanFile(null)} style={{ background: "#fde8e8", border: "none", color: "#c0392b", borderRadius: 8, padding: "0.35rem 0.7rem", fontSize: ".78rem", fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>הסר</button>
+                  </div>
                 )}
-                <div style={{ fontSize: ".75rem", color: "#9aa5b5", marginTop: 3 }}>צלם או סרוק את השטר החתום והעלה אותו כאן</div>
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
