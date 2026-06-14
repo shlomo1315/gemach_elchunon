@@ -5,7 +5,7 @@ import { Eye, Pencil, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { ils, gdate, toHebrewDate, TXN_TYPES, TXN_METHODS } from "@/lib/format";
 import { Card, PageTitle, Button, Badge, Loading, Empty, SuccessPopup } from "@/components/ui";
-import type { Transaction, Member } from "@/types";
+import type { Transaction, Member, MemberBalance } from "@/types";
 
 type Row = Transaction & { members: { name: string } | null };
 
@@ -77,7 +77,7 @@ function MemberCombobox({ members, value, onChange }: {
 
 export default function TransactionsPage() {
   const [rows, setRows] = useState<Row[]>([]);
-  const [members, setMembers] = useState<Member[]>([]);
+  const [members, setMembers] = useState<MemberBalance[]>([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -93,16 +93,23 @@ export default function TransactionsPage() {
   const [methodF, setMethodF] = useState("");
 
   const [form, setForm] = useState({
-    memberName: "", amount: "", type: "הפקדה", method: "", greg_date: "", heb_date: "", notes: "",
+    memberName: "", amount: "", type: "הפקדה", method: "", greg_date: "", heb_date: "", notes: "", subtype: "",
   });
+
+  // החבר הנבחר (לפי שם) — לצורך זיהוי יתרת חיסכון בעת משיכה
+  const selectedMember = useMemo(
+    () => members.find(m => m.name === form.memberName.trim()) || null,
+    [members, form.memberName]
+  );
+  const selMemberSavings = selectedMember?.savings_balance ?? 0;
 
   async function load() {
     const [t, m] = await Promise.all([
       supabase.from("transactions").select("*, members(name)").order("created_at", { ascending: false }),
-      supabase.from("members").select("*").order("name"),
+      supabase.from("member_balances").select("*").order("name"),
     ]);
     setRows((t.data as Row[]) || []);
-    setMembers((m.data as Member[]) || []);
+    setMembers((m.data as MemberBalance[]) || []);
     setLoading(false);
   }
   useEffect(() => { load(); }, []);
@@ -117,7 +124,7 @@ export default function TransactionsPage() {
   const closeModal = useCallback(() => {
     setAdding(false);
     setFormErr({});
-    setForm({ memberName: "", amount: "", type: "הפקדה", method: "", greg_date: "", heb_date: "", notes: "" });
+    setForm({ memberName: "", amount: "", type: "הפקדה", method: "", greg_date: "", heb_date: "", notes: "", subtype: "" });
   }, []);
 
   function setGregDate(val: string) {
@@ -147,11 +154,16 @@ export default function TransactionsPage() {
     setFormErr(errs);
     if (Object.keys(errs).length > 0) return;
 
+    // סיווג: משיכה = הלוואה/החזר פיקדון (לפי בחירה), הפקדה = פיקדון
+    const savings = (member as MemberBalance)?.savings_balance ?? 0;
+    const effectiveSubtype = form.subtype || (savings > 0 ? "refund" : "loan");
+    const category = form.type === "משיכה" ? effectiveSubtype : "deposit";
+
     setSaving(true);
     const { error } = await supabase.from("transactions").insert({
       member_id: member!.id, amount: amt, type: form.type,
       method: form.method || null, greg_date: form.greg_date || null,
-      heb_date: form.heb_date || null, notes: form.notes || null,
+      heb_date: form.heb_date || null, notes: form.notes || null, category,
     });
     setSaving(false);
     if (error) { alert("שגיאה: " + error.message); return; }
@@ -159,7 +171,7 @@ export default function TransactionsPage() {
       title: "הפעולה נשמרה בהצלחה",
       lines: [
         ["חבר", member!.name],
-        ["סוג", form.type],
+        ["סוג", form.type === "משיכה" ? `משיכה · ${effectiveSubtype === "refund" ? "החזר פיקדון" : "הלוואה"}` : form.type],
         ["סכום", ils(amt)],
         ["אופן", form.method],
         ["תאריך", form.heb_date || gdate(form.greg_date)],
@@ -252,6 +264,23 @@ export default function TransactionsPage() {
                 </select>
                 {formErr.method && <Err>{formErr.method}</Err>}
               </div>
+              {form.type === "משיכה" && (
+                <div style={{ gridColumn: "1/-1" }}>
+                  <label style={lbl}>סיווג המשיכה <Req /></label>
+                  {selectedMember && selMemberSavings > 0 && (
+                    <div style={{ fontSize: ".78rem", background: "#f0faf6", border: "1px solid #c6e9d8", borderRadius: 7, padding: "0.35rem 0.6rem", marginBottom: 6, color: "#1e6f5c" }}>
+                      יתרת חיסכון לחבר: <strong>{ils(selMemberSavings)}</strong> — ברירת מחדל: משיכת פיקדון
+                    </div>
+                  )}
+                  <select
+                    value={form.subtype || (selMemberSavings > 0 ? "refund" : "loan")}
+                    onChange={e => setForm(f => ({ ...f, subtype: e.target.value }))}
+                    style={{ ...inp, width: "100%", boxSizing: "border-box" }}>
+                    <option value="refund">משיכת פיקדון (החזר חיסכון)</option>
+                    <option value="loan">הלוואה חדשה</option>
+                  </select>
+                </div>
+              )}
               <div style={{ gridColumn: "1/-1" }}>
                 <label style={lbl}>תאריך <Req /></label>
                 <input type="date" value={form.greg_date} onChange={e => setGregDate(e.target.value)}
