@@ -83,67 +83,84 @@ export default function MemberPortal({ memberId, logout }: { memberId: string; l
 
   function downloadLoanShtarChov() {
     const amount = Number(loanForm.amount) || 0;
-    const w = window.open("", "_blank", "width=820,height=1100");
+    const w = window.open("", "_blank", "width=820,height=1120");
     if (!w) { alert("לא ניתן לפתוח חלון — בדוק חסימת חלונות קופצים"); return; }
     const fmt = new Intl.NumberFormat("he-IL", { style: "currency", currency: "ILS", minimumFractionDigits: 0 });
-    w.document.write(`<!DOCTYPE html>
-<html dir="rtl" lang="he">
-<head><meta charset="UTF-8"><title>שטר חוב — ${member?.name || ""}</title>
-<style>
-  * { box-sizing: border-box; }
-  body { font-family: Arial, serif; font-size: 14px; line-height: 1.9; direction: rtl; padding: 28px 38px; color: #111; }
-  .center { text-align: center; }
-  .title { font-size: 21px; font-weight: bold; font-style: italic; }
-  .sub { font-size: 13px; }
-  .hr1 { border: none; border-top: 2.5px solid #1e6f5c; margin: 7px 0 3px; }
-  .hr2 { border: none; border-top: 1px solid #888; margin: 3px 0 12px; }
-  .f { display: inline-block; border-bottom: 1px solid #000; min-width: 120px; padding-bottom: 1px; vertical-align: bottom; }
-  .fl { min-width: 200px; }
-  .s { margin: 7px 0; }
-  .legal { font-size: 12.5px; text-align: justify; line-height: 1.7; margin: 8px 0; }
-  .gtitle { font-size: 12.5px; text-align: justify; margin: 14px 0 6px; }
-  @media print { .no-print { display: none; } }
-</style>
-</head>
-<body>
-<div class="center">
-  <div class="title">שטר חוב</div>
-  <div class="sub">גמ"ח חסדי אהרן</div>
-</div>
-<hr class="hr1"/><hr class="hr2"/>
-<p class="s">אני הח"מ <span class="f fl">${member?.name || ""}</span>
-ת.ז. <span class="f" style="min-width:130px"></span>
-מרחוב <span class="f fl">${member?.address || ""}</span>
-טל: <span class="f">${member?.phone || ""}</span></p>
-<p class="s">מתחייב/ת לשלם לגמ"ח חסדי אהרן את הסך של:
-<strong><span class="f fl">${amount ? fmt.format(amount) : "_________"}</span></strong>
-(בספרות: <span class="f fl">${amount ? String(amount) : "_____"}</span> ₪)
-עד לתאריך: <span class="f"></span></p>
-<p class="gtitle"><strong>ערבות:</strong></p>
-<p class="s">אני הח"מ <span class="f fl"></span>
-ת.ז. <span class="f" style="min-width:130px"></span>
-מרחוב <span class="f fl"></span>
-טל: <span class="f"></span>
-מתחייב/ת לשלם במקום הלווה במקרה שלא יפרע.</p>
-<p class="legal">
-הנני מסכים/ה לתנאי שטר חוב זה ומאשר/ת קבלת ההלוואה בסכום הנ"ל.
-הלווה מתחייב לפרוע את החוב במועד שנקבע ולעמוד בכל תנאי ההלוואה שנקבעו עמו/ה בעל-פה.
-</p>
-<br/><br/>
-<div style="display:flex;justify-content:space-between;margin-top:20px">
-  <div>חתימת הלווה: <span class="f" style="min-width:170px"></span></div>
-  <div>חתימת הערב: <span class="f" style="min-width:170px"></span></div>
-</div>
-<div style="margin-top:30px;display:flex;justify-content:space-between">
-  <div>חתימת נציג הגמ"ח: <span class="f" style="min-width:150px"></span></div>
-  <div>תאריך: <span class="f" style="min-width:130px"></span></div>
-</div>
-<br/>
-<div class="no-print" style="text-align:center;margin-top:24px">
-  <button onclick="window.print()" style="padding:10px 28px;background:#1e6f5c;color:#fff;border:none;border-radius:8px;font-size:15px;cursor:pointer;font-family:Arial">🖨️ הדפס שטר חוב</button>
-</div>
-</body></html>`);
+    const today = new Date().toLocaleDateString("he-IL");
+    w.document.write(buildShtarChov(
+      member?.name || "", member?.address || "", member?.phone || "",
+      amount ? fmt.format(amount) : "", today
+    ));
     w.document.close();
+  }
+
+  function buildShtarChov(name: string, address: string, phone: string, amount: string, date: string) {
+    return `<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head><meta charset="UTF-8"><title>שטר חוב — ${name}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px;color:#000;line-height:1.75}
+.wrap{border:1.5px solid #555;padding:16px 22px 22px}
+.hdr{text-align:center;margin-bottom:5px}
+.ttl{font-size:19px;font-weight:bold}
+.sub{font-size:12px;margin-top:1px}
+.hr1{border:none;border-top:2.5px solid #2a5fa8;margin:5px 0 2px}
+.hr2{border:none;border-top:1px solid #2a5fa8;margin:1px 0 10px}
+.bsd{text-align:right;font-size:12px;margin-bottom:2px}
+.r{margin:5px 0}
+.f{display:inline-block;border-bottom:1px solid #000;vertical-align:bottom;padding-bottom:1px}
+.sm{min-width:65px}.md{min-width:125px}.lg{min-width:185px}.xl{min-width:240px}.lg2{min-width:200px}
+.jus{font-size:12px;text-align:justify;line-height:1.6;margin:6px 0}
+.sep{border:none;border-top:1px solid #aaa;margin:10px 0}
+.np{display:block;text-align:center;margin-top:18px}
+@media print{.np{display:none!important}body{padding:12px 20px}}
+</style></head>
+<body>
+<div class="wrap">
+<div class="bsd">בס&quot;ד</div>
+<div class="hdr">
+  <div class="ttl">גמ&quot;ח &#x27;זכרון אהרן&#x27;</div>
+  <div class="sub">ע&quot;ש הנה&quot;ח ר&#x27; אהרן אייזנבלט זצ&quot;ל</div>
+  <div class="sub">קהילת באיאן מודיעין עילית</div>
+</div>
+<hr class="hr1"><hr class="hr2">
+<div class="r">תאריך <span class="f lg2">${date}</span></div>
+<div class="r">אני הח&quot;מ, שם: <span class="f lg">${name}</span> &nbsp; כתובת: <span class="f lg">${address}</span></div>
+<div class="r">טלפון: <span class="f md">${phone}</span> &nbsp; נייד: <span class="f md"></span></div>
+<div class="r" style="margin:9px 0">מאשר בזה כי קיבלתי הלוואה מגמ&quot;ח &#x27;זכרון אהרן&#x27; בהנהלת אלחנן אייזנבלט</div>
+<div class="r">סך: <span class="f md">${amount}</span> &nbsp; במילים: <span class="f xl"></span></div>
+<div class="r">ומתחייב אני להחזירו בל&quot;נ עד: <span class="f lg2"></span></div>
+<div class="r">○ בתשלומים חודשיים בסך <span class="f sm"></span> &nbsp;&nbsp;&nbsp; ○ בתשלום אחד</div>
+<div class="r">ומסרתי עבורן שיקים לפרעון החוב.</div>
+<div class="jus" style="margin-top:9px">
+  והנני מתחייב בזה, על כל תשלום בנפרד, שבכל בעיה שבגינה לא יכובד, גם אם אינני באשמתי,
+  עלי לדאוג להעביר למלוא את סכום התשלום בתוספת עמלת הבנק (עמלה זו היא
+  רק אם ההחזרה היתה באשמתי) תוך עשרה ימים מיום חזרתו, גם אם לא נדרשתי לכך מהמלוה.
+  ואם לא אעמוד בזה, עלי להחזיר מיידית את כל סכום יתרת ההלוואה – אני או הערבים.
+</div>
+<div class="jus">וכן אני מתחייב שבכל ד&quot;ד שיתעורר, המכריע היחיד יהיה רב השכונה הרב ליוש שליט&quot;א.</div>
+<div class="jus">כל פעולות הגמ&quot;ח הם ע&quot;פ היתר עיסקא ברית פנחס.</div>
+<div class="r" style="margin-top:11px">ו&quot;ז באתי עה&quot;ח: <span class="f" style="min-width:220px"></span></div>
+<hr class="sep">
+<div class="jus">
+  אני הח&quot;מ נעשיתי ערב קבלן [כל אחד מאיתנו בנפרד], על הלוואה הנ&quot;ל, שאמרתי:
+  תן לו ואני קבלן. והנני מתחייב על כל ההלוואה, ועל כל תשלום בנפרד, לשלמו מיד לכשידרוש
+  ממני המלוה כל התנאים דלעיל, האמורים לגבי הלוה.
+</div>
+<div style="margin-top:10px">
+  <div class="r">שם <span class="f lg"></span> &nbsp; כתובת: <span class="f lg"></span></div>
+  <div class="r">טלפון: 05<span class="f sm"></span>-<span class="f sm"></span> &nbsp;&nbsp; נייד: 0<span class="f sm"></span>-<span class="f md"></span></div>
+  <div class="r">חתימה: <span class="f" style="min-width:185px"></span></div>
+</div>
+<div style="margin-top:10px">
+  <div class="r">שם <span class="f lg"></span> &nbsp; כתובת: <span class="f lg"></span></div>
+  <div class="r">טלפון: 0<span class="f sm"></span>-<span class="f md"></span> &nbsp;&nbsp; נייד: 0<span class="f sm"></span>-<span class="f md"></span></div>
+  <div class="r">חתימה: <span class="f" style="min-width:185px"></span></div>
+</div>
+</div>
+<div class="np"><button onclick="window.print()" style="padding:9px 26px;background:#1e6f5c;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-family:Arial">🖨️ הדפסה / שמירה כ-PDF</button></div>
+</body></html>`;
   }
 
   async function submitLoanRequest() {
