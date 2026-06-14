@@ -25,6 +25,7 @@ export default function MemberDetail() {
   const { id } = useParams<{ id: string }>();
   const [member, setMember] = useState<MemberBalance | null>(null);
   const [txns, setTxns] = useState<Transaction[]>([]);
+  const [allMembers, setAllMembers] = useState<{ id: string; name: string; code: string | null }[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [form, setForm] = useState({ amount: "", type: "הפקדה", method: "", greg_date: "", heb_date: "", notes: "" });
@@ -92,6 +93,12 @@ export default function MemberDetail() {
     setLoginPass("");
     load();
   }
+
+  useEffect(() => {
+    supabase.from("members").select("id, name, code").order("name").then(({ data }) => {
+      if (data) setAllMembers(data as { id: string; name: string; code: string | null }[]);
+    });
+  }, []);
 
   async function load() {
     const [m, t, c] = await Promise.all([
@@ -252,12 +259,12 @@ export default function MemberDetail() {
 
   // הוספת פעולה חדשה לחבר הנוכחי
   const [addTxn, setAddTxn] = useState(false);
-  const [addForm, setAddForm] = useState({ amount: "", type: "הפקדה", method: "", greg_date: "", heb_date: "", notes: "", repay: "", subtype: "" });
+  const [addForm, setAddForm] = useState({ amount: "", type: "הפקדה", method: "", greg_date: "", heb_date: "", notes: "", repay: "", subtype: "", thirdPartyName: "", thirdPartyMemberId: "", thirdPartyLinkType: "" });
   const [savingAdd, setSavingAdd] = useState(false);
 
   function openAdd() {
     const defSubtype = (member?.savings_balance ?? 0) > 0 ? "refund" : "loan";
-    setAddForm({ amount: "", type: "הפקדה", method: "", greg_date: "", heb_date: "", notes: "", repay: "", subtype: defSubtype });
+    setAddForm({ amount: "", type: "הפקדה", method: "", greg_date: "", heb_date: "", notes: "", repay: "", subtype: defSubtype, thirdPartyName: "", thirdPartyMemberId: "", thirdPartyLinkType: "" });
     setAddTxn(true);
   }
   function setAddGreg(val: string) { setAddForm(f => ({ ...f, greg_date: val, heb_date: toHebrewDate(val) })); }
@@ -269,13 +276,32 @@ export default function MemberDetail() {
     setSavingAdd(true);
     const effectiveSubtype = addForm.subtype || ((member.savings_balance ?? 0) > 0 ? "refund" : "loan");
     const category = addForm.type === "משיכה" ? effectiveSubtype : "deposit";
+    const mainNotes = addForm.method === "העברה לצד ג" && addForm.thirdPartyName
+      ? [addForm.notes, `צד ג': ${addForm.thirdPartyName}`].filter(Boolean).join(" · ")
+      : addForm.notes || null;
     const { data: txn, error } = await supabase.from("transactions").insert({
       member_id: member.id, amount: Number(addForm.amount), type: addForm.type,
       method: addForm.method || null, greg_date: addForm.greg_date || null,
-      heb_date: addForm.heb_date || null, notes: addForm.notes || null, category,
+      heb_date: addForm.heb_date || null, notes: mainNotes, category,
     }).select("id").single();
+    if (error) { setSavingAdd(false); alert("שגיאה: " + error.message); return; }
+    // פעולה מקושרת לחבר אחר בגמ"ח (העברה לצד ג)
+    if (addForm.method === "העברה לצד ג" && addForm.thirdPartyMemberId && addForm.thirdPartyLinkType) {
+      const linkedType = addForm.thirdPartyLinkType === "loan" ? "משיכה" : "הפקדה";
+      const linkedCategory = addForm.thirdPartyLinkType === "loan" ? "loan" : "repayment";
+      const linkedNotes = `העברה מ${member.name}${addForm.thirdPartyName ? ` (${addForm.thirdPartyName})` : ""}`;
+      await supabase.from("transactions").insert({
+        member_id: addForm.thirdPartyMemberId,
+        amount: Number(addForm.amount),
+        type: linkedType,
+        method: "העברה בנקאית",
+        greg_date: addForm.greg_date || null,
+        heb_date: addForm.heb_date || null,
+        notes: linkedNotes,
+        category: linkedCategory,
+      });
+    }
     setSavingAdd(false);
-    if (error) { alert("שגיאה: " + error.message); return; }
     setAddTxn(false);
     // אם זו הלוואה שתוחזר בשיקים — פתיחת עורך השיקים משויך להלוואה זו
     const goChecks = addForm.type === "משיכה" && addForm.repay === "שיקים" && effectiveSubtype === "loan";
@@ -888,11 +914,59 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
               </div>
               <div>
                 <label style={lbl}>אופן</label>
-                <select value={addForm.method} onChange={e => setAddForm(f => ({ ...f, method: e.target.value }))} style={inp}>
+                <select value={addForm.method} onChange={e => setAddForm(f => ({ ...f, method: e.target.value, thirdPartyName: "", thirdPartyMemberId: "", thirdPartyLinkType: "" }))} style={inp}>
                   <option value="">—</option>
                   {TXN_METHODS.map(t => <option key={t}>{t}</option>)}
                 </select>
               </div>
+              {addForm.method === "העברה לצד ג" && (
+                <div style={{ gridColumn: "1/-1", background: "#f8f9ff", border: "1.5px solid #d0d8f0", borderRadius: 12, padding: "1rem", display: "flex", flexDirection: "column", gap: "0.85rem" }}>
+                  <div style={{ fontSize: ".82rem", fontWeight: 700, color: "#3a4a8c", marginBottom: -4 }}>🔀 פרטי העברה לצד ג׳</div>
+                  <div>
+                    <label style={lbl}>שם / מטרה (אופציונלי)</label>
+                    <input
+                      value={addForm.thirdPartyName}
+                      onChange={e => setAddForm(f => ({ ...f, thirdPartyName: e.target.value }))}
+                      style={inp} placeholder="לדוג׳: סמי כהן, שכ״ד, קנייה..."
+                    />
+                  </div>
+                  <div>
+                    <label style={lbl}>שיוך לחבר בגמ״ח (אופציונלי)</label>
+                    <select
+                      value={addForm.thirdPartyMemberId}
+                      onChange={e => setAddForm(f => ({ ...f, thirdPartyMemberId: e.target.value, thirdPartyLinkType: "" }))}
+                      style={inp}>
+                      <option value="">— ללא שיוך לחבר —</option>
+                      {allMembers.filter(m => m.id !== member.id).map(m => (
+                        <option key={m.id} value={m.id}>{m.name}{m.code ? ` (${m.code})` : ""}</option>
+                      ))}
+                    </select>
+                  </div>
+                  {addForm.thirdPartyMemberId && (
+                    <div>
+                      <label style={lbl}>סוג שיוך לחבר</label>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        {[{ val: "loan", label: "💸 הלוואה לחבר" }, { val: "repayment", label: "✅ החזר מחבר" }].map(opt => (
+                          <button
+                            key={opt.val}
+                            type="button"
+                            onClick={() => setAddForm(f => ({ ...f, thirdPartyLinkType: opt.val }))}
+                            style={{ flex: 1, padding: "0.45rem 0.5rem", border: `2px solid ${addForm.thirdPartyLinkType === opt.val ? BRAND : "#d0d8f0"}`, borderRadius: 8, background: addForm.thirdPartyLinkType === opt.val ? BRAND : "#fff", color: addForm.thirdPartyLinkType === opt.val ? "#fff" : "#4a5568", fontWeight: 700, fontSize: ".82rem", cursor: "pointer" }}>
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                      {addForm.thirdPartyLinkType && (
+                        <div style={{ fontSize: ".78rem", color: "#7a8699", marginTop: 5 }}>
+                          {addForm.thirdPartyLinkType === "loan"
+                            ? `תיווצר משיכה (הלוואה) בכרטסת ${allMembers.find(m => m.id === addForm.thirdPartyMemberId)?.name}`
+                            : `תיווצר הפקדה (החזר) בכרטסת ${allMembers.find(m => m.id === addForm.thirdPartyMemberId)?.name}`}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
               {addForm.type === "משיכה" && (
                 <>
                   {(member.savings_balance ?? 0) > 0 ? (
