@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { ils, gdate } from "@/lib/format";
+import { ils, gdate, toHebrewDate } from "@/lib/format";
 import { PageTitle, Loading, Empty, Badge } from "@/components/ui";
 import type { ChangeRequest, MemberRequest } from "@/types";
 
@@ -18,7 +18,7 @@ function fieldLabel(k: string) {
 }
 
 export default function RequestsPage() {
-  const [tab, setTab] = useState<"changes" | "requests">("changes");
+  const [tab, setTab] = useState<"changes" | "loans" | "requests">("changes");
   const [changes, setChanges] = useState<ChangeRequest[]>([]);
   const [requests, setRequests] = useState<MemberRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,6 +67,44 @@ export default function RequestsPage() {
     load();
   }
 
+  async function approveLoan(r: MemberRequest) {
+    const amountStr = prompt(`סכום אישור ההלוואה (ברירת מחדל: ${r.amount || 0} ₪):`, String(r.amount || 0));
+    if (amountStr === null) return;
+    const amount = Number(amountStr);
+    if (!amount || amount <= 0) { alert("סכום לא תקין"); return; }
+    setBusy(r.id);
+    const today = new Date().toISOString().split("T")[0];
+    const { error } = await supabase.from("transactions").insert({
+      member_id: r.member_id,
+      amount,
+      type: "משיכה",
+      category: "loan",
+      greg_date: today,
+      heb_date: toHebrewDate(today),
+      notes: `הלוואה מאושרת${r.body ? ` — ${r.body}` : ""}`,
+    });
+    if (error) { setBusy(null); alert("שגיאה ביצירת הפעולה: " + error.message); return; }
+    await supabase.from("member_requests").update({
+      status: "done",
+      admin_note: `ההלוואה אושרה בסכום ${ils(amount)}.`,
+      resolved_at: new Date().toISOString(),
+    }).eq("id", r.id);
+    setBusy(null);
+    load();
+  }
+
+  async function rejectLoan(r: MemberRequest) {
+    const note = prompt("סיבת הדחייה (תשובה תוצג לחבר):", "") ?? "";
+    setBusy(r.id);
+    await supabase.from("member_requests").update({
+      status: "rejected",
+      admin_note: note || null,
+      resolved_at: new Date().toISOString(),
+    }).eq("id", r.id);
+    setBusy(null);
+    load();
+  }
+
   async function setReqStatus(r: MemberRequest, status: string) {
     setBusy(r.id);
     const note = status === "rejected"
@@ -91,15 +129,19 @@ export default function RequestsPage() {
   if (loading) return <Loading />;
 
   const pendingChanges = changes.filter(c => c.status === "pending").length;
-  const openReqs = requests.filter(r => r.status === "open").length;
+  const openLoans = requests.filter(r => r.type === "loan" && r.status === "open").length;
+  const openOtherReqs = requests.filter(r => r.type !== "loan" && r.status === "open").length;
+  const loanRequests = requests.filter(r => r.type === "loan");
+  const otherRequests = requests.filter(r => r.type !== "loan");
 
   return (
     <div>
       <PageTitle>בקשות חברים</PageTitle>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 18 }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 18, flexWrap: "wrap" }}>
         <TabBtn active={tab === "changes"} onClick={() => setTab("changes")} label={`תיקוני פעולות${pendingChanges ? ` (${pendingChanges})` : ""}`} />
-        <TabBtn active={tab === "requests"} onClick={() => setTab("requests")} label={`פניות ובקשות${openReqs ? ` (${openReqs})` : ""}`} />
+        <TabBtn active={tab === "loans"} onClick={() => setTab("loans")} label={`💳 בקשות הלוואה${openLoans ? ` (${openLoans})` : ""}`} />
+        <TabBtn active={tab === "requests"} onClick={() => setTab("requests")} label={`פניות ובקשות${openOtherReqs ? ` (${openOtherReqs})` : ""}`} />
       </div>
 
       {tab === "changes" && (
@@ -136,10 +178,40 @@ export default function RequestsPage() {
         )
       )}
 
-      {tab === "requests" && (
-        requests.length === 0 ? <Empty text="אין פניות" /> : (
+      {tab === "loans" && (
+        loanRequests.length === 0 ? <Empty text="אין בקשות הלוואה" /> : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {requests.map(r => (
+            {loanRequests.map(r => (
+              <div key={r.id} style={cardStyle(r.status)}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+                  <div style={{ fontWeight: 800, color: "#1a1a2e", fontSize: "1rem" }}>
+                    💳 {r.members?.name || "—"}{r.amount ? ` · ${ils(r.amount)}` : ""}
+                  </div>
+                  <span style={{ ...pill, background: STATUS_COLOR[r.status] }}>{REQ_STATUS_LABEL[r.status]}</span>
+                </div>
+                {r.body && <div style={{ fontSize: ".88rem", color: "#4a5568", marginTop: 6, whiteSpace: "pre-wrap" }}>מטרה: {r.body}</div>}
+                {r.admin_note && (
+                  <div style={{ marginTop: 8, background: r.status === "done" ? "#eef6f3" : "#fde8e8", borderInlineStart: `3px solid ${r.status === "done" ? BRAND : RED}`, borderRadius: 8, padding: "0.5rem 0.75rem", fontSize: ".85rem", color: "#1a1a2e" }}>
+                    {r.admin_note}
+                  </div>
+                )}
+                <div style={{ fontSize: ".72rem", color: "#b0bac7", marginTop: 6 }}>{new Date(r.created_at).toLocaleString("he-IL")}</div>
+                {r.status === "open" && (
+                  <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                    <button onClick={() => approveLoan(r)} disabled={busy === r.id} style={btn(BRAND)}>✓ אשר ויצור משיכה</button>
+                    <button onClick={() => rejectLoan(r)} disabled={busy === r.id} style={btn("#fde8e8", RED)}>דחה</button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )
+      )}
+
+      {tab === "requests" && (
+        otherRequests.length === 0 ? <Empty text="אין פניות" /> : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {otherRequests.map(r => (
               <div key={r.id} style={cardStyle(r.status)}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
                   <div style={{ fontWeight: 800, color: "#1a1a2e" }}>
