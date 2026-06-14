@@ -270,29 +270,30 @@ export default function TransactionsPage() {
               </div>
               {form.type === "משיכה" && (
                 <div style={{ gridColumn: "1/-1" }}>
-                  <label style={lbl}>סיווג המשיכה <Req /></label>
-                  {selectedMember && selMemberSavings > 0 && (
-                    <div style={{ fontSize: ".78rem", background: "#f0faf6", border: "1px solid #c6e9d8", borderRadius: 7, padding: "0.35rem 0.6rem", marginBottom: 6, color: "#1e6f5c" }}>
-                      יתרת חיסכון לחבר: <strong>{ils(selMemberSavings)}</strong> — ברירת מחדל: משיכת פיקדון
+                  {selectedMember && selMemberSavings > 0 ? (
+                    <>
+                      <label style={lbl}>סיווג המשיכה <Req /></label>
+                      <div style={{ fontSize: ".78rem", background: "#f0faf6", border: "1px solid #c6e9d8", borderRadius: 7, padding: "0.35rem 0.6rem", marginBottom: 6, color: "#1e6f5c" }}>
+                        יתרת פיקדון לחבר: <strong>{ils(selMemberSavings)}</strong> — בחר האם משיכת פיקדון או הלוואה:
+                      </div>
+                      <select
+                        value={form.subtype || "refund"}
+                        onChange={e => setForm(f => ({ ...f, subtype: e.target.value }))}
+                        style={{ ...inp, width: "100%", boxSizing: "border-box" }}>
+                        <option value="refund">משיכת פיקדון (החזר חיסכון)</option>
+                        <option value="loan">הלוואה חדשה</option>
+                      </select>
+                    </>
+                  ) : (
+                    <div style={{ fontSize: ".78rem", background: "#fef9e7", border: "1px solid #f0d060", borderRadius: 7, padding: "0.4rem 0.7rem", color: "#7a6010" }}>
+                      {selectedMember ? "אין יתרת פיקדון — הסיווג אוטומטי: הלוואה" : "בחר חבר כדי לקבוע סיווג"}
                     </div>
                   )}
-                  <select
-                    value={form.subtype || (selMemberSavings > 0 ? "refund" : "loan")}
-                    onChange={e => setForm(f => ({ ...f, subtype: e.target.value }))}
-                    style={{ ...inp, width: "100%", boxSizing: "border-box" }}>
-                    <option value="refund">משיכת פיקדון (החזר חיסכון)</option>
-                    <option value="loan">הלוואה חדשה</option>
-                  </select>
                 </div>
               )}
               <div style={{ gridColumn: "1/-1" }}>
                 <label style={lbl}>תאריך <Req /></label>
                 <DatePicker value={form.greg_date} onChange={setGregDate} error={!!formErr.date} />
-                {form.heb_date && (
-                  <div style={{ marginTop: 5, fontSize: ".82rem", color: "#1e6f5c", fontWeight: 600 }}>
-                    תאריך עברי: {form.heb_date}
-                  </div>
-                )}
                 {formErr.date && <Err>{formErr.date}</Err>}
               </div>
               <div style={{ gridColumn: "1/-1" }}>
@@ -433,7 +434,6 @@ export default function TransactionsPage() {
               <div>
                 <label style={lbl}>תאריך</label>
                 <DatePicker value={editForm.greg_date} onChange={setEditGregDate} />
-                {editForm.heb_date && <div style={{ fontSize: ".78rem", color: "#1e6f5c", marginTop: 4 }}>{editForm.heb_date}</div>}
               </div>
               <div style={{ gridColumn: "1/-1" }}>
                 <label style={lbl}>הערות</label>

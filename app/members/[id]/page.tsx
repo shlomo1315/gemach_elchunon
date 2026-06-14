@@ -846,15 +846,8 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
                 </select>
               </div>
               <div>
-                <label style={lbl}>תאריך לועזי</label>
+                <label style={lbl}>בחר תאריך</label>
                 <DatePicker value={form.greg_date} onChange={setGreg} />
-              </div>
-              <div style={{ gridColumn: "1/-1" }}>
-                <label style={lbl}>תאריך עברי (טקסט)</label>
-                <input value={form.heb_date} onChange={e => setHeb(e.target.value)} style={inp} placeholder="כו ניסן פו" dir="rtl" />
-                {form.heb_date && hebTextToGreg(form.heb_date) && (
-                  <div style={{ fontSize: ".78rem", color: BRAND, marginTop: 4 }}>לועזי מחושב: {gdate(hebTextToGreg(form.heb_date)!)}</div>
-                )}
               </div>
               <div style={{ gridColumn: "1/-1" }}>
                 <label style={lbl}>הערות</label>
@@ -902,21 +895,27 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
               </div>
               {addForm.type === "משיכה" && (
                 <>
-                  <div style={{ gridColumn: "1/-1" }}>
-                    <label style={lbl}>סיווג המשיכה</label>
-                    {(member.savings_balance ?? 0) > 0 && (
+                  {(member.savings_balance ?? 0) > 0 ? (
+                    <div style={{ gridColumn: "1/-1" }}>
+                      <label style={lbl}>סיווג המשיכה</label>
                       <div style={{ fontSize: ".78rem", background: "#f0faf6", border: "1px solid #c6e9d8", borderRadius: 7, padding: "0.35rem 0.6rem", marginBottom: 6, color: BRAND }}>
-                        יתרת חיסכון לחבר זה: <strong>{ils(member.savings_balance)}</strong> — זוהי משיכת פיקדון כברירת מחדל
+                        יתרת פיקדון לחבר זה: <strong>{ils(member.savings_balance)}</strong> — בחר האם משיכת פיקדון או הלוואה:
                       </div>
-                    )}
-                    <select
-                      value={addForm.subtype || ((member.savings_balance ?? 0) > 0 ? "refund" : "loan")}
-                      onChange={e => setAddForm(f => ({ ...f, subtype: e.target.value, repay: e.target.value === "refund" ? "" : f.repay }))}
-                      style={inp}>
-                      <option value="refund">משיכת פיקדון (החזר חיסכון)</option>
-                      <option value="loan">הלוואה</option>
-                    </select>
-                  </div>
+                      <select
+                        value={addForm.subtype || "refund"}
+                        onChange={e => setAddForm(f => ({ ...f, subtype: e.target.value, repay: e.target.value === "refund" ? "" : f.repay }))}
+                        style={inp}>
+                        <option value="refund">משיכת פיקדון (החזר חיסכון)</option>
+                        <option value="loan">הלוואה חדשה</option>
+                      </select>
+                    </div>
+                  ) : (
+                    <div style={{ gridColumn: "1/-1" }}>
+                      <div style={{ fontSize: ".78rem", background: "#fef9e7", border: "1px solid #f0d060", borderRadius: 7, padding: "0.4rem 0.7rem", color: "#7a6010" }}>
+                        אין יתרת פיקדון — הסיווג אוטומטי: <strong>הלוואה</strong>
+                      </div>
+                    </div>
+                  )}
                   {(addForm.subtype === "loan" || (!addForm.subtype && (member.savings_balance ?? 0) <= 0)) && (
                     <div>
                       <label style={lbl}>אופן החזר ההלוואה</label>
@@ -932,14 +931,8 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
                 </>
               )}
               <div>
-                <label style={lbl}>תאריך לועזי</label>
+                <label style={lbl}>בחר תאריך</label>
                 <DatePicker value={addForm.greg_date} onChange={setAddGreg} />
-              </div>
-              <div style={{ gridColumn: "1/-1" }}>
-                <label style={lbl}>תאריך עברי (מחושב אוטומטית)</label>
-                <div style={{ ...inp, background: "#f4faf8", color: addForm.heb_date ? "#1a1a2e" : "#9aa5b5", display: "flex", alignItems: "center", minHeight: 38 }}>
-                  {addForm.heb_date || "יתמלא אוטומטית לפי התאריך הלועזי"}
-                </div>
               </div>
               <div style={{ gridColumn: "1/-1" }}>
                 <label style={lbl}>הערות</label>
