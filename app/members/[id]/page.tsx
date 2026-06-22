@@ -14,6 +14,11 @@ import { archiveTransactions } from "@/lib/archive";
 
 const BRAND = "#1e6f5c";
 
+// מניעת הזרקת HTML/סקריפט בעת בניית שטר החוב (החתימה נכתבת ל-document.write)
+function esc(s: string): string {
+  return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#x27;" }[c]!));
+}
+
 // תאריך לועזי: מהשדה השמור, ואם אין — חישוב אוטומטי מהתאריך העברי הטקסטואלי
 function gregOf(t: Transaction): string {
   if (t.greg_date) return gdate(t.greg_date);
@@ -406,7 +411,8 @@ export default function MemberDetail() {
     load();
   }
 
-  function buildShtarChov(name: string, address: string, phone: string, amount: string, date: string) {
+  function buildShtarChov(rawName: string, rawAddress: string, rawPhone: string, rawAmount: string, rawDate: string) {
+    const name = esc(rawName), address = esc(rawAddress), phone = esc(rawPhone), amount = esc(rawAmount), date = esc(rawDate);
     return `<!DOCTYPE html>
 <html dir="rtl" lang="he">
 <head><meta charset="UTF-8"><title>שטר חוב — ${name}</title>

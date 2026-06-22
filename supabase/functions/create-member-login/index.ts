@@ -28,11 +28,11 @@ Deno.serve(async (req) => {
     }
 
     // לקוח מנהל (service role) — עוקף RLS, לכן חובה לאמת הרשאה ידנית.
-    // מנהל מזוהה בדיוק כמו באפליקציה (AuthGuard): משתמש מחובר שהמייל שלו
-    // אינו רשום בטבלת members. כך אין תלות בטבלת admins נפרדת.
+    // מנהל מזוהה לפי רשימת ההיתר admins (ולא "כל מי שאינו חבר"), כדי
+    // שמשתמש שנרשם עם מייל שרירותי לא יוכל ליצור התחברויות.
     const admin = createClient(url, serviceKey);
-    const { data: callerMember } = await admin.from("members").select("id").ilike("email", callerEmail).maybeSingle();
-    if (callerMember) {
+    const { data: callerAdmin } = await admin.from("admins").select("email").ilike("email", callerEmail).maybeSingle();
+    if (!callerAdmin) {
       return new Response(JSON.stringify({ error: "אין הרשאה — רק מנהל יכול ליצור התחברות" }), { status: 403, headers: { ...cors, "Content-Type": "application/json" } });
     }
 

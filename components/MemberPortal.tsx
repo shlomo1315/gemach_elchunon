@@ -20,6 +20,11 @@ const RED = "#e05252";
 
 const inp: React.CSSProperties = { padding: "0.55rem 0.8rem", border: "1.5px solid #d8dde5", borderRadius: 10, fontSize: ".9rem", width: "100%", boxSizing: "border-box", outline: "none" };
 
+// מניעת הזרקת HTML/סקריפט בעת בניית שטר החוב (החתימה נכתבת ל-document.write)
+function esc(s: string): string {
+  return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#x27;" }[c]!));
+}
+
 function gregOf(t: Transaction): string {
   if (t.greg_date) return gdate(t.greg_date);
   const iso = hebTextToGreg(t.heb_date);
@@ -95,7 +100,8 @@ export default function MemberPortal({ memberId, logout }: { memberId: string; l
     w.document.close();
   }
 
-  function buildShtarChov(name: string, address: string, phone: string, amount: string, date: string) {
+  function buildShtarChov(rawName: string, rawAddress: string, rawPhone: string, rawAmount: string, rawDate: string) {
+    const name = esc(rawName), address = esc(rawAddress), phone = esc(rawPhone), amount = esc(rawAmount), date = esc(rawDate);
     return `<!DOCTYPE html>
 <html dir="rtl" lang="he">
 <head><meta charset="UTF-8"><title>שטר חוב — ${name}</title>
