@@ -40,8 +40,19 @@ npm run dev
 
 ---
 
-## אבטחה ⚠️
-המערכת משתמשת במפתח `anon` עם גישה מלאה (מתאים לכלי פנימי). **לפני חשיפה ציבורית** מומלץ להוסיף הזדהות (Supabase Auth) ולהדק את מדיניות ה‑RLS ב‑`schema.sql`.
+## אבטחה 🔒
+המערכת מאובטחת באמצעות Supabase Auth + מדיניות RLS מהודקת. כדי להפעיל את ההגנות במלואן, בצע את הצעדים הבאים **פעם אחת**:
+
+1. **הרץ את `supabase/security-hardening.sql`** ב‑SQL Editor (אחרי שאר קובצי ה‑SQL). הוא:
+   - מהדק את `members` / `transactions` כך שמנהל רואה הכל, חבר רואה רק את שלו, ולמפתח `anon` אין גישה כלל.
+   - מחליף את `is_admin()` לרשימת היתר מפורשת (טבלת `admins`) במקום "כל מי שאינו חבר".
+   - מהדק את `deleted_transactions` ואת ה‑Storage למנהל / לבעל הקובץ בלבד.
+2. **ודא שהמייל שלך מופיע ב‑`admins`**: `select * from admins;` (הסקריפט זורע אוטומטית את המנהלים הקיימים). להוספה ידנית: `insert into admins(email) values ('you@example.com');`
+3. **כבה הרשמה ציבורית** ב‑Supabase: *Authentication → Providers → Email → Disable "Enable sign‑ups"*. יצירת חברים נעשית רק דרך פונקציית ה‑Edge.
+4. **הגדר סף סיסמה** ב‑Supabase Auth (מומלץ 8+ תווים).
+5. אם מפתח `service_role` נחשף אי‑פעם — סובב אותו (*Project Settings → API → Reset*).
+
+> מפתח `anon` אינו סוד — הוא מוטמע בלקוח; כל ההגנה נשענת על RLS ועל רשימת ההיתר `admins`.
 
 ## מבנה
 ```

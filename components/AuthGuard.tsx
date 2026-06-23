@@ -134,6 +134,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const [showSplash, setShowSplash] = useState(false);
   const [theme, setTheme] = useState<Theme>("light");
   const [memberId, setMemberId] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [roleResolved, setRoleResolved] = useState(false);
 
   useEffect(() => {
@@ -159,10 +160,11 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  // זיהוי תפקיד: אם המייל של המשתמש משויך לחבר → פורטל חבר (קריאה בלבד), אחרת מנהל
+  // זיהוי תפקיד: חבר (מייל משויך לחבר) → פורטל קריאה בלבד ; מנהל (ברשימת
+  // ההיתר admins, נבדק בצד השרת) → המערכת המלאה ; אחרת → אין הרשאה.
   useEffect(() => {
     let cancelled = false;
-    if (!user?.email) { setMemberId(null); setRoleResolved(true); return; }
+    if (!user?.email) { setMemberId(null); setIsAdmin(false); setRoleResolved(true); return; }
     setRoleResolved(false);
     (async () => {
       try {
@@ -171,9 +173,14 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
           .select("id")
           .ilike("email", user.email!)
           .maybeSingle();
-        if (!cancelled) setMemberId(data?.id ?? null);
+        if (cancelled) return;
+        if (data?.id) { setMemberId(data.id); setIsAdmin(false); return; }
+        // לא חבר — אימות מנהל מול רשימת ההיתר בצד השרת (לא ניתן לזיוף בלקוח)
+        setMemberId(null);
+        const { data: adminFlag } = await supabase.rpc("is_admin");
+        if (!cancelled) setIsAdmin(adminFlag === true);
       } catch {
-        if (!cancelled) setMemberId(null);
+        if (!cancelled) { setMemberId(null); setIsAdmin(false); }
       } finally {
         if (!cancelled) setRoleResolved(true);
       }
@@ -185,6 +192,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
     setUser(null);
     setMemberId(null);
+    setIsAdmin(false);
   }
 
   function handleLogin(u: User) {
@@ -217,6 +225,24 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       <AuthContext.Provider value={{ user, logout, theme, toggleTheme }}>
         <MemberPortal memberId={memberId} logout={logout} />
       </AuthContext.Provider>
+    );
+  }
+
+  // משתמש מחובר שאינו חבר ואינו מנהל מאומת → אין הרשאה
+  if (!isAdmin) {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f6f7fb", direction: "rtl", padding: "1rem" }}>
+        <div style={{ background: "#fff", borderRadius: 18, boxShadow: "0 20px 60px rgba(0,0,0,.12)", padding: "2.5rem", maxWidth: 420, textAlign: "center" }}>
+          <div style={{ fontSize: "2.5rem", marginBottom: 12 }}>🔒</div>
+          <h1 style={{ margin: "0 0 8px", fontSize: "1.2rem", fontWeight: 800, color: BRAND_DARK }}>אין הרשאת גישה</h1>
+          <p style={{ color: "#4a5568", fontSize: ".9rem", lineHeight: 1.6, margin: "0 0 1.5rem" }}>
+            החשבון שלך אינו משויך לחבר ואינו מורשה כמנהל. אם זו טעות, פנה לגבאי הגמ״ח.
+          </p>
+          <button onClick={logout} style={{ padding: "0.6rem 1.6rem", background: BRAND, color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: ".9rem", cursor: "pointer" }}>
+            יציאה
+          </button>
+        </div>
+      </div>
     );
   }
 
