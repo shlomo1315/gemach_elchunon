@@ -126,7 +126,7 @@ export default function Dashboard() {
   const [toast, setToast] = useState<Toast | null>(null);
 
   const [txnForm, setTxnForm] = useState({ memberName: "", amount: "", type: "הפקדה", method: "", greg_date: "", heb_date: "", notes: "", subtype: "" });
-  const [memberForm, setMemberForm] = useState({ name: "", code: "", phone: "", address: "" });
+  const [memberForm, setMemberForm] = useState({ name: "", code: "", phone: "", address: "", email: "" });
   const [formErr, setFormErr] = useState<Record<string, string>>({});
 
   // החבר הנבחר בטופס הפעולה — לזיהוי יתרת חיסכון בעת משיכה
@@ -215,7 +215,7 @@ export default function Dashboard() {
   }
   function closeMember() {
     setAddMember(false); setFormErr({});
-    setMemberForm({ name: "", code: "", phone: "", address: "" });
+    setMemberForm({ name: "", code: "", phone: "", address: "", email: "" });
   }
   function setTxnGregDate(val: string) {
     setTxnForm(f => ({ ...f, greg_date: val, heb_date: toHebrewDate(val) }));
@@ -297,6 +297,7 @@ export default function Dashboard() {
       code: code || memberForm.code.trim() || null,
       phone: memberForm.phone.trim() || null,
       address: memberForm.address.trim() || null,
+      email: memberForm.email.trim().toLowerCase() || null,
     });
     setSaving(false);
     if (error) { alert("שגיאה: " + error.message); return; }
@@ -311,6 +312,7 @@ export default function Dashboard() {
         ["קוד", code || "—"],
         ["טלפון", memberForm.phone.trim()],
         ...(memberForm.address ? [["כתובת", memberForm.address.trim()] as [string, string]] : []),
+        ...(memberForm.email ? [["מייל", memberForm.email.trim()] as [string, string]] : []),
       ],
     });
     const t: Toast = {
@@ -320,6 +322,7 @@ export default function Dashboard() {
         ["קוד", code || "—"],
         ["טלפון", memberForm.phone.trim()],
         ...(memberForm.address ? [["כתובת", memberForm.address.trim()] as [string, string]] : []),
+        ...(memberForm.email ? [["מייל", memberForm.email.trim()] as [string, string]] : []),
       ],
     };
     closeMember();
@@ -708,6 +711,11 @@ export default function Dashboard() {
                 <label style={lbl}>כתובת</label>
                 <input value={memberForm.address} onChange={e => setMemberForm(f => ({ ...f, address: e.target.value }))}
                   style={inp} placeholder="רחוב, עיר" />
+              </div>
+              <div style={{ gridColumn: "1/-1" }}>
+                <label style={lbl}>מייל <span style={{ color: "var(--faint)", fontWeight: 400 }}>(לקבלת התראות ולפורטל האישי)</span></label>
+                <input value={memberForm.email} onChange={e => setMemberForm(f => ({ ...f, email: e.target.value }))}
+                  style={inp} placeholder="member@example.com" dir="ltr" type="email" />
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: "1.5rem" }}>

@@ -704,6 +704,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
               <Row label="קוד אישי" value={member.code || "—"} />
               <Row label="טלפון" value={member.phone || "—"} />
               <Row label="כתובת" value={member.address || "—"} />
+              <Row label="מייל" value={member.email || "—"} />
               <Row label="מייל להתחברות" value={member.email || "—"} />
             </>
           ) : (
