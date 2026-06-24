@@ -20,7 +20,6 @@ export default function HebrewInfoBar({ greeting }: { greeting?: string }) {
   const [zmanim, setZmanim] = useState<{ label: string; time: Date }[]>([]);
   const [dafBavli, setDafBavli] = useState("");
   const [dafYerushalmi, setDafYerushalmi] = useState("");
-  const [chofetzChaim, setChofetzChaim] = useState("");
   const [rates, setRates] = useState<{ usd: number; eur: number; updated: Date } | null>(null);
   const [candles, setCandles] = useState<{ label: string; time: string; mins: number; havdalah: string }[]>([]);
 
@@ -114,27 +113,14 @@ export default function HebrewInfoBar({ greeting }: { greeting?: string }) {
     // הדף היומי (בבלי) + ירושלמי יומי — מתרענן לפי תאריך היום
     const today2 = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     const cleanHeb = (s: string) => String(s || "").replace(/־/g, " ").replace(/[֑-ֽֿ-ׇ]/g, "").replace(/\s+/g, " ").trim();
-    fetch(`https://www.hebcal.com/hebcal?v=1&cfg=json&lg=he&F=on&yyomi=on&dcc=on&start=${today2}&end=${today2}`, { cache: "no-store" })
+    fetch(`https://www.hebcal.com/hebcal?v=1&cfg=json&lg=he&F=on&yyomi=on&start=${today2}&end=${today2}`, { cache: "no-store" })
       .then(r => r.json())
       .then(data => {
         const items: any[] = data.items || [];
         const daf = items.find(i => i.category === "dafyomi");
         const yeru = items.find(i => i.category === "yerushalmi");
-        // חפץ חיים היומי (dcc=on) — זיהוי גמיש כי שם הקטגוריה עשוי להופיע בכמה וריאציות
-        const cc = items.find(i => {
-          const cat = String(i.category || "").toLowerCase().replace(/[^a-z]/g, "");
-          return cat.includes("chofetz") || cat.includes("chafetz") ||
-            String(i.hebrew || "").includes("חפץ חיים") ||
-            String(i.title || "").toLowerCase().includes("chofetz");
-        });
         if (daf) setDafBavli(cleanHeb(daf.hebrew || daf.title || ""));
         if (yeru) setDafYerushalmi(cleanHeb(yeru.hebrew || yeru.title || ""));
-        if (cc) {
-          const full = cleanHeb(cc.hebrew || cc.title || "");
-          // הסרת קידומת "ספר חפץ חיים" כדי לא לכפול את התווית
-          const short = full.replace(/^ספר\s+/, "").replace(/^חפץ חיים[\s,:־-]*/, "").trim();
-          setChofetzChaim(short || full);
-        }
       }).catch(() => {});
 
     // זמני היום (מודיעין עילית) — היום ומחר, כדי למצוא את הזמן ההלכתי הבא
@@ -221,12 +207,6 @@ export default function HebrewInfoBar({ greeting }: { greeting?: string }) {
           <>
             <span style={{ color: "#cbd5e0" }}>•</span>
             <span><span style={{ color: "#9aa5b5" }}>ירושלמי: </span><span style={{ fontWeight: 700, color: "#0891b2" }}>{dafYerushalmi}</span></span>
-          </>
-        )}
-        {chofetzChaim && (
-          <>
-            <span style={{ color: "#cbd5e0" }}>•</span>
-            <span><span style={{ color: "#9aa5b5" }}>חפץ חיים: </span><span style={{ fontWeight: 700, color: "#be123c" }}>{chofetzChaim}</span></span>
           </>
         )}
         {rates && (
