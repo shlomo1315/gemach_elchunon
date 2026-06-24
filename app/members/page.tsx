@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Eye, Pencil, Trash2 } from "lucide-react";
+import { Eye, Pencil, Trash2, Mail } from "lucide-react";
 import { supabase, fnErrMessage } from "@/lib/supabase";
 import { notify } from "@/lib/notify";
 import { ils } from "@/lib/format";
@@ -312,7 +312,14 @@ export default function MembersPage() {
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <Avatar name={m.name || "?"} />
                         <div>
-                          <div style={{ fontWeight: 700, fontSize: ".9rem", color: "var(--text)" }}>{m.name || "—"}</div>
+                          <div style={{ fontWeight: 700, fontSize: ".9rem", color: "var(--text)", display: "flex", alignItems: "center", gap: 6 }}>
+                            {m.name || "—"}
+                            {m.email && (
+                              <span title={`מייל: ${m.email}`} style={{ display: "inline-flex", color: "var(--brand)" }}>
+                                <Mail size={13} style={{ opacity: .9 }} />
+                              </span>
+                            )}
+                          </div>
                           {m.address && <div style={{ fontSize: ".75rem", color: "#9aa5b5", marginTop: 1 }}>{m.address}</div>}
                         </div>
                       </div>
