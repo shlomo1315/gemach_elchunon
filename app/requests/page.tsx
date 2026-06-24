@@ -6,7 +6,7 @@ import { ils, gdate, toHebrewDate } from "@/lib/format";
 import { PageTitle, Loading, Empty, Badge } from "@/components/ui";
 import type { ChangeRequest, MemberRequest } from "@/types";
 
-const BRAND = "#1e6f5c";
+const BRAND = "#107a5e";
 const RED = "#c0392b";
 
 const REQ_TYPE_LABEL: Record<string, string> = { message: "פנייה / הודעה", loan: "בקשת הלוואה", deposit_refund: "בקשת החזר פיקדון" };

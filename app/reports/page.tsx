@@ -10,7 +10,7 @@ import { ils } from "@/lib/format";
 import { Loading } from "@/components/ui";
 import type { Transaction, MemberBalance } from "@/types";
 
-const BRAND = "#1e6f5c";
+const BRAND = "#107a5e";
 const RED = "#e05252";
 const BLUE = "#3b82f6";
 const ORANGE = "#f59e0b";

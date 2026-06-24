@@ -23,41 +23,53 @@ export default function Sidebar() {
 
   return (
     <aside className="no-print" style={{
-      width: 230, background: "linear-gradient(185deg, #1b6555 0%, var(--brand-dark) 55%, #123f31 100%)",
-      color: "#fff", padding: "1.25rem 0.85rem",
-      flexShrink: 0, display: "flex", flexDirection: "column",
-      boxShadow: "2px 0 20px rgba(16,30,54,.12)",
+      position: "relative",
+      width: 238, flexShrink: 0,
+      background: "linear-gradient(185deg, #15795f 0%, var(--brand-dark) 52%, var(--brand-deep) 100%)",
+      color: "#fff", padding: "1.35rem 0.9rem",
+      display: "flex", flexDirection: "column",
+      boxShadow: "3px 0 28px rgba(7, 61, 46, .28)",
+      overflow: "hidden",
     }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "0 0.4rem 1.25rem", borderBottom: "1px solid rgba(255,255,255,.14)", marginBottom: "1rem" }}>
+      {/* זוהר דקורטיבי עליון */}
+      <div style={{ position: "absolute", top: -90, insetInlineEnd: -60, width: 220, height: 220, borderRadius: "50%", background: "radial-gradient(circle, rgba(199,154,62,.22), transparent 68%)", pointerEvents: "none" }} />
+      {/* פס זהב עדין בקצה */}
+      <div style={{ position: "absolute", top: 0, bottom: 0, insetInlineStart: 0, width: 3, background: "linear-gradient(180deg, var(--gold), transparent 60%)", opacity: .55, pointerEvents: "none" }} />
+
+      {/* לוגו ומותג */}
+      <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 12, padding: "0 0.3rem 1.25rem", borderBottom: "1px solid rgba(255,255,255,.13)", marginBottom: "1.1rem" }}>
         <div style={{
-          width: 40, height: 40, borderRadius: 12, flexShrink: 0,
-          background: "rgba(255,255,255,.16)", display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: "1.15rem", fontWeight: 900, letterSpacing: "-.04em",
+          width: 46, height: 46, borderRadius: 14, flexShrink: 0,
+          background: "linear-gradient(135deg, #e2c069 0%, var(--gold) 55%, var(--gold-dark) 100%)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: "1.2rem", fontWeight: 900, letterSpacing: "-.04em", color: "#0c5642",
+          boxShadow: "0 8px 20px rgba(199,154,62,.42), inset 0 1px 1px rgba(255,255,255,.5)",
         }}>חא</div>
         <div>
-          <div style={{ fontSize: "1.1rem", fontWeight: 800, lineHeight: 1.25 }}>גמ״ח חסדי אהרן</div>
-          <div style={{ fontSize: ".7rem", opacity: 0.6, marginTop: 1 }}>מערכת ניהול</div>
+          <div className="display" style={{ fontSize: "1.18rem", fontWeight: 800, lineHeight: 1.2 }}>גמ״ח חסדי אהרן</div>
+          <div style={{ fontSize: ".7rem", opacity: 0.62, marginTop: 2, letterSpacing: ".04em" }}>מערכת ניהול</div>
         </div>
       </div>
 
-      <nav style={{ display: "flex", flexDirection: "column", gap: 3, flex: 1 }}>
+      <nav style={{ position: "relative", display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
         {links.map(({ href, label, icon: Icon }) => {
           const active = href === "/" ? path === "/" : path.startsWith(href);
           return (
             <Link key={href} href={href} style={{
               position: "relative",
-              display: "flex", alignItems: "center", gap: 11,
-              padding: "0.62rem 0.8rem", borderRadius: 10,
-              color: active ? "#fff" : "rgba(255,255,255,.82)", textDecoration: "none",
-              background: active ? "rgba(255,255,255,.16)" : "transparent",
-              fontWeight: active ? 700 : 500, fontSize: ".93rem",
-              transition: "background .14s, color .14s",
+              display: "flex", alignItems: "center", gap: 12,
+              padding: "0.66rem 0.85rem", borderRadius: 11,
+              color: active ? "#fff" : "rgba(255,255,255,.8)", textDecoration: "none",
+              background: active ? "rgba(255,255,255,.15)" : "transparent",
+              fontWeight: active ? 700 : 500, fontSize: ".94rem",
+              boxShadow: active ? "inset 0 0 0 1px rgba(255,255,255,.08)" : "none",
+              transition: "background .15s, color .15s",
             }}
               onMouseEnter={e => { if (!active) e.currentTarget.style.background = "rgba(255,255,255,.08)"; }}
               onMouseLeave={e => { if (!active) e.currentTarget.style.background = "transparent"; }}
             >
-              {active && <span style={{ position: "absolute", insetInlineStart: -0, top: "50%", transform: "translateY(-50%)", width: 3.5, height: 20, borderRadius: 999, background: "#7fe7c4" }} />}
-              <Icon size={18} style={{ flexShrink: 0, opacity: active ? 1 : .9 }} />
+              {active && <span style={{ position: "absolute", insetInlineStart: -0, top: "50%", transform: "translateY(-50%)", width: 4, height: 22, borderRadius: 999, background: "linear-gradient(180deg, #e2c069, var(--gold))", boxShadow: "0 0 12px rgba(199,154,62,.8)" }} />}
+              <Icon size={18} style={{ flexShrink: 0, opacity: active ? 1 : .9, color: active ? "var(--gold-light)" : undefined }} />
               {label}
             </Link>
           );
@@ -66,10 +78,11 @@ export default function Sidebar() {
 
       {/* מתג מצב כהה/בהיר */}
       <button onClick={toggleTheme} title={isDark ? "מצב בהיר" : "מצב כהה"} style={{
+        position: "relative",
         display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
         width: "100%", padding: "0.55rem 0.75rem", marginBottom: 4,
         background: "rgba(255,255,255,.08)", border: "none",
-        borderRadius: 8, color: "rgba(255,255,255,.9)",
+        borderRadius: 10, color: "rgba(255,255,255,.9)",
         fontSize: ".85rem", fontWeight: 600, cursor: "pointer",
       }}
         onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,.18)")}
@@ -91,13 +104,13 @@ export default function Sidebar() {
             display: "flex", alignItems: "center", justifyContent: "center",
             transition: "all .2s",
           }}>
-            {isDark ? <Moon size={10} color="#16513f" /> : <Sun size={10} color="#f59e0b" />}
+            {isDark ? <Moon size={10} color="#0c5642" /> : <Sun size={10} color="#f59e0b" />}
           </span>
         </span>
       </button>
 
       {/* משתמש + יציאה */}
-      <div style={{ borderTop: "1px solid rgba(255,255,255,.15)", paddingTop: "0.9rem", marginTop: "0.5rem" }}>
+      <div style={{ position: "relative", borderTop: "1px solid rgba(255,255,255,.14)", paddingTop: "0.9rem", marginTop: "0.5rem" }}>
         {displayName && (
           <div style={{ fontSize: ".75rem", opacity: 0.65, marginBottom: 8, padding: "0 0.25rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {displayName}
@@ -107,7 +120,7 @@ export default function Sidebar() {
           display: "flex", alignItems: "center", gap: 8,
           width: "100%", padding: "0.55rem 0.75rem",
           background: "rgba(255,255,255,.08)", border: "none",
-          borderRadius: 8, color: "rgba(255,255,255,.8)",
+          borderRadius: 10, color: "rgba(255,255,255,.8)",
           fontSize: ".85rem", fontWeight: 500, cursor: "pointer",
           transition: "background .1s",
         }}

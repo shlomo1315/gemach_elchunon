@@ -12,10 +12,10 @@ import type { MemberBalance, Transaction, ChangeRequest, MemberRequest } from "@
 
 const REQ_TYPE_LABEL: Record<string, string> = { message: "פנייה / הודעה", loan: "בקשת הלוואה", deposit_refund: "בקשת החזר פיקדון" };
 const REQ_STATUS_LABEL: Record<string, string> = { open: "פתוח", in_progress: "בטיפול", done: "טופל", rejected: "נדחה", pending: "ממתין", approved: "אושר" };
-const STATUS_COLOR: Record<string, string> = { open: "#f59e0b", in_progress: "#3b82f6", done: "#1e6f5c", rejected: "#c0392b", pending: "#f59e0b", approved: "#1e6f5c" };
+const STATUS_COLOR: Record<string, string> = { open: "#f59e0b", in_progress: "#3b82f6", done: "#107a5e", rejected: "#c0392b", pending: "#f59e0b", approved: "#107a5e" };
 
-const BRAND = "#1e6f5c";
-const BRAND_DARK = "#16513f";
+const BRAND = "#107a5e";
+const BRAND_DARK = "#0c5642";
 const RED = "#e05252";
 
 const inp: React.CSSProperties = { padding: "0.55rem 0.8rem", border: "1.5px solid #dce1e8", borderRadius: 10, fontSize: ".9rem", width: "100%", boxSizing: "border-box", outline: "none" };
@@ -160,7 +160,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
   <div class="r">חתימה: <span class="f" style="min-width:185px"></span></div>
 </div>
 </div>
-<div class="np"><button onclick="window.print()" style="padding:9px 26px;background:#1e6f5c;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-family:Arial">🖨️ הדפסה / שמירה כ-PDF</button></div>
+<div class="np"><button onclick="window.print()" style="padding:9px 26px;background:#107a5e;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-family:Arial">🖨️ הדפסה / שמירה כ-PDF</button></div>
 </body></html>`;
   }
 

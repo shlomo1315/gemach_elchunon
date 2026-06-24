@@ -8,7 +8,7 @@ import { ils } from "@/lib/format";
 import { PageTitle, Button, Loading, Empty } from "@/components/ui";
 import type { MemberBalance } from "@/types";
 
-const BRAND = "#1e6f5c";
+const BRAND = "#107a5e";
 const RED = "#e05252";
 
 const inp: React.CSSProperties = {
@@ -31,7 +31,7 @@ function initials(name: string) {
 }
 
 function Avatar({ name }: { name: string }) {
-  const colors = ["#1e6f5c","#2980b9","#8e44ad","#e67e22","#16a085","#c0392b","#d35400","#27ae60"];
+  const colors = ["#107a5e","#2980b9","#8e44ad","#e67e22","#16a085","#c0392b","#d35400","#27ae60"];
   const idx = name.charCodeAt(0) % colors.length;
   return (
     <div style={{ width: 36, height: 36, borderRadius: "50%", background: colors[idx], color: "#fff", fontWeight: 700, fontSize: ".8rem", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>

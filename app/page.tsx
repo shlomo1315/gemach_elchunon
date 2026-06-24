@@ -15,7 +15,7 @@ import { Users, ArrowDownCircle, ArrowUpCircle, Wallet, UserPlus, CreditCard, Ba
 
 type Recent = Transaction & { members: { name: string } | null };
 
-const BRAND = "#1e6f5c";
+const BRAND = "#107a5e";
 const RED = "#e05252";
 
 const PERIOD_LABEL = { day: "היום", week: "השבוע", month: "החודש", year: "השנה" } as const;
@@ -26,17 +26,20 @@ function KpiCard({ label, value, icon, color, sub }: {
 }) {
   return (
     <div className="ui-card-hover" style={{
-      background: "#fff", borderRadius: 16, padding: "1.25rem 1.4rem",
+      position: "relative", overflow: "hidden",
+      background: "#fff", borderRadius: "var(--r-lg)", padding: "1.25rem 1.4rem",
       boxShadow: "var(--shadow)", flex: "1 1 160px",
-      border: "1px solid var(--line)", borderTop: `4px solid ${color}`,
+      border: "1px solid var(--line)",
       display: "flex", flexDirection: "column", gap: 6,
     }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <div style={{ fontSize: ".78rem", color: "#9aa5b5", fontWeight: 600 }}>{label}</div>
-        <div style={{ color, opacity: .7 }}>{icon}</div>
+      <div style={{ position: "absolute", insetInline: 0, top: 0, height: 4, background: `linear-gradient(90deg, ${color}, ${color}2e)` }} />
+      <div style={{ position: "absolute", insetInlineEnd: -28, top: -28, width: 104, height: 104, borderRadius: "50%", background: `${color}10`, pointerEvents: "none" }} />
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", position: "relative" }}>
+        <div style={{ fontSize: ".79rem", color: "var(--muted)", fontWeight: 700 }}>{label}</div>
+        <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: 11, background: `linear-gradient(135deg, ${color}20, ${color}10)`, color, boxShadow: `inset 0 0 0 1px ${color}22` }}>{icon}</span>
       </div>
-      <div style={{ fontSize: "1.6rem", fontWeight: 800, color, lineHeight: 1 }}>{value}</div>
-      {sub && <div style={{ fontSize: ".72rem", color: "#b0bac7" }}>{sub}</div>}
+      <div style={{ fontSize: "1.7rem", fontWeight: 800, color, lineHeight: 1.05, fontVariantNumeric: "tabular-nums", position: "relative" }}>{value}</div>
+      {sub && <div style={{ fontSize: ".73rem", color: "var(--faint)", position: "relative" }}>{sub}</div>}
     </div>
   );
 }
@@ -310,9 +313,42 @@ export default function Dashboard() {
 
   return (
     <div style={{ direction: "rtl" }}>
-      {/* כותרת — שורת מידע יומי משותפת */}
+      {/* ===== Hero — באנר פתיחה ===== */}
+      <div className="keep-color" style={{
+        position: "relative", overflow: "hidden",
+        borderRadius: "var(--r-xl)", background: "var(--grad-brand-deep)",
+        color: "#fff", padding: "1.6rem 1.85rem", marginBottom: "1.25rem",
+        boxShadow: "var(--shadow-brand)",
+      }}>
+        {/* זוהר זהב + אור עדין */}
+        <div style={{ position: "absolute", top: -90, insetInlineStart: -50, width: 270, height: 270, borderRadius: "50%", background: "radial-gradient(circle, rgba(199,154,62,.30), transparent 66%)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", bottom: -100, insetInlineEnd: "32%", width: 230, height: 230, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,255,255,.10), transparent 65%)", pointerEvents: "none" }} />
+        <div style={{ position: "relative", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
+          <div>
+            <div className="display" style={{ fontSize: "1.9rem", fontWeight: 800, lineHeight: 1.12 }}>
+              שלום{name ? `, ${name}` : ""}
+            </div>
+            <div style={{ fontSize: ".95rem", opacity: .82, marginTop: 7, display: "flex", alignItems: "center", gap: 9 }}>
+              <span style={{ width: 24, height: 2, background: "var(--gold)", borderRadius: 2, display: "inline-block", flexShrink: 0 }} />
+              ברוך בואך למערכת הניהול
+            </div>
+          </div>
+          {/* יתרה ראשית */}
+          <div style={{
+            textAlign: "center", background: "rgba(255,255,255,.1)",
+            border: "1px solid rgba(255,255,255,.18)", borderRadius: "var(--r-lg)",
+            padding: "0.9rem 1.7rem", minWidth: 190,
+          }}>
+            <div style={{ fontSize: ".77rem", opacity: .85, fontWeight: 600, marginBottom: 5, letterSpacing: ".03em" }}>יתרה בקופה</div>
+            <div style={{ fontSize: "2.05rem", fontWeight: 900, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{ils(summary?.total_balance)}</div>
+            <div style={{ fontSize: ".76rem", opacity: .82, marginTop: 6 }}>{num(summary?.members_count)} חברים פעילים</div>
+          </div>
+        </div>
+      </div>
+
+      {/* שורת מידע יומי משותפת */}
       <div style={{ marginBottom: "1.5rem" }}>
-        <HebrewInfoBar greeting={`שלום${name ? `, ${name}` : ""}`} />
+        <HebrewInfoBar />
       </div>
 
       {/* KPI שורה */}
@@ -663,7 +699,7 @@ export default function Dashboard() {
           style={{ position: "fixed", inset: 0, zIndex: 1200, background: "rgba(15,30,25,0.45)", backdropFilter: "blur(3px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
           <div style={{ background: "#fff", borderRadius: 20, width: "100%", maxWidth: 480, maxHeight: "85vh", display: "flex", flexDirection: "column", boxShadow: "0 30px 80px rgba(0,0,0,.3)", direction: "rtl", overflow: "hidden", animation: "modalIn 0.22s ease" }}>
             {/* כותרת */}
-            <div style={{ background: `linear-gradient(135deg, #16513f, ${BRAND})`, color: "#fff", padding: "1.1rem 1.3rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <div style={{ background: `linear-gradient(135deg, #0c5642, ${BRAND})`, color: "#fff", padding: "1.1rem 1.3rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <Bell size={22} />
                 <div>

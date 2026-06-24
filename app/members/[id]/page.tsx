@@ -12,7 +12,7 @@ import DatePicker from "@/components/DatePicker";
 import type { MemberBalance, Transaction, Check } from "@/types";
 import { archiveTransactions } from "@/lib/archive";
 
-const BRAND = "#1e6f5c";
+const BRAND = "#107a5e";
 
 // תאריך לועזי: מהשדה השמור, ואם אין — חישוב אוטומטי מהתאריך העברי הטקסטואלי
 function gregOf(t: Transaction): string {
@@ -480,7 +480,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
   <div class="r">חתימה: <span class="f" style="min-width:185px"></span></div>
 </div>
 </div>
-<div class="np"><button onclick="window.print()" style="padding:9px 26px;background:#1e6f5c;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-family:Arial">🖨️ הדפסה / שמירה כ-PDF</button></div>
+<div class="np"><button onclick="window.print()" style="padding:9px 26px;background:#107a5e;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-family:Arial">🖨️ הדפסה / שמירה כ-PDF</button></div>
 </body></html>`;
   }
 

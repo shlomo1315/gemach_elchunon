@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { hebrewDateLetters } from "@/lib/format";
 import { Clock, Flame } from "lucide-react";
 
-const BRAND = "#1e6f5c";
+const BRAND = "#107a5e";
 
 /**
  * שורת מידע יומי משותפת (ניהול + ממשק חברים):

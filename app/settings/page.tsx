@@ -6,7 +6,7 @@ import { useAuth } from "@/components/AuthGuard";
 import { PageTitle, Card } from "@/components/ui";
 import { ils, gdate } from "@/lib/format";
 
-const BRAND = "#1e6f5c";
+const BRAND = "#107a5e";
 const RED = "#e05252";
 
 const inp: React.CSSProperties = {

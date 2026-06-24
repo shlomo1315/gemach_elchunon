@@ -9,7 +9,7 @@ import { ils, toHebrewDate, TXN_METHODS } from "@/lib/format";
 import { PageTitle, Card, Button, Loading } from "@/components/ui";
 import type { Member } from "@/types";
 
-const BRAND = "#1e6f5c";
+const BRAND = "#107a5e";
 const RED = "#e05252";
 
 /* ---------- שדות מיפוי ---------- */

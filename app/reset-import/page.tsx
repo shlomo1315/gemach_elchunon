@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabase";
 import { ils, toHebrewDate } from "@/lib/format";
 import { PageTitle, Card, Button } from "@/components/ui";
 
-const BRAND = "#1e6f5c";
+const BRAND = "#107a5e";
 const RED = "#e05252";
 const UNASSIGNED = "כללי (לא משויך)";
 

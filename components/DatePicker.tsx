@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { HDate } from "@hebcal/hdate";
 import { gematria } from "@/lib/format";
 
-const BRAND = "#1e6f5c";
+const BRAND = "#107a5e";
 
 // שמות חודשים עבריים לפי השם האנגלי ש-HDate מחזיר
 const HEB_MONTH: Record<string, string> = {

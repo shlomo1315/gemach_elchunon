@@ -1,46 +1,60 @@
 @import "tailwindcss";
-@import url("https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&family=Frank+Ruhl+Libre:wght@500;600;700;800;900&display=swap");
 
 :root {
   /* רקעים ומשטחים */
-  --bg: #f3f5f9;
-  --bg-soft: #eef1f6;
+  --bg: #f4f6fa;
+  --bg-soft: #eef1f7;
   --card: #ffffff;
 
-  /* מותג */
-  --brand: #1e6f5c;
-  --brand-dark: #16513f;
-  --brand-light: #e8f3ef;
-  --brand-soft: #f1f8f5;
+  /* מותג — אמרלד עשיר ועמוק */
+  --brand: #107a5e;
+  --brand-dark: #0c5642;
+  --brand-deep: #073d2e;
+  --brand-light: #e7f4ef;
+  --brand-soft: #f1f9f5;
+
+  /* זהב — מבטא ייחודי (חתימת הגמ"ח) */
+  --gold: #c79a3e;
+  --gold-dark: #a07a26;
+  --gold-light: #f6edd5;
+  --gold-soft: #fbf6e9;
 
   /* טקסט */
-  --text: #1a2233;
-  --muted: #6b7688;
-  --faint: #9aa5b5;
+  --text: #14203a;
+  --muted: #5c6a81;
+  --faint: #93a0b4;
 
   /* קווים וגבולות */
-  --line: #e7ebf1;
-  --line-soft: #f0f3f7;
+  --line: #e6ebf2;
+  --line-soft: #eef2f7;
 
   /* סמנטי */
-  --green: #1e7d4f;
+  --green: #15834f;
   --green-bg: #e3f6ec;
   --red: #d64545;
   --red-bg: #fdeaea;
   --amber: #b7791f;
   --blue: #3b82f6;
 
+  /* גרדיאנטים מותגיים */
+  --grad-brand: linear-gradient(135deg, #18a079 0%, var(--brand) 45%, var(--brand-dark) 100%);
+  --grad-brand-deep: linear-gradient(160deg, #15795f 0%, var(--brand-dark) 55%, var(--brand-deep) 100%);
+  --grad-gold: linear-gradient(135deg, #e2c069 0%, var(--gold) 50%, var(--gold-dark) 100%);
+
   /* צללים — רכים ושכבתיים */
   --shadow-sm: 0 1px 2px rgba(16, 30, 54, .06);
-  --shadow: 0 2px 8px rgba(16, 30, 54, .07), 0 1px 2px rgba(16, 30, 54, .05);
-  --shadow-md: 0 6px 20px rgba(16, 30, 54, .09), 0 2px 6px rgba(16, 30, 54, .05);
-  --shadow-lg: 0 18px 50px rgba(16, 30, 54, .16);
+  --shadow: 0 4px 16px rgba(16, 30, 54, .06), 0 1px 3px rgba(16, 30, 54, .05);
+  --shadow-md: 0 12px 34px rgba(16, 30, 54, .10), 0 3px 10px rgba(16, 30, 54, .05);
+  --shadow-lg: 0 28px 64px rgba(16, 30, 54, .18);
+  --shadow-brand: 0 12px 30px rgba(16, 122, 94, .30);
+  --shadow-gold: 0 10px 26px rgba(199, 154, 62, .30);
 
   /* רדיוסים */
-  --r-sm: 8px;
-  --r: 12px;
-  --r-lg: 16px;
-  --r-xl: 20px;
+  --r-sm: 10px;
+  --r: 14px;
+  --r-lg: 18px;
+  --r-xl: 24px;
 }
 
 html,
@@ -53,11 +67,47 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.011em;
+}
+
+/* קנבס מעוצב — גוונים עדינים של אמרלד וזהב, לא אפור שטוח */
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(1100px 620px at 100% -10%, rgba(16, 122, 94, .07), transparent 60%),
+    radial-gradient(940px 600px at -8% 110%, rgba(199, 154, 62, .08), transparent 55%),
+    var(--bg);
+  background-attachment: fixed;
 }
 
 * {
   box-sizing: border-box;
+}
+
+/* ===== טיפוגרפיה — כותרות בסריף עברי אלגנטי ===== */
+h1,
+h2 {
+  font-family: "Frank Ruhl Libre", "Heebo", Georgia, serif;
+  letter-spacing: -0.005em;
+}
+.display {
+  font-family: "Frank Ruhl Libre", "Heebo", Georgia, serif !important;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.text-grad {
+  background: var(--grad-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+.text-gold-grad {
+  background: var(--grad-gold);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
 }
 
 button {
@@ -80,7 +130,7 @@ select:focus-visible,
 textarea:focus-visible {
   outline: none;
   border-color: var(--brand) !important;
-  box-shadow: 0 0 0 3px rgba(30, 111, 92, .14);
+  box-shadow: 0 0 0 3px rgba(16, 122, 94, .15);
 }
 input::placeholder,
 textarea::placeholder {
@@ -91,14 +141,14 @@ textarea::placeholder {
 .ui-btn {
   border: none;
   border-radius: var(--r-sm);
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: transform .12s ease, box-shadow .15s ease, background .15s ease, filter .15s ease;
+  transition: transform .12s ease, box-shadow .18s ease, background .15s ease, filter .15s ease;
   white-space: nowrap;
 }
 .ui-btn:not(:disabled):hover {
-  filter: brightness(1.06);
-  transform: translateY(-1px);
+  filter: brightness(1.05);
+  transform: translateY(-1.5px);
 }
 .ui-btn:not(:disabled):active {
   transform: translateY(0);
@@ -111,10 +161,10 @@ textarea::placeholder {
 
 /* ===== כרטיס עם ריחוף ===== */
 .ui-card-hover {
-  transition: transform .16s ease, box-shadow .16s ease;
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
 }
 .ui-card-hover:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px);
   box-shadow: var(--shadow-md);
 }
 
@@ -126,17 +176,17 @@ textarea::placeholder {
 }
 .table th,
 .table td {
-  padding: 0.7rem 0.85rem;
+  padding: 0.72rem 0.9rem;
   text-align: right;
   border-bottom: 1px solid var(--line-soft);
   font-size: 0.9rem;
 }
 .table th {
-  background: #f6f8fa;
-  font-weight: 700;
+  background: linear-gradient(180deg, #f7f9fb, #f2f5f8);
+  font-weight: 800;
   color: var(--muted);
-  font-size: 0.78rem;
-  letter-spacing: 0.02em;
+  font-size: 0.76rem;
+  letter-spacing: 0.03em;
   position: sticky;
   top: 0;
   z-index: 1;
@@ -175,7 +225,7 @@ textarea::placeholder {
 }
 
 ::selection {
-  background: rgba(30, 111, 92, .18);
+  background: rgba(16, 122, 94, .18);
 }
 
 @keyframes modalIn {
@@ -220,6 +270,16 @@ textarea::placeholder {
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes heroGlow {
+  0%, 100% { opacity: .55; transform: translate(0, 0) scale(1); }
+  50%      { opacity: .85; transform: translate(-10px, 8px) scale(1.06); }
+}
+
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
 }
 
 /* ===== מצב כהה (רך, מעודן ונוח לעין) ===== */

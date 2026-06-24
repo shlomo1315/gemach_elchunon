@@ -39,7 +39,7 @@ export function SuccessPopup({
           display: "flex", alignItems: "center", justifyContent: "center",
           margin: "0 auto 1rem",
         }}>
-          <CheckCircle2 size={42} color="#1e6f5c" />
+          <CheckCircle2 size={42} color="#107a5e" />
         </div>
         <h2 style={{ margin: "0 0 1.25rem", fontSize: "1.35rem", fontWeight: 800, color: "#1a1a2e" }}>{title}</h2>
         <div style={{
@@ -76,7 +76,7 @@ export function Card({
       className={hover ? "ui-card-hover" : undefined}
       style={{
         background: "var(--card)",
-        borderRadius: 16,
+        borderRadius: "var(--r-lg)",
         border: "1px solid var(--line)",
         boxShadow: "var(--shadow)",
         padding: "1.25rem",
@@ -91,7 +91,7 @@ export function Card({
 export function StatCard({
   label,
   value,
-  color = "#1e6f5c",
+  color = "#107a5e",
   icon,
   sub,
 }: {
@@ -102,20 +102,23 @@ export function StatCard({
   sub?: string;
 }) {
   return (
-    <Card hover style={{ flex: 1, minWidth: 170, padding: "1.15rem 1.3rem", position: "relative", overflow: "hidden" }}>
-      <div style={{ position: "absolute", insetInlineStart: 0, top: 0, bottom: 0, width: 4, background: color }} />
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
-        <div style={{ fontSize: ".82rem", color: "var(--muted)", fontWeight: 600, marginBottom: 8 }}>
+    <Card hover style={{ flex: 1, minWidth: 170, padding: "1.2rem 1.35rem", position: "relative", overflow: "hidden" }}>
+      {/* פס מבטא עליון מדורג */}
+      <div style={{ position: "absolute", insetInlineStart: 0, insetInlineEnd: 0, top: 0, height: 4, background: `linear-gradient(90deg, ${color}, ${color}2e)` }} />
+      {/* זוהר פינתי עדין */}
+      <div style={{ position: "absolute", insetInlineEnd: -28, top: -28, width: 108, height: 108, borderRadius: "50%", background: `${color}10`, pointerEvents: "none" }} />
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, position: "relative" }}>
+        <div style={{ fontSize: ".82rem", color: "var(--muted)", fontWeight: 700, marginBottom: 10 }}>
           {label}
         </div>
         {icon && (
-          <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: 10, background: `${color}14`, color }}>
+          <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 38, height: 38, borderRadius: 12, background: `linear-gradient(135deg, ${color}20, ${color}10)`, color, boxShadow: `inset 0 0 0 1px ${color}22` }}>
             {icon}
           </span>
         )}
       </div>
-      <div style={{ fontSize: "1.65rem", fontWeight: 800, color, lineHeight: 1.1 }}>{value}</div>
-      {sub && <div style={{ fontSize: ".74rem", color: "var(--faint)", marginTop: 4 }}>{sub}</div>}
+      <div style={{ fontSize: "1.75rem", fontWeight: 800, color, lineHeight: 1.1, fontVariantNumeric: "tabular-nums", position: "relative" }}>{value}</div>
+      {sub && <div style={{ fontSize: ".75rem", color: "var(--faint)", marginTop: 5, position: "relative" }}>{sub}</div>}
     </Card>
   );
 }
@@ -140,13 +143,13 @@ export function PageTitle({
         gap: 12,
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <span style={{ width: 5, height: 26, borderRadius: 999, background: "var(--brand)", flexShrink: 0 }} />
+      <div style={{ display: "flex", alignItems: "center", gap: 13 }}>
+        <span style={{ width: 5, height: 30, borderRadius: 999, background: "linear-gradient(180deg, var(--brand), var(--gold))", flexShrink: 0, boxShadow: "0 2px 8px rgba(16,122,94,.25)" }} />
         <div>
-          <h1 style={{ fontSize: "1.5rem", fontWeight: 800, margin: 0, lineHeight: 1.15 }}>
+          <h1 className="display" style={{ fontSize: "1.6rem", fontWeight: 800, margin: 0, lineHeight: 1.15 }}>
             {children}
           </h1>
-          {subtitle && <div style={{ fontSize: ".82rem", color: "var(--muted)", marginTop: 2 }}>{subtitle}</div>}
+          {subtitle && <div style={{ fontSize: ".83rem", color: "var(--muted)", marginTop: 2 }}>{subtitle}</div>}
         </div>
       </div>
       {action}
@@ -168,9 +171,9 @@ export function Button({
   disabled?: boolean;
 }) {
   const styles: Record<string, React.CSSProperties> = {
-    primary: { background: "var(--brand)", color: "#fff", boxShadow: "0 2px 8px rgba(30,111,92,.25)" },
-    ghost: { background: "var(--brand-light)", color: "var(--brand)" },
-    danger: { background: "var(--red)", color: "#fff", boxShadow: "0 2px 8px rgba(214,69,69,.25)" },
+    primary: { background: "var(--grad-brand)", color: "#fff", boxShadow: "var(--shadow-brand)" },
+    ghost: { background: "var(--brand-light)", color: "var(--brand-dark)", boxShadow: "inset 0 0 0 1px rgba(16,122,94,.14)" },
+    danger: { background: "linear-gradient(135deg, #e15a5a, var(--red))", color: "#fff", boxShadow: "0 10px 24px rgba(214,69,69,.28)" },
   };
   return (
     <button

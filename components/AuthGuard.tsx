@@ -11,8 +11,8 @@ type AuthCtx = { user: User | null; logout: () => void; theme: Theme; toggleThem
 export const AuthContext = createContext<AuthCtx>({ user: null, logout: () => {}, theme: "light", toggleTheme: () => {} });
 export const useAuth = () => useContext(AuthContext);
 
-const BRAND = "#1e6f5c";
-const BRAND_DARK = "#16513f";
+const BRAND = "#107a5e";
+const BRAND_DARK = "#0c5642";
 
 function LoginPage({ onLogin }: { onLogin: (u: User) => void }) {
   const [email, setEmail] = useState("");
@@ -40,28 +40,36 @@ function LoginPage({ onLogin }: { onLogin: (u: User) => void }) {
   return (
     <div style={{
       minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
-      padding: "1.25rem",
-      background: `radial-gradient(1200px 600px at 70% -10%, #2a8a72 0%, transparent 60%), linear-gradient(135deg, ${BRAND_DARK} 0%, ${BRAND} 55%, #259f6a 100%)`,
+      padding: "1.25rem", position: "relative", overflow: "hidden",
+      background: `
+        radial-gradient(1100px 560px at 78% -12%, #2fa085 0%, transparent 58%),
+        radial-gradient(820px 520px at 10% 114%, rgba(199,154,62,.42) 0%, transparent 56%),
+        linear-gradient(150deg, #06382b 0%, ${BRAND_DARK} 48%, #0f7a5d 100%)`,
     }}>
       <div style={{
-        background: "#fff", borderRadius: 24, padding: "2.75rem 2.5rem",
-        width: "100%", maxWidth: 420,
-        boxShadow: "0 30px 90px rgba(0,0,0,.35)",
+        position: "relative", overflow: "hidden",
+        background: "#fff", borderRadius: 24, padding: "2.9rem 2.5rem 2.6rem",
+        width: "100%", maxWidth: 425,
+        boxShadow: "0 40px 100px rgba(0,0,0,.42), 0 2px 8px rgba(0,0,0,.1)",
         direction: "rtl",
         animation: "fadeUp .4s ease",
       }}>
-        <div style={{ textAlign: "center", marginBottom: "2rem" }}>
+        {/* פס זהב עליון — חתימת המותג */}
+        <div style={{ position: "absolute", top: 0, insetInline: 0, height: 5, background: "linear-gradient(90deg, var(--gold-dark), #e2c069, var(--gold-dark))" }} />
+        <div style={{ textAlign: "center", marginBottom: "1.9rem" }}>
           <div style={{
-            width: 64, height: 64, margin: "0 auto 1rem", borderRadius: 18,
-            background: `linear-gradient(135deg, ${BRAND} 0%, ${BRAND_DARK} 100%)`,
+            width: 72, height: 72, margin: "0 auto 1.1rem", borderRadius: 20,
+            background: `linear-gradient(135deg, #18996f 0%, ${BRAND} 50%, ${BRAND_DARK} 100%)`,
             display: "flex", alignItems: "center", justifyContent: "center",
-            color: "#fff", fontSize: "1.5rem", fontWeight: 900, letterSpacing: "-.04em",
-            boxShadow: "0 10px 24px rgba(30,111,92,.35)",
+            color: "#fff", fontSize: "1.7rem", fontWeight: 900, letterSpacing: "-.04em",
+            boxShadow: "0 14px 30px rgba(16,122,94,.4)",
+            border: "2px solid rgba(199,154,62,.55)",
           }}>חא</div>
-          <h1 style={{ margin: 0, fontSize: "1.5rem", fontWeight: 800, color: BRAND_DARK }}>
+          <h1 className="display" style={{ margin: 0, fontSize: "1.7rem", fontWeight: 800, color: BRAND_DARK }}>
             גמ״ח חסדי אהרן
           </h1>
-          <p style={{ margin: "0.4rem 0 0", fontSize: ".88rem", color: "#7a8699" }}>
+          <div style={{ width: 54, height: 3, borderRadius: 999, margin: "0.7rem auto 0", background: "linear-gradient(90deg, transparent, var(--gold), transparent)" }} />
+          <p style={{ margin: "0.7rem 0 0", fontSize: ".9rem", color: "#7a8699", letterSpacing: ".02em" }}>
             התחברות למערכת הניהול
           </p>
         </div>
@@ -116,25 +124,27 @@ function SplashCard({ user, onDone }: { user: User; onDone: () => void }) {
       pointerEvents: "none",
     }}>
       <div style={{
+        position: "relative", overflow: "hidden",
         background: "#fff",
-        borderRadius: 20,
-        padding: "2.5rem 3rem",
-        boxShadow: "0 24px 80px rgba(0,0,0,.25)",
+        borderRadius: 22,
+        padding: "2.6rem 3rem",
+        boxShadow: "0 30px 90px rgba(0,0,0,.3)",
         textAlign: "center",
         direction: "rtl",
-        minWidth: 320,
+        minWidth: 330,
         animation: "modalIn 0.25s ease",
       }}>
-        <div style={{ fontSize: "2rem", marginBottom: "0.75rem" }}>🎉</div>
-        <div style={{ fontSize: "1.3rem", fontWeight: 800, color: BRAND_DARK, marginBottom: "0.4rem" }}>
+        <div style={{ position: "absolute", top: 0, insetInline: 0, height: 5, background: "linear-gradient(90deg, var(--gold-dark), #e2c069, var(--gold-dark))" }} />
+        <div style={{ fontSize: "2.1rem", marginBottom: "0.6rem" }}>🎉</div>
+        <div className="display" style={{ fontSize: "1.5rem", fontWeight: 800, color: BRAND_DARK, marginBottom: "0.5rem" }}>
           שלום, {name}!
         </div>
         <div style={{ fontSize: "1rem", color: "#4a5568", lineHeight: 1.6 }}>
           ברוכים הבאים<br />
           לתוכנת ניהול גמ״ח חסדי אהרן
         </div>
-        <div style={{ marginTop: "1.25rem", height: 4, background: "#eef0f4", borderRadius: 2, overflow: "hidden" }}>
-          <div style={{ height: "100%", background: BRAND, borderRadius: 2, animation: "splashBar 2.2s linear forwards" }} />
+        <div style={{ marginTop: "1.4rem", height: 5, background: "#eef0f4", borderRadius: 999, overflow: "hidden" }}>
+          <div style={{ height: "100%", background: "linear-gradient(90deg, var(--brand), var(--gold))", borderRadius: 999, animation: "splashBar 2.2s linear forwards" }} />
         </div>
       </div>
     </div>

@@ -273,7 +273,7 @@ export default function TransactionsPage() {
                   {selectedMember && selMemberSavings > 0 ? (
                     <>
                       <label style={lbl}>סיווג המשיכה <Req /></label>
-                      <div style={{ fontSize: ".78rem", background: "#f0faf6", border: "1px solid #c6e9d8", borderRadius: 7, padding: "0.35rem 0.6rem", marginBottom: 6, color: "#1e6f5c" }}>
+                      <div style={{ fontSize: ".78rem", background: "#f0faf6", border: "1px solid #c6e9d8", borderRadius: 7, padding: "0.35rem 0.6rem", marginBottom: 6, color: "#107a5e" }}>
                         יתרת פיקדון לחבר: <strong>{ils(selMemberSavings)}</strong> — בחר האם משיכת פיקדון או הלוואה:
                       </div>
                       <select
@@ -479,7 +479,7 @@ const lbl: React.CSSProperties = { fontSize: ".78rem", color: "#7a8699", fontWei
 const overlay: React.CSSProperties = { position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem", backdropFilter: "blur(2px)" };
 const modalBox: React.CSSProperties = { background: "#fff", borderRadius: 16, boxShadow: "0 20px 60px rgba(0,0,0,.2)", width: "100%", maxWidth: 500, padding: "1.75rem", direction: "rtl", animation: "modalIn 0.18s ease" };
 const modalHeader: React.CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" };
-const modalTitle: React.CSSProperties = { margin: 0, fontSize: "1.15rem", fontWeight: 800, color: "#1e6f5c" };
+const modalTitle: React.CSSProperties = { margin: 0, fontSize: "1.15rem", fontWeight: 800, color: "#107a5e" };
 const closeBtn: React.CSSProperties = { background: "none", border: "none", cursor: "pointer", fontSize: "1.2rem", color: "#9aa5b5" };
-const saveBtnStyle: React.CSSProperties = { padding: "0.55rem 1.2rem", background: "#1e6f5c", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".9rem", cursor: "pointer" };
-const ghostBtnStyle: React.CSSProperties = { padding: "0.55rem 1.2rem", background: "#eef2f1", color: "#1e6f5c", border: "none", borderRadius: 8, fontWeight: 600, fontSize: ".9rem", cursor: "pointer" };
+const saveBtnStyle: React.CSSProperties = { padding: "0.55rem 1.2rem", background: "#107a5e", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".9rem", cursor: "pointer" };
+const ghostBtnStyle: React.CSSProperties = { padding: "0.55rem 1.2rem", background: "#eef2f1", color: "#107a5e", border: "none", borderRadius: 8, fontWeight: 600, fontSize: ".9rem", cursor: "pointer" };
