@@ -364,7 +364,7 @@ export default function ImportPage() {
       </div>
 
       {error && (
-        <div style={{ background: "#fde8e8", color: "#c0392b", padding: "0.75rem 1rem", borderRadius: 10, marginBottom: 16, display: "flex", alignItems: "center", gap: 8, fontSize: ".88rem" }}>
+        <div style={{ background: "var(--red-bg)", color: "#c0392b", padding: "0.75rem 1rem", borderRadius: "var(--r)", marginBottom: 16, display: "flex", alignItems: "center", gap: 8, fontSize: ".88rem", border: "1px solid #f3c9c9" }}>
           <AlertTriangle size={18} /> {error}
         </div>
       )}
@@ -376,10 +376,10 @@ export default function ImportPage() {
             onClick={() => fileRef.current?.click()}
             onDragOver={e => e.preventDefault()}
             onDrop={e => { e.preventDefault(); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); }}
-            style={{ border: `2px dashed #cdd6df`, borderRadius: 16, padding: "3rem 2rem", textAlign: "center", cursor: "pointer", background: "#fafbfc" }}
+            style={{ border: `2px dashed var(--line)`, borderRadius: "var(--r-lg)", padding: "3rem 2rem", textAlign: "center", cursor: "pointer", background: "var(--brand-soft)" }}
           >
             <UploadCloud size={48} color={BRAND} style={{ opacity: .8 }} />
-            <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "#1a1a2e", marginTop: 12 }}>גרור לכאן קובץ אקסל או לחץ לבחירה</div>
+            <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--text)", marginTop: 12 }}>גרור לכאן קובץ אקסל או לחץ לבחירה</div>
             <div style={{ fontSize: ".85rem", color: "#9aa5b5", marginTop: 6 }}>נתמכים: .xlsx · .xls · .csv</div>
             <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" style={{ display: "none" }}
               onChange={e => { if (e.target.files?.[0]) handleFile(e.target.files[0]); }} />
@@ -395,6 +395,7 @@ export default function ImportPage() {
       {step === 2 && (
         <Card>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, color: BRAND, fontWeight: 700 }}>
+            <span className="section-bar" style={{ marginInlineEnd: 8 }} />
             <FileSpreadsheet size={20} /> {fileName}
           </div>
 
@@ -421,7 +422,9 @@ export default function ImportPage() {
             </select>
           </div>
 
-          <div style={{ fontSize: ".85rem", fontWeight: 700, color: "#2c3e50", margin: "16px 0 8px" }}>מיפוי עמודות</div>
+          <div style={{ display: "flex", alignItems: "center", fontSize: ".85rem", fontWeight: 700, color: "var(--text)", margin: "16px 0 8px" }}>
+            <span className="section-bar" style={{ marginInlineEnd: 8 }} />מיפוי עמודות
+          </div>
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: ".84rem" }}>
               <thead>
@@ -452,7 +455,7 @@ export default function ImportPage() {
           </div>
 
           {/* ברירות מחדל */}
-          <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginTop: 16, padding: "1rem", background: "#f8fafc", borderRadius: 10 }}>
+          <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginTop: 16, padding: "1rem", background: "var(--brand-soft)", border: "1px solid var(--line)", borderRadius: "var(--r)" }}>
             <div>
               <label style={lbl}>סוג ברירת מחדל (אם אין עמודת סוג)</label>
               <select value={defaultType} onChange={e => setDefaultType(e.target.value as any)} style={inp}>
@@ -487,8 +490,8 @@ export default function ImportPage() {
           </div>
 
           <Card style={{ marginBottom: 16, padding: 0 }}>
-            <div style={{ padding: "0.9rem 1.25rem", borderBottom: "1px solid #f0f2f5", fontWeight: 700, color: "#2c3e50" }}>
-              חברים — בחר מה לעשות עם כל אחד
+            <div style={{ display: "flex", alignItems: "center", padding: "0.9rem 1.25rem", borderBottom: "1px solid var(--line)", fontWeight: 700, color: "var(--text)" }}>
+              <span className="section-bar" style={{ marginInlineEnd: 8 }} />חברים — בחר מה לעשות עם כל אחד
             </div>
             <div style={{ maxHeight: 360, overflowY: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: ".85rem" }}>
@@ -530,11 +533,11 @@ export default function ImportPage() {
           </Card>
 
           <Card style={{ marginBottom: 16, padding: 0 }}>
-            <div style={{ padding: "0.9rem 1.25rem", borderBottom: "1px solid #f0f2f5", fontWeight: 700, color: "#2c3e50" }}>
-              דוגמת פעולות (50 ראשונות)
+            <div style={{ display: "flex", alignItems: "center", padding: "0.9rem 1.25rem", borderBottom: "1px solid var(--line)", fontWeight: 700, color: "var(--text)" }}>
+              <span className="section-bar" style={{ marginInlineEnd: 8 }} />דוגמת פעולות (50 ראשונות)
             </div>
             <div style={{ overflowX: "auto", maxHeight: 320, overflowY: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: ".83rem" }}>
+              <table className="table" style={{ width: "100%", borderCollapse: "collapse", fontSize: ".83rem" }}>
                 <thead>
                   <tr style={{ background: "#f8fafc", position: "sticky", top: 0 }}>
                     {["חבר", "סוג", "סכום", "תאריך", "אופן", "הערות"].map(h => (
@@ -570,7 +573,7 @@ export default function ImportPage() {
       {step === 4 && result && (
         <Card style={{ textAlign: "center", padding: "3rem 2rem" }}>
           <CheckCircle2 size={56} color={BRAND} />
-          <h2 style={{ fontSize: "1.4rem", fontWeight: 800, color: "#1a1a2e", margin: "1rem 0 0.5rem" }}>הייבוא הושלם בהצלחה!</h2>
+          <h2 className="display" style={{ fontSize: "1.4rem", fontWeight: 800, color: "var(--text)", margin: "1rem 0 0.5rem" }}>הייבוא הושלם בהצלחה!</h2>
           <div style={{ display: "flex", gap: 24, justifyContent: "center", margin: "1.5rem 0", flexWrap: "wrap" }}>
             <div><div style={{ fontSize: "1.8rem", fontWeight: 800, color: "#16a085" }}>{result.membersCreated}</div><div style={{ fontSize: ".8rem", color: "#9aa5b5" }}>חברים נוצרו</div></div>
             <div><div style={{ fontSize: "1.8rem", fontWeight: 800, color: BRAND }}>{result.txnsAdded}</div><div style={{ fontSize: ".8rem", color: "#9aa5b5" }}>פעולות נוספו</div></div>
@@ -588,7 +591,7 @@ export default function ImportPage() {
 
 function Stat({ label, value, color }: { label: string; value: string; color: string }) {
   return (
-    <div style={{ background: "#fff", borderRadius: 12, padding: "0.8rem 1.2rem", borderTop: `3px solid ${color}`, boxShadow: "var(--shadow)", flex: "1 1 130px" }}>
+    <div className="hover-lift" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: "var(--r-lg)", padding: "0.8rem 1.2rem", borderTop: `3px solid ${color}`, boxShadow: "var(--shadow)", flex: "1 1 130px" }}>
       <div style={{ fontSize: ".75rem", color: "#9aa5b5" }}>{label}</div>
       <div style={{ fontSize: "1.5rem", fontWeight: 800, color }}>{value}</div>
     </div>

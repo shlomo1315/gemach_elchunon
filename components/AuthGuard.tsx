@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import type { User } from "@supabase/supabase-js";
 import Sidebar from "./Sidebar";
 import MemberPortal from "./MemberPortal";
+import { LogoMark } from "./Logo";
 
 type Theme = "light" | "dark";
 type AuthCtx = { user: User | null; logout: () => void; theme: Theme; toggleTheme: () => void };
@@ -57,14 +58,9 @@ function LoginPage({ onLogin }: { onLogin: (u: User) => void }) {
         {/* פס זהב עליון — חתימת המותג */}
         <div style={{ position: "absolute", top: 0, insetInline: 0, height: 5, background: "linear-gradient(90deg, var(--gold-dark), #e2c069, var(--gold-dark))" }} />
         <div style={{ textAlign: "center", marginBottom: "1.9rem" }}>
-          <div style={{
-            width: 72, height: 72, margin: "0 auto 1.1rem", borderRadius: 20,
-            background: `linear-gradient(135deg, #18996f 0%, ${BRAND} 50%, ${BRAND_DARK} 100%)`,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            color: "#fff", fontSize: "1.7rem", fontWeight: 900, letterSpacing: "-.04em",
-            boxShadow: "0 14px 30px rgba(16,122,94,.4)",
-            border: "2px solid rgba(199,154,62,.55)",
-          }}>חא</div>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: "1.1rem" }}>
+            <LogoMark size={76} />
+          </div>
           <h1 className="display" style={{ margin: 0, fontSize: "1.7rem", fontWeight: 800, color: BRAND_DARK }}>
             גמ״ח חסדי אהרן
           </h1>
@@ -135,7 +131,9 @@ function SplashCard({ user, onDone }: { user: User; onDone: () => void }) {
         animation: "modalIn 0.25s ease",
       }}>
         <div style={{ position: "absolute", top: 0, insetInline: 0, height: 5, background: "linear-gradient(90deg, var(--gold-dark), #e2c069, var(--gold-dark))" }} />
-        <div style={{ fontSize: "2.1rem", marginBottom: "0.6rem" }}>🎉</div>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: "0.85rem" }}>
+          <LogoMark size={58} />
+        </div>
         <div className="display" style={{ fontSize: "1.5rem", fontWeight: 800, color: BRAND_DARK, marginBottom: "0.5rem" }}>
           שלום, {name}!
         </div>

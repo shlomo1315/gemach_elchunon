@@ -18,8 +18,9 @@ const lbl: React.CSSProperties = { fontSize: ".82rem", fontWeight: 600, color: "
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <Card style={{ marginBottom: 16 }}>
-      <h3 style={{ margin: "0 0 1.25rem", fontSize: "1rem", fontWeight: 800, color: "#2c3e50", borderBottom: "1px solid #eef0f4", paddingBottom: "0.75rem" }}>
+    <Card hover style={{ marginBottom: 16 }}>
+      <h3 className="display" style={{ margin: "0 0 1.25rem", fontSize: "1rem", fontWeight: 800, color: "var(--text)", borderBottom: "1px solid var(--line)", paddingBottom: "0.75rem", display: "flex", alignItems: "center" }}>
+        <span className="section-bar" style={{ marginInlineEnd: 8 }} />
         {title}
       </h3>
       {children}
@@ -135,8 +136,8 @@ function DeletedTransactionsTab() {
       <div style={{ marginBottom: 14, fontSize: ".82rem", color: "#7a8699", background: "#f0faf6", border: "1px solid #d1ede6", padding: "0.65rem 1rem", borderRadius: 10, lineHeight: 1.6 }}>
         💡 כל פעולה שנמחקת מהמערכת נשמרת כאן עם תאריך המחיקה. ניתן לשחזר כל פעולה בנפרד לכרטסת החבר.
       </div>
-      <div style={{ overflowX: "auto", background: "#fff", borderRadius: 14, boxShadow: "0 2px 10px rgba(0,0,0,.07)", border: "1px solid #eef0f4" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: ".86rem", tableLayout: "auto" }}>
+      <div style={{ overflowX: "auto", background: "#fff", borderRadius: "var(--r-lg)", boxShadow: "var(--shadow)", border: "1px solid var(--line)" }}>
+        <table className="table" style={{ width: "100%", borderCollapse: "collapse", fontSize: ".86rem", tableLayout: "auto" }}>
           <thead>
             <tr>
               <th style={TH("130px")}>חבר</th>
@@ -151,7 +152,7 @@ function DeletedTransactionsTab() {
           <tbody>
             {rows.map((row, i) => (
               <tr key={row.id} style={{ background: i % 2 === 0 ? "#fff" : "#fafbfc" }}>
-                <td style={{ ...TD, fontWeight: 700, color: "#1a1a2e", whiteSpace: "nowrap" }}>{row.member_name || "—"}</td>
+                <td style={{ ...TD, fontWeight: 700, color: "var(--text)", whiteSpace: "nowrap" }}>{row.member_name || "—"}</td>
                 <td style={{ ...TD, textAlign: "center" }}>
                   <span style={{ display: "inline-block", padding: "0.18rem 0.6rem", borderRadius: 999, fontSize: ".76rem", fontWeight: 700, whiteSpace: "nowrap", background: row.type === "משיכה" ? "#fde8e8" : "#e8f5f0", color: row.type === "משיכה" ? RED : BRAND }}>
                     {row.type || "—"}

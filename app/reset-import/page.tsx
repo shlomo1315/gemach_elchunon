@@ -187,7 +187,7 @@ export default function ResetImportPage() {
       <PageTitle>איפוס וייבוא נתונים</PageTitle>
 
       {!done && (
-        <div style={{ background: "#fff8e1", border: "1px solid #f59e0b40", borderRadius: 12, padding: "1rem 1.25rem", marginBottom: 16, display: "flex", gap: 10, alignItems: "flex-start" }}>
+        <div className="hover-lift" style={{ background: "var(--gold-soft)", border: "1px solid #f59e0b40", borderRadius: "var(--r)", padding: "1rem 1.25rem", marginBottom: 16, display: "flex", gap: 10, alignItems: "flex-start" }}>
           <AlertTriangle size={20} color="#b7791f" style={{ flexShrink: 0, marginTop: 2 }} />
           <div style={{ fontSize: ".88rem", color: "#7a5b18", lineHeight: 1.6 }}>
             <strong>שים לב:</strong> פעולה זו תמחק את <strong>כל</strong> החברים והפעולות הקיימים במערכת ותטען מחדש את הנתונים מהקובץ. ודא שיש לך גיבוי.
@@ -196,7 +196,7 @@ export default function ResetImportPage() {
       )}
 
       {error && (
-        <div style={{ background: "#fde8e8", color: "#c0392b", padding: "0.75rem 1rem", borderRadius: 10, marginBottom: 16, display: "flex", gap: 8, alignItems: "center", fontSize: ".88rem" }}>
+        <div style={{ background: "var(--red-bg)", color: "#c0392b", padding: "0.75rem 1rem", borderRadius: "var(--r)", marginBottom: 16, display: "flex", gap: 8, alignItems: "center", fontSize: ".88rem", border: "1px solid #f3c9c9" }}>
           <AlertTriangle size={18} /> {error}
         </div>
       )}
@@ -204,7 +204,7 @@ export default function ResetImportPage() {
       {done ? (
         <Card style={{ textAlign: "center", padding: "3rem 2rem" }}>
           <CheckCircle2 size={56} color={BRAND} />
-          <h2 style={{ fontSize: "1.4rem", fontWeight: 800, margin: "1rem 0 0.5rem" }}>הייבוא הושלם בהצלחה!</h2>
+          <h2 className="display" style={{ fontSize: "1.4rem", fontWeight: 800, color: "var(--text)", margin: "1rem 0 0.5rem" }}>הייבוא הושלם בהצלחה!</h2>
           <div style={{ display: "flex", gap: 28, justifyContent: "center", margin: "1.5rem 0" }}>
             <div><div style={{ fontSize: "1.8rem", fontWeight: 800, color: "#16a085" }}>{done.members}</div><div style={{ fontSize: ".8rem", color: "#9aa5b5" }}>חברים</div></div>
             <div><div style={{ fontSize: "1.8rem", fontWeight: 800, color: BRAND }}>{done.txns}</div><div style={{ fontSize: ".8rem", color: "#9aa5b5" }}>פעולות</div></div>
@@ -220,10 +220,10 @@ export default function ResetImportPage() {
             onClick={() => fileRef.current?.click()}
             onDragOver={e => e.preventDefault()}
             onDrop={e => { e.preventDefault(); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); }}
-            style={{ border: "2px dashed #cdd6df", borderRadius: 16, padding: "3rem 2rem", textAlign: "center", cursor: "pointer", background: "#fafbfc" }}
+            style={{ border: "2px dashed var(--line)", borderRadius: "var(--r-lg)", padding: "3rem 2rem", textAlign: "center", cursor: "pointer", background: "var(--brand-soft)" }}
           >
             <UploadCloud size={48} color={BRAND} style={{ opacity: .8 }} />
-            <div style={{ fontSize: "1.1rem", fontWeight: 700, marginTop: 12 }}>העלה את קובץ הגמ״ח (.xlsm / .xlsx)</div>
+            <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--text)", marginTop: 12 }}>העלה את קובץ הגמ״ח (.xlsm / .xlsx)</div>
             <div style={{ fontSize: ".85rem", color: "#9aa5b5", marginTop: 6 }}>גרור לכאן או לחץ לבחירה</div>
             <input ref={fileRef} type="file" accept=".xlsm,.xlsx,.xls" style={{ display: "none" }}
               onChange={e => { if (e.target.files?.[0]) handleFile(e.target.files[0]); }} />
@@ -233,6 +233,7 @@ export default function ResetImportPage() {
         <>
           <Card style={{ marginBottom: 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, color: BRAND, fontWeight: 700, marginBottom: 16 }}>
+              <span className="section-bar" style={{ marginInlineEnd: 8 }} />
               <FileSpreadsheet size={20} /> {fileName}
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -262,7 +263,7 @@ export default function ResetImportPage() {
           ) : (
             <Card style={{ textAlign: "center", padding: "2.5rem" }}>
               <Loader2 size={40} color={BRAND} className="spin" style={{ animation: "spin 1s linear infinite" }} />
-              <div style={{ marginTop: 14, fontSize: ".95rem", fontWeight: 600, color: "#2c3e50" }}>{progress}</div>
+              <div style={{ marginTop: 14, fontSize: ".95rem", fontWeight: 600, color: "var(--text)" }}>{progress}</div>
               <div style={{ marginTop: 6, fontSize: ".82rem", color: "#9aa5b5" }}>אנא אל תסגור את הדף</div>
             </Card>
           )}
@@ -276,7 +277,7 @@ export default function ResetImportPage() {
 
 function Box({ label, value, color, wide }: { label: string; value: string; color: string; wide?: boolean }) {
   return (
-    <div style={{ background: "#f8fafc", borderRadius: 12, padding: "0.85rem 1.1rem", borderRight: `4px solid ${color}`, gridColumn: wide ? "1 / -1" : undefined }}>
+    <div className="hover-lift" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: "var(--r-lg)", boxShadow: "var(--shadow)", padding: "0.85rem 1.1rem", borderRight: `4px solid ${color}`, gridColumn: wide ? "1 / -1" : undefined }}>
       <div style={{ fontSize: ".75rem", color: "#9aa5b5", marginBottom: 3 }}>{label}</div>
       <div style={{ fontSize: "1.45rem", fontWeight: 800, color }}>{value}</div>
     </div>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Users, ArrowLeftRight, BarChart3, LogOut, Settings, Upload, Sun, Moon, Inbox } from "lucide-react";
 import { useAuth } from "./AuthGuard";
+import { Logo } from "./Logo";
 
 const links = [
   { href: "/", label: "ראשי", icon: LayoutDashboard },
@@ -37,18 +38,8 @@ export default function Sidebar() {
       <div style={{ position: "absolute", top: 0, bottom: 0, insetInlineStart: 0, width: 3, background: "linear-gradient(180deg, var(--gold), transparent 60%)", opacity: .55, pointerEvents: "none" }} />
 
       {/* לוגו ומותג */}
-      <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 12, padding: "0 0.3rem 1.25rem", borderBottom: "1px solid rgba(255,255,255,.13)", marginBottom: "1.1rem" }}>
-        <div style={{
-          width: 46, height: 46, borderRadius: 14, flexShrink: 0,
-          background: "linear-gradient(135deg, #e2c069 0%, var(--gold) 55%, var(--gold-dark) 100%)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: "1.2rem", fontWeight: 900, letterSpacing: "-.04em", color: "#0c5642",
-          boxShadow: "0 8px 20px rgba(199,154,62,.42), inset 0 1px 1px rgba(255,255,255,.5)",
-        }}>חא</div>
-        <div>
-          <div className="display" style={{ fontSize: "1.18rem", fontWeight: 800, lineHeight: 1.2 }}>גמ״ח חסדי אהרן</div>
-          <div style={{ fontSize: ".7rem", opacity: 0.62, marginTop: 2, letterSpacing: ".04em" }}>מערכת ניהול</div>
-        </div>
+      <div style={{ position: "relative", padding: "0 0.3rem 1.25rem", borderBottom: "1px solid rgba(255,255,255,.13)", marginBottom: "1.1rem" }}>
+        <Logo onDark size={46} />
       </div>
 
       <nav style={{ position: "relative", display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>

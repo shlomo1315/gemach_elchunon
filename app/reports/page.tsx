@@ -11,12 +11,13 @@ import { Loading } from "@/components/ui";
 import type { Transaction, MemberBalance } from "@/types";
 
 const BRAND = "#107a5e";
+const GOLD = "#c79a3e";
 const RED = "#e05252";
 const BLUE = "#3b82f6";
 const ORANGE = "#f59e0b";
 const PURPLE = "#8b5cf6";
 const CYAN = "#06b6d4";
-const PALETTE = [BRAND, BLUE, ORANGE, PURPLE, CYAN, "#ec4899", "#84cc16"];
+const PALETTE = [BRAND, GOLD, BLUE, ORANGE, PURPLE, CYAN, "#ec4899", "#84cc16"];
 
 type Tab = "overview" | "methods" | "top" | "trend";
 
@@ -29,35 +30,41 @@ const TABS: { id: Tab; label: string }[] = [
 
 function Chip({ label, value, color, sub }: { label: string; value: string; color: string; sub?: string }) {
   return (
-    <div style={{
-      flex: "1 1 150px", background: "#fff", borderRadius: 14,
-      padding: "1rem 1.25rem", boxShadow: "0 2px 8px rgba(0,0,0,.05)",
-      borderTop: `4px solid ${color}`,
+    <div className="hover-lift" style={{
+      position: "relative", overflow: "hidden",
+      flex: "1 1 150px", background: "#fff", border: "1px solid var(--line)", borderRadius: "var(--r-lg)",
+      padding: "1rem 1.25rem", boxShadow: "var(--shadow)",
     }}>
-      <div style={{ fontSize: ".75rem", color: "#9aa5b5", marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: "1.55rem", fontWeight: 800, color }}>{value}</div>
-      {sub && <div style={{ fontSize: ".72rem", color: "#b0bac7", marginTop: 2 }}>{sub}</div>}
+      <div style={{ position: "absolute", insetInlineStart: 0, insetInlineEnd: 0, top: 0, height: 4, background: `linear-gradient(90deg, ${color}, ${color}2e)` }} />
+      <div style={{ fontSize: ".75rem", color: "var(--muted)", fontWeight: 600, marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: "1.55rem", fontWeight: 800, color, fontVariantNumeric: "tabular-nums" }}>{value}</div>
+      {sub && <div style={{ fontSize: ".72rem", color: "var(--faint)", marginTop: 2 }}>{sub}</div>}
     </div>
   );
 }
 
 function Panel({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ background: "#fff", borderRadius: 16, padding: "1.25rem", boxShadow: "var(--shadow)", marginBottom: 16 }}>
+    <div className="hover-lift" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: "var(--r-lg)", padding: "1.25rem", boxShadow: "var(--shadow)", marginBottom: 16 }}>
       {children}
     </div>
   );
 }
 
 function PanelTitle({ children }: { children: React.ReactNode }) {
-  return <h3 style={{ margin: "0 0 1rem", fontSize: ".95rem", fontWeight: 800, color: "#2c3e50" }}>{children}</h3>;
+  return (
+    <h3 className="display" style={{ margin: "0 0 1rem", fontSize: "1.02rem", fontWeight: 800, color: "var(--text)", display: "flex", alignItems: "center" }}>
+      <span className="section-bar" style={{ marginInlineEnd: 8 }} />
+      {children}
+    </h3>
+  );
 }
 
 function IlsTip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   return (
-    <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, padding: "0.5rem 0.9rem", fontSize: ".83rem", direction: "rtl", boxShadow: "0 4px 12px rgba(0,0,0,.1)" }}>
-      {label && <div style={{ fontWeight: 700, marginBottom: 4, color: "#1a1a2e" }}>{label}</div>}
+    <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: "var(--r)", padding: "0.5rem 0.9rem", fontSize: ".83rem", direction: "rtl", boxShadow: "var(--shadow-md)" }}>
+      {label && <div style={{ fontWeight: 700, marginBottom: 4, color: "var(--text)" }}>{label}</div>}
       {payload.map((p: any, i: number) => (
         <div key={i} style={{ color: p.color || BRAND }}>
           {p.name ? `${p.name}: ` : ""}<strong>{ils(p.value)}</strong>
@@ -128,7 +135,7 @@ export default function ReportsPage() {
   return (
     <div style={{ direction: "rtl" }}>
       <div style={{ marginBottom: "1.25rem" }}>
-        <h1 style={{ margin: 0, fontSize: "1.5rem", fontWeight: 800, color: "#1a1a2e" }}>דוחות וניתוח</h1>
+        <h1 style={{ margin: 0, fontSize: "1.5rem", fontWeight: 800, color: "var(--text)" }}>דוחות וניתוח</h1>
       </div>
 
       {/* KPI */}

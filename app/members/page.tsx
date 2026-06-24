@@ -228,26 +228,27 @@ export default function MembersPage() {
           { label: "עם יתרה חיובית", value: withBalance, color: "#2980b9" },
           { label: "ללא פעולות", value: members.filter(m => m.txn_count === 0).length, color: "#7a8699" },
         ].map(({ label, value, color }) => (
-          <div key={label} style={{ background: "#fff", borderRadius: 12, padding: "0.7rem 1.1rem", border: `1.5px solid ${color}22`, flex: "1 1 120px", boxShadow: "0 1px 3px rgba(0,0,0,.05)" }}>
-            <div style={{ fontSize: ".75rem", color: "#9aa5b5" }}>{label}</div>
-            <div style={{ fontSize: "1.4rem", fontWeight: 800, color }}>{value}</div>
+          <div key={label} className="hover-lift" style={{ position: "relative", overflow: "hidden", background: "#fff", borderRadius: "var(--r-lg)", padding: "0.85rem 1.1rem 0.7rem", border: "1px solid var(--line)", flex: "1 1 120px", boxShadow: "var(--shadow)" }}>
+            <div style={{ position: "absolute", insetInlineStart: 0, insetInlineEnd: 0, top: 0, height: 4, background: `linear-gradient(90deg, ${color}, ${color}2e)` }} />
+            <div style={{ fontSize: ".75rem", color: "var(--muted)", fontWeight: 600 }}>{label}</div>
+            <div style={{ fontSize: "1.4rem", fontWeight: 800, color, fontVariantNumeric: "tabular-nums" }}>{value}</div>
           </div>
         ))}
       </div>
 
       {/* חיפוש */}
-      <div style={{ background: "#fff", borderRadius: 12, padding: "0.75rem 1rem", boxShadow: "var(--shadow)", marginBottom: 12 }}>
+      <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: "var(--r-lg)", padding: "0.75rem 1rem", boxShadow: "var(--shadow)", marginBottom: 12 }}>
         <input placeholder="🔍 חיפוש לפי שם / קוד / טלפון / כתובת…" value={q} onChange={e => setQ(e.target.value)}
           style={{ ...inp, border: "1.5px solid #e2e8f0", background: "#f8fafc" }} />
       </div>
 
       {/* טבלה */}
-      <div style={{ background: "#fff", borderRadius: 14, boxShadow: "0 1px 4px rgba(0,0,0,.08)", overflow: "hidden" }}>
+      <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: "var(--r-lg)", boxShadow: "var(--shadow)", overflow: "hidden" }}>
         {filtered.length === 0 ? (
           <Empty text="לא נמצאו חברים" />
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <table className="table" style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ background: "#f0f4f3" }}>
                   <th style={{ padding: "0.7rem 1rem", textAlign: "right", fontSize: ".85rem", fontWeight: 700, color: "#2c3e50" }}>שם ומשפחה</th>
@@ -269,7 +270,7 @@ export default function MembersPage() {
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <Avatar name={m.name || "?"} />
                         <div>
-                          <div style={{ fontWeight: 700, fontSize: ".9rem", color: "#1a1a2e" }}>{m.name || "—"}</div>
+                          <div style={{ fontWeight: 700, fontSize: ".9rem", color: "var(--text)" }}>{m.name || "—"}</div>
                           {m.address && <div style={{ fontSize: ".75rem", color: "#9aa5b5", marginTop: 1 }}>{m.address}</div>}
                         </div>
                       </div>
@@ -318,13 +319,13 @@ export default function MembersPage() {
         <div onClick={e => { if (e.target === e.currentTarget) setViewing(null); }} style={overlay}>
           <div style={modalBox}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" }}>
-              <h2 style={{ margin: 0, fontSize: "1.15rem", fontWeight: 800, color: "#3b82f6" }}>פרטי חבר</h2>
+              <h2 style={{ margin: 0, fontSize: "1.15rem", fontWeight: 800, color: "#3b82f6" }}><span className="section-bar" style={{ marginInlineEnd: 8, verticalAlign: "middle" }} />פרטי חבר</h2>
               <button onClick={() => setViewing(null)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.2rem", color: "#9aa5b5" }}>✕</button>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: "1.25rem", padding: "0.75rem 1rem", background: "#f8fafc", borderRadius: 12 }}>
               <Avatar name={viewing.name || "?"} />
               <div>
-                <div style={{ fontWeight: 800, fontSize: "1.05rem", color: "#1a1a2e" }}>{viewing.name}</div>
+                <div style={{ fontWeight: 800, fontSize: "1.05rem", color: "var(--text)" }}>{viewing.name}</div>
                 {viewing.address && <div style={{ fontSize: ".8rem", color: "#9aa5b5", marginTop: 2 }}>{viewing.address}</div>}
               </div>
             </div>
@@ -338,7 +339,7 @@ export default function MembersPage() {
               ] as [string, string][]).map(([l, v]) => (
                 <div key={l}>
                   <div style={{ fontSize: ".73rem", color: "#9aa5b5", marginBottom: 2 }}>{l}</div>
-                  <div style={{ fontWeight: 600, color: l === "יתרה" ? (viewing.balance > 0 ? BRAND : viewing.balance < 0 ? RED : "#7a8699") : "#1a1a2e" }}>{v}</div>
+                  <div style={{ fontWeight: 600, color: l === "יתרה" ? (viewing.balance > 0 ? BRAND : viewing.balance < 0 ? RED : "#7a8699") : "var(--text)" }}>{v}</div>
                 </div>
               ))}
             </div>
@@ -355,7 +356,7 @@ export default function MembersPage() {
         <div onClick={e => { if (e.target === e.currentTarget) setEditing(null); }} style={overlay}>
           <div style={modalBox}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" }}>
-              <h2 style={{ margin: 0, fontSize: "1.15rem", fontWeight: 800, color: "#f59e0b" }}>עריכת חבר</h2>
+              <h2 style={{ margin: 0, fontSize: "1.15rem", fontWeight: 800, color: "#f59e0b" }}><span className="section-bar" style={{ marginInlineEnd: 8, verticalAlign: "middle" }} />עריכת חבר</h2>
               <button onClick={() => setEditing(null)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.2rem", color: "#9aa5b5" }}>✕</button>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
@@ -409,7 +410,7 @@ export default function MembersPage() {
         <div onClick={e => { if (e.target === e.currentTarget) closeAdd(); }} style={overlay}>
           <div style={modalBox}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
-              <h2 style={{ margin: 0, fontSize: "1.2rem", fontWeight: 800, color: BRAND }}>👤 חבר חדש</h2>
+              <h2 style={{ margin: 0, fontSize: "1.2rem", fontWeight: 800, color: BRAND }}><span className="section-bar" style={{ marginInlineEnd: 8, verticalAlign: "middle" }} />👤 חבר חדש</h2>
               <button onClick={closeAdd} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.3rem", color: "#9aa5b5", lineHeight: 1 }}>✕</button>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>

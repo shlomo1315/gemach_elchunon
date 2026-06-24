@@ -237,7 +237,7 @@ export default function TransactionsPage() {
         <div onClick={e => { if (e.target === e.currentTarget) closeModal(); }} style={overlay}>
           <div style={modalBox}>
             <div style={modalHeader}>
-              <h2 style={modalTitle}>+ פעולה חדשה</h2>
+              <h2 style={modalTitle}><span className="section-bar" style={{ marginInlineEnd: 8, verticalAlign: "middle" }} />+ פעולה חדשה</h2>
               <button onClick={closeModal} style={closeBtn}>✕</button>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
@@ -324,9 +324,9 @@ export default function TransactionsPage() {
           </select>
         </div>
         <div style={{ display: "flex", gap: 20, marginTop: 12, fontSize: ".9rem" }}>
-          <span>הפקדות: <strong style={{ color: "#1e7d4f" }}>{ils(totals.dep)}</strong></span>
-          <span>משיכות: <strong style={{ color: "#c0392b" }}>{ils(totals.wit)}</strong></span>
-          <span>נטו: <strong style={{ color: "var(--brand)" }}>{ils(totals.net)}</strong></span>
+          <span style={{ color: "var(--muted)" }}>הפקדות: <strong style={{ color: "#1e7d4f", fontVariantNumeric: "tabular-nums" }}>{ils(totals.dep)}</strong></span>
+          <span style={{ color: "var(--muted)" }}>משיכות: <strong style={{ color: "#c0392b", fontVariantNumeric: "tabular-nums" }}>{ils(totals.wit)}</strong></span>
+          <span style={{ color: "var(--muted)" }}>נטו: <strong style={{ color: "var(--brand)", fontVariantNumeric: "tabular-nums" }}>{ils(totals.net)}</strong></span>
         </div>
       </Card>
 
@@ -374,7 +374,7 @@ export default function TransactionsPage() {
         <div onClick={e => { if (e.target === e.currentTarget) setViewing(null); }} style={overlay}>
           <div style={modalBox}>
             <div style={modalHeader}>
-              <h2 style={{ ...modalTitle, color: "#3b82f6" }}>פרטי פעולה</h2>
+              <h2 style={{ ...modalTitle, color: "#3b82f6" }}><span className="section-bar" style={{ marginInlineEnd: 8, verticalAlign: "middle" }} />פרטי פעולה</h2>
               <button onClick={() => setViewing(null)} style={closeBtn}>✕</button>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.9rem 1.5rem" }}>
@@ -404,11 +404,11 @@ export default function TransactionsPage() {
         <div onClick={e => { if (e.target === e.currentTarget) setEditing(null); }} style={overlay}>
           <div style={modalBox}>
             <div style={modalHeader}>
-              <h2 style={{ ...modalTitle, color: "#f59e0b" }}>עריכת פעולה</h2>
+              <h2 style={{ ...modalTitle, color: "#f59e0b" }}><span className="section-bar" style={{ marginInlineEnd: 8, verticalAlign: "middle" }} />עריכת פעולה</h2>
               <button onClick={() => setEditing(null)} style={closeBtn}>✕</button>
             </div>
             <div style={{ fontSize: ".82rem", color: "#7a8699", marginBottom: "1rem" }}>
-              חבר: <strong style={{ color: "#1a1a2e" }}>{editing.members?.name || "—"}</strong>
+              חבר: <strong style={{ color: "var(--text)" }}>{editing.members?.name || "—"}</strong>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
               <div>

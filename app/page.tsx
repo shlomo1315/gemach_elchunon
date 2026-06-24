@@ -408,9 +408,9 @@ export default function Dashboard() {
       )}
 
       {/* פעילות לפי תקופה */}
-      <div style={{ background: "#fff", borderRadius: 16, boxShadow: "var(--shadow)", padding: "1.1rem 1.25rem", marginBottom: 20 }}>
+      <div style={{ background: "#fff", borderRadius: "var(--r-lg)", border: "1px solid var(--line)", boxShadow: "var(--shadow)", padding: "1.1rem 1.25rem", marginBottom: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
-          <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 800, color: "#1a1a2e", display: "flex", alignItems: "center", gap: 7 }}>
+          <h3 className="display" style={{ margin: 0, fontSize: "1.08rem", fontWeight: 800, color: "var(--text)", display: "flex", alignItems: "center", gap: 8 }}>
             <Clock size={18} color={BRAND} /> פעילות {PERIOD_LABEL[period]}
           </h3>
           <div style={{ display: "inline-flex", background: "#f0f4f3", borderRadius: 999, padding: 3, gap: 2 }}>
@@ -442,9 +442,9 @@ export default function Dashboard() {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 16, alignItems: "start" }}>
 
         {/* פעולות אחרונות */}
-        <div style={{ background: "#fff", borderRadius: 16, boxShadow: "var(--shadow)", overflow: "hidden" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1.1rem 1.25rem", borderBottom: "1px solid #f0f2f5" }}>
-            <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 800, color: "#1a1a2e" }}>פעולות אחרונות</h3>
+        <div style={{ background: "#fff", borderRadius: "var(--r-lg)", border: "1px solid var(--line)", boxShadow: "var(--shadow)", overflow: "hidden" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1.1rem 1.25rem", borderBottom: "1px solid var(--line-soft)" }}>
+            <h3 className="display" style={{ margin: 0, fontSize: "1.08rem", fontWeight: 800, color: "var(--text)", display: "flex", alignItems: "center", gap: 8 }}><span className="section-bar" />פעולות אחרונות</h3>
             <Link href="/transactions" style={{ fontSize: ".78rem", color: BRAND, fontWeight: 600, textDecoration: "none" }}>
               כל הפעולות ←
             </Link>
@@ -499,8 +499,8 @@ export default function Dashboard() {
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
 
           {/* פאי */}
-          <div style={{ background: "#fff", borderRadius: 16, padding: "1.1rem 1.25rem", boxShadow: "var(--shadow)" }}>
-            <h3 style={{ margin: "0 0 0.75rem", fontSize: "1rem", fontWeight: 800, color: "#1a1a2e" }}>הפקדות מול משיכות</h3>
+          <div className="hover-lift" style={{ background: "#fff", borderRadius: "var(--r-lg)", border: "1px solid var(--line)", padding: "1.1rem 1.25rem", boxShadow: "var(--shadow)" }}>
+            <h3 className="display" style={{ margin: "0 0 0.75rem", fontSize: "1.05rem", fontWeight: 800, color: "var(--text)", display: "flex", alignItems: "center", gap: 8 }}><span className="section-bar" />הפקדות מול משיכות</h3>
             <div style={{ position: "relative" }}>
               <ResponsiveContainer width="100%" height={160}>
                 <PieChart>
@@ -527,9 +527,9 @@ export default function Dashboard() {
           </div>
 
           {/* יתרות מובילות */}
-          <div style={{ background: "#fff", borderRadius: 16, padding: "1.1rem 1.25rem", boxShadow: "var(--shadow)" }}>
+          <div className="hover-lift" style={{ background: "#fff", borderRadius: "var(--r-lg)", border: "1px solid var(--line)", padding: "1.1rem 1.25rem", boxShadow: "var(--shadow)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
-              <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 800, color: "#1a1a2e" }}>יתרות מובילות</h3>
+              <h3 className="display" style={{ margin: 0, fontSize: "1.05rem", fontWeight: 800, color: "var(--text)", display: "flex", alignItems: "center", gap: 8 }}><span className="section-bar" />יתרות מובילות</h3>
               <Link href="/members" style={{ fontSize: ".75rem", color: BRAND, fontWeight: 600, textDecoration: "none" }}>הכל ←</Link>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -559,8 +559,8 @@ export default function Dashboard() {
           </div>
 
           {/* קיצורי דרך */}
-          <div style={{ background: "#fff", borderRadius: 16, padding: "1.1rem 1.25rem", boxShadow: "var(--shadow)" }}>
-            <h3 style={{ margin: "0 0 0.75rem", fontSize: "1rem", fontWeight: 800, color: "#1a1a2e" }}>קיצורי דרך</h3>
+          <div className="hover-lift" style={{ background: "#fff", borderRadius: "var(--r-lg)", border: "1px solid var(--line)", padding: "1.1rem 1.25rem", boxShadow: "var(--shadow)" }}>
+            <h3 className="display" style={{ margin: "0 0 0.75rem", fontSize: "1.05rem", fontWeight: 800, color: "var(--text)", display: "flex", alignItems: "center", gap: 8 }}><span className="section-bar" />קיצורי דרך</h3>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <ShortcutBtn icon={<UserPlus size={17} />} label="הוספת חבר" color={BRAND} onClick={() => { setFormErr({}); setAddMember(true); }} />
               <ShortcutBtn icon={<CreditCard size={17} />} label="פעולה חדשה" color="#3b82f6" onClick={() => { setFormErr({}); setAddTxn(true); }} />

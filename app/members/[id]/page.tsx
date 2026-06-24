@@ -513,7 +513,10 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 18 }}>
         <Card style={{ flex: 1, minWidth: 280 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-            <h3 style={{ margin: 0, fontSize: "1rem" }}>פרטי החבר</h3>
+            <h3 className="display" style={{ margin: 0, fontSize: "1rem", display: "flex", alignItems: "center" }}>
+              <span className="section-bar" style={{ marginInlineEnd: 8 }} />
+              פרטי החבר
+            </h3>
             {!editInfo && (
               <button className="no-print btn btn-ghost btn-sm" onClick={startEditInfo}>
                 <Pencil size={14} /> ערוך פרטים
@@ -574,29 +577,32 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
             </div>
           )}
         </Card>
-        <Card style={{ flex: 1, minWidth: 260, display: "flex", flexDirection: "column", justifyContent: "center", gap: 6 }}>
-          <div style={{ fontSize: ".8rem", color: "#7a8699" }}>יתרה נוכחית</div>
-          <div style={{ fontSize: "2rem", fontWeight: 800, lineHeight: 1.1, color: member.balance >= 0 ? "var(--brand)" : "#c0392b" }}>
+        <Card hover style={{ flex: 1, minWidth: 260, display: "flex", flexDirection: "column", justifyContent: "center", gap: 6, position: "relative", overflow: "hidden" }}>
+          <div style={{ position: "absolute", insetInlineStart: 0, insetInlineEnd: 0, top: 0, height: 4, background: "var(--grad-brand)" }} />
+          <div style={{ fontSize: ".8rem", color: "var(--muted)", fontWeight: 600 }}>יתרה נוכחית</div>
+          <div className="display" style={{ fontSize: "2.15rem", fontWeight: 800, lineHeight: 1.1, fontVariantNumeric: "tabular-nums", color: member.balance >= 0 ? "var(--brand)" : "#c0392b" }}>
             {ils(member.balance)}
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 4 }}>
-            <div style={{ background: "#fef2f2", borderRadius: 8, padding: "0.4rem 0.6rem" }}>
-              <div style={{ fontSize: ".72rem", color: "#7a8699" }}>חוב הלוואות</div>
-              <div style={{ fontWeight: 800, color: (member.loan_balance ?? 0) > 0 ? "#c0392b" : "var(--brand)" }}>{ils(Math.max(0, member.loan_balance ?? 0))}</div>
+            <div style={{ background: "#fef2f2", borderRadius: "var(--r-sm)", padding: "0.55rem 0.6rem 0.45rem", position: "relative", overflow: "hidden" }}>
+              <div style={{ position: "absolute", insetInlineStart: 0, insetInlineEnd: 0, top: 0, height: 4, background: "linear-gradient(90deg, #c0392b, #c0392b2e)" }} />
+              <div style={{ fontSize: ".72rem", color: "var(--muted)" }}>חוב הלוואות</div>
+              <div style={{ fontWeight: 800, fontVariantNumeric: "tabular-nums", color: (member.loan_balance ?? 0) > 0 ? "#c0392b" : "var(--brand)" }}>{ils(Math.max(0, member.loan_balance ?? 0))}</div>
               {(member.loan_balance ?? 0) > 0 && (
                 <button className="no-print btn btn-primary btn-sm" onClick={downloadShtarChov} style={{ marginTop: 5 }}>
                   📄 שטר חוב
                 </button>
               )}
             </div>
-            <div style={{ background: "#f0faf6", borderRadius: 8, padding: "0.4rem 0.6rem" }}>
-              <div style={{ fontSize: ".72rem", color: "#7a8699" }}>יתרת חיסכון</div>
-              <div style={{ fontWeight: 800, color: "var(--brand)" }}>{ils(member.savings_balance ?? 0)}</div>
+            <div style={{ background: "#f0faf6", borderRadius: "var(--r-sm)", padding: "0.55rem 0.6rem 0.45rem", position: "relative", overflow: "hidden" }}>
+              <div style={{ position: "absolute", insetInlineStart: 0, insetInlineEnd: 0, top: 0, height: 4, background: "linear-gradient(90deg, var(--brand), #107a5e2e)" }} />
+              <div style={{ fontSize: ".72rem", color: "var(--muted)" }}>יתרת חיסכון</div>
+              <div style={{ fontWeight: 800, fontVariantNumeric: "tabular-nums", color: "var(--brand)" }}>{ils(member.savings_balance ?? 0)}</div>
             </div>
           </div>
           {checkStats.total > 0 && (
             <div style={{ marginTop: 2, fontSize: ".78rem", color: "#5a6b7b", background: "#f8fafc", borderRadius: 8, padding: "0.5rem 0.65rem", lineHeight: 1.7 }}>
-              <div><b style={{ color: "#1a1a2e" }}>שיקים:</b> {checkStats.total} במערכת · נפדו {checkStats.cashedCount} · ממתינים {checkStats.pendCount}</div>
+              <div><b style={{ color: "var(--text)" }}>שיקים:</b> {checkStats.total} במערכת · נפדו {checkStats.cashedCount} · ממתינים {checkStats.pendCount}</div>
               <div>צפי פרעון (ממתינים): <b>{ils(checkStats.pendSum)}</b> · נותר חוב: <b style={{ color: checkStats.projectedDebt > 0 ? "#c0392b" : "var(--brand)" }}>{ils(checkStats.projectedDebt)}</b></div>
             </div>
           )}
@@ -606,7 +612,10 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
 
       <Card style={{ padding: 0 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem 1.25rem 0" }}>
-          <h3 style={{ margin: 0 }}>היסטוריית פעולות</h3>
+          <h3 className="display" style={{ margin: 0, display: "flex", alignItems: "center" }}>
+            <span className="section-bar" style={{ marginInlineEnd: 8 }} />
+            היסטוריית פעולות
+          </h3>
           <div className="no-print" style={{ display: "flex", gap: 8 }}>
             {txns.length > 0 && (
               <button onClick={deleteAllTxns} disabled={deletingAll} className="btn btn-danger btn-sm">
@@ -659,7 +668,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
                     </td>
                     <td>{i + 1}</td>
                     <td><Badge type={t.type} /></td>
-                    <td style={{ fontWeight: 600, color: t.type === "משיכה" ? "#c0392b" : "#1e7d4f" }}>
+                    <td style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums", color: t.type === "משיכה" ? "#c0392b" : "#1e7d4f" }}>
                       {t.type === "משיכה" ? "-" : "+"}{ils(t.amount)}
                     </td>
                     <td>{t.method || "—"}</td>
@@ -680,7 +689,10 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
       {/* A5: שיקים */}
       <Card id="checks-section" style={{ padding: 0, marginTop: 18 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem 1.25rem 0", flexWrap: "wrap", gap: 8 }}>
-          <h3 style={{ margin: 0 }}>שיקים לפרעון</h3>
+          <h3 className="display" style={{ margin: 0, display: "flex", alignItems: "center" }}>
+            <span className="section-bar" style={{ marginInlineEnd: 8 }} />
+            שיקים לפרעון
+          </h3>
           {(() => {
             const pend = checks.filter(c => c.status === "pending");
             const sum = pend.reduce((s, c) => s + c.amount, 0);
@@ -694,7 +706,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
             {checkStats.planTotal > 0 && (
               <div style={{ marginTop: 8 }}>
                 <div style={{ height: 8, background: "#eef2f1", borderRadius: 999, overflow: "hidden" }}>
-                  <div style={{ width: `${checkStats.progressPct}%`, height: "100%", background: BRAND, transition: "width .3s" }} />
+                  <div style={{ width: `${checkStats.progressPct}%`, height: "100%", background: "var(--grad-brand)", transition: "width .3s" }} />
                 </div>
                 <div style={{ fontSize: ".78rem", color: "#7a8699", marginTop: 4 }}>
                   נפדו {ils(checkStats.cashedSum)} מתוך {ils(checkStats.planTotal)} · {checkStats.progressPct}% מתכנית השיקים
@@ -809,7 +821,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
                   const overdue = c.status === "pending" && c.due_date && new Date(c.due_date) <= new Date();
                   return (
                     <tr key={c.id} style={{ background: overdue ? "#fff7ed" : "" }}>
-                      <td style={{ fontWeight: 700 }}>
+                      <td style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
                         {ils(c.amount)}
                         {c.loan_transaction_id && (() => {
                           const l = txns.find(t => t.id === c.loan_transaction_id);

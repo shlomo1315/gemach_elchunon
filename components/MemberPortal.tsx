@@ -15,7 +15,6 @@ const REQ_STATUS_LABEL: Record<string, string> = { open: "פתוח", in_progress
 const STATUS_COLOR: Record<string, string> = { open: "#f59e0b", in_progress: "#3b82f6", done: "#107a5e", rejected: "#c0392b", pending: "#f59e0b", approved: "#107a5e" };
 
 const BRAND = "#107a5e";
-const BRAND_DARK = "#0c5642";
 const RED = "#e05252";
 
 const inp: React.CSSProperties = { padding: "0.55rem 0.8rem", border: "1.5px solid #dce1e8", borderRadius: 10, fontSize: ".9rem", width: "100%", boxSizing: "border-box", outline: "none" };
@@ -28,12 +27,13 @@ function gregOf(t: Transaction): string {
 
 function Stat({ label, value, color, icon }: { label: string; value: string; color: string; icon: React.ReactNode }) {
   return (
-    <div style={{ background: "#fff", borderRadius: 16, padding: "1.25rem 1.4rem", boxShadow: "var(--shadow)", borderTop: `4px solid ${color}`, flex: "1 1 180px" }}>
+    <div className="hover-lift" style={{ position: "relative", background: "#fff", border: "1px solid var(--line)", borderRadius: "var(--r-lg)", padding: "1.25rem 1.4rem", boxShadow: "var(--shadow)", overflow: "hidden", flex: "1 1 180px" }}>
+      <div style={{ position: "absolute", top: 0, insetInline: 0, height: 4, background: `linear-gradient(90deg, ${color}, ${color}2e)` }} />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ fontSize: ".8rem", color: "#9aa5b5", fontWeight: 600 }}>{label}</div>
+        <div style={{ fontSize: ".8rem", color: "var(--muted)", fontWeight: 600 }}>{label}</div>
         <div style={{ color, opacity: .7 }}>{icon}</div>
       </div>
-      <div style={{ fontSize: "1.6rem", fontWeight: 800, color, marginTop: 6 }}>{value}</div>
+      <div style={{ fontSize: "1.6rem", fontWeight: 800, color, marginTop: 6, fontVariantNumeric: "tabular-nums" }}>{value}</div>
     </div>
   );
 }
@@ -332,9 +332,11 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
   return (
     <div style={{ direction: "rtl", minHeight: "100vh", background: "var(--bg)" }}>
       {/* כותרת עליונה */}
-      <div style={{ background: `linear-gradient(135deg, ${BRAND_DARK}, ${BRAND})`, color: "#fff", padding: "1.25rem 1.5rem", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
-        <div>
-          <div style={{ fontSize: "1.3rem", fontWeight: 800 }}>גמ״ח חסדי אהרן</div>
+      <div className="keep-color" style={{ position: "relative", background: "var(--grad-brand-deep)", color: "#fff", padding: "1.25rem 1.5rem", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, overflow: "hidden", borderBottom: "1px solid rgba(199,154,62,.45)", boxShadow: "var(--shadow-md)" }}>
+        <div style={{ position: "absolute", insetBlockEnd: 0, insetInline: 0, height: 3, background: "var(--grad-gold)" }} />
+        <div style={{ position: "absolute", insetBlockStart: -60, insetInlineEnd: -40, width: 220, height: 220, borderRadius: "50%", background: "radial-gradient(circle, rgba(199,154,62,.22), transparent 70%)", pointerEvents: "none" }} />
+        <div style={{ position: "relative" }}>
+          <div className="display" style={{ fontSize: "1.45rem", fontWeight: 800 }}>גמ״ח חסדי אהרן</div>
           <div style={{ fontSize: ".85rem", opacity: .85, marginTop: 2 }}>שלום, {member?.name} · אזור אישי (צפייה בלבד)</div>
         </div>
         <button onClick={logout} className="btn btn-soft btn-sm">
@@ -344,15 +346,16 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
 
       <div style={{ maxWidth: 900, margin: "0 auto", padding: "1.5rem" }}>
         {/* שורת מידע יומי — זהה לממשק הניהול */}
-        <div style={{ background: "#fff", borderRadius: 16, boxShadow: "var(--shadow)", padding: "1.1rem 1.25rem", marginBottom: 18 }}>
+        <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: "var(--r-lg)", boxShadow: "var(--shadow)", padding: "1.1rem 1.25rem", marginBottom: 18 }}>
           <HebrewInfoBar />
         </div>
 
         {/* יתרה גדולה */}
-        <div style={{ background: "#fff", borderRadius: 20, padding: "2rem", textAlign: "center", boxShadow: "0 4px 16px rgba(0,0,0,.07)", marginBottom: 18 }}>
-          <div style={{ fontSize: ".9rem", color: "#9aa5b5", fontWeight: 600 }}>היתרה שלך בגמ״ח</div>
-          <div style={{ fontSize: "2.8rem", fontWeight: 800, color: balance >= 0 ? BRAND : RED, lineHeight: 1.2 }}>{ils(balance)}</div>
-          <div style={{ fontSize: ".85rem", color: "#b0bac7" }}>{txns.length} פעולות סה״כ</div>
+        <div className="hover-lift" style={{ position: "relative", background: "#fff", border: "1px solid var(--line)", borderRadius: "var(--r-xl)", padding: "2rem", textAlign: "center", boxShadow: "var(--shadow)", overflow: "hidden", marginBottom: 18 }}>
+          <div style={{ position: "absolute", top: 0, insetInline: 0, height: 4, background: "var(--grad-brand)" }} />
+          <div style={{ fontSize: ".9rem", color: "var(--muted)", fontWeight: 600 }}>היתרה שלך בגמ״ח</div>
+          <div className="display" style={{ fontSize: "2.8rem", fontWeight: 800, color: balance >= 0 ? BRAND : RED, lineHeight: 1.2, fontVariantNumeric: "tabular-nums" }}>{ils(balance)}</div>
+          <div style={{ fontSize: ".85rem", color: "var(--faint)" }}>{txns.length} פעולות סה״כ</div>
         </div>
 
         {/* מצב מפורט */}
@@ -364,12 +367,13 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
         </div>
 
         {/* בקשת הלוואה חדשה */}
-        <div style={{ background: "#fff", borderRadius: 16, boxShadow: "var(--shadow)", padding: "1.1rem 1.25rem", marginBottom: 18, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+        <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: "var(--r-lg)", boxShadow: "var(--shadow)", padding: "1.1rem 1.25rem", marginBottom: 18, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
           <div>
-            <div style={{ fontWeight: 800, color: "#1a1a2e", display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+            <div style={{ fontWeight: 800, color: "var(--text)", display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+              <span className="section-bar" style={{ marginInlineEnd: 8 }} />
               <Banknote size={18} color={BRAND} /> בקשת הלוואה חדשה
             </div>
-            <div style={{ fontSize: ".82rem", color: "#9aa5b5" }}>הגש בקשה להלוואה — הגבאי יאשר ויזין לכרטסת שלך</div>
+            <div style={{ fontSize: ".82rem", color: "var(--muted)" }}>הגש בקשה להלוואה — הגבאי יאשר ויזין לכרטסת שלך</div>
           </div>
           <button onClick={openLoan} className="btn btn-primary">
             💳 בקש הלוואה
@@ -377,9 +381,9 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
         </div>
 
         {/* שינוי סיסמה */}
-        <div style={{ background: "#fff", borderRadius: 16, boxShadow: "var(--shadow)", overflow: "hidden", marginBottom: 18 }}>
+        <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: "var(--r-lg)", boxShadow: "var(--shadow)", overflow: "hidden", marginBottom: 18 }}>
           <button onClick={() => { setShowPass(s => !s); setPassMsg(""); }} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "1.1rem 1.25rem", background: "none", border: "none", cursor: "pointer", fontWeight: 800, color: "#1a1a2e", fontSize: ".95rem" }}>
-            <span style={{ display: "flex", alignItems: "center", gap: 8 }}><KeyRound size={18} color={BRAND} /> שינוי סיסמה</span>
+            <span style={{ display: "flex", alignItems: "center", gap: 8 }}><span className="section-bar" style={{ marginInlineEnd: 8 }} /><KeyRound size={18} color={BRAND} /> שינוי סיסמה</span>
             <span style={{ color: "#9aa5b5", fontSize: "1.1rem" }}>{showPass ? "−" : "+"}</span>
           </button>
           {showPass && (
@@ -397,18 +401,18 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
         </div>
 
         {/* פעולות אחרונות */}
-        <div style={{ background: "#fff", borderRadius: 16, boxShadow: "var(--shadow)", overflow: "hidden" }}>
-          <div style={{ padding: "1.1rem 1.25rem", borderBottom: "1px solid #f0f2f5", fontWeight: 800, color: "#1a1a2e", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-            <span>הפעולות שלך</span>
+        <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: "var(--r-lg)", boxShadow: "var(--shadow)", overflow: "hidden" }}>
+          <div style={{ padding: "1.1rem 1.25rem", borderBottom: "1px solid var(--line-soft)", fontWeight: 800, color: "var(--text)", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+            <span style={{ display: "flex", alignItems: "center" }}><span className="section-bar" style={{ marginInlineEnd: 8 }} />הפעולות שלך</span>
             <button onClick={openAddReq} className="btn btn-primary btn-sm">
               ＋ הגש פעולה חדשה לאישור
             </button>
           </div>
           {txns.length === 0 ? (
-            <div style={{ padding: "2rem", textAlign: "center", color: "#9aa5b5" }}>אין פעולות עדיין</div>
+            <div style={{ padding: "2rem", textAlign: "center", color: "var(--muted)" }}>אין פעולות עדיין</div>
           ) : (
             <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: ".88rem" }}>
+              <table className="table" style={{ width: "100%", borderCollapse: "collapse", fontSize: ".88rem" }}>
                 <thead>
                   <tr style={{ background: "#f8fafc" }}>
                     <th style={{ padding: "0.6rem 1rem", textAlign: "right", fontWeight: 700, color: "#4a5568" }}>סוג</th>
@@ -443,8 +447,9 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
         </div>
 
         {/* פניות ובקשות */}
-        <div style={{ background: "#fff", borderRadius: 16, boxShadow: "var(--shadow)", marginTop: 18, padding: "1.25rem" }}>
-          <div style={{ fontWeight: 800, color: "#1a1a2e", display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+        <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: "var(--r-lg)", boxShadow: "var(--shadow)", marginTop: 18, padding: "1.25rem" }}>
+          <div style={{ fontWeight: 800, color: "var(--text)", display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+            <span className="section-bar" style={{ marginInlineEnd: 8 }} />
             <MessageSquarePlus size={18} color={BRAND} /> פנייה / בקשה לגבאי
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "flex-end" }}>
@@ -477,8 +482,8 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
           </div>
 
           {(myRequests.length > 0 || myChanges.length > 0) && (
-            <div style={{ marginTop: 18, borderTop: "1px solid #f0f2f5", paddingTop: 12 }}>
-              <div style={{ fontWeight: 700, color: "#4a5568", marginBottom: 8, fontSize: ".9rem" }}>הבקשות שלי</div>
+            <div style={{ marginTop: 18, borderTop: "1px solid var(--line-soft)", paddingTop: 12 }}>
+              <div style={{ fontWeight: 700, color: "var(--muted)", marginBottom: 8, fontSize: ".9rem", display: "flex", alignItems: "center" }}><span className="section-bar" style={{ marginInlineEnd: 8, height: 14 }} />הבקשות שלי</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {myRequests.map(r => (
                   <div key={r.id} style={{ ...rowCard, display: "block", border: r.type === "loan" ? `1.5px solid ${STATUS_COLOR[r.status] || "#e2e8f0"}` : undefined }}>
@@ -493,7 +498,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
                     {r.admin_note && (
                       <div style={{ marginTop: 8, background: r.status === "done" ? "#eef6f3" : "#fde8e8", borderInlineStart: `3px solid ${r.status === "done" ? BRAND : "#c0392b"}`, borderRadius: 8, padding: "0.5rem 0.7rem" }}>
                         <div style={{ fontSize: ".74rem", fontWeight: 700, color: r.status === "done" ? BRAND : "#c0392b", marginBottom: 2 }}>תשובת הגבאי</div>
-                        <div style={{ fontSize: ".84rem", color: "#1a1a2e", whiteSpace: "pre-wrap" }}>{r.admin_note}</div>
+                        <div style={{ fontSize: ".84rem", color: "var(--text)", whiteSpace: "pre-wrap" }}>{r.admin_note}</div>
                       </div>
                     )}
                   </div>
@@ -509,7 +514,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
           )}
         </div>
 
-        <div style={{ textAlign: "center", color: "#b0bac7", fontSize: ".78rem", marginTop: 16 }}>
+        <div style={{ textAlign: "center", color: "var(--faint)", fontSize: ".78rem", marginTop: 16 }}>
           אזור אישי לצפייה בלבד · לשאלות פנה לגבאי הגמ״ח
         </div>
       </div>
@@ -523,7 +528,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
               {loanNotif.status === "done" ? "בקשת ההלוואה אושרה!" : "בקשת ההלוואה נדחתה"}
             </div>
             {loanNotif.amount && (
-              <div style={{ fontSize: "1.5rem", fontWeight: 800, color: "#1a1a2e", marginBottom: 8 }}>
+              <div className="display" style={{ fontSize: "1.5rem", fontWeight: 800, color: "var(--text)", marginBottom: 8, fontVariantNumeric: "tabular-nums" }}>
                 {ils(loanNotif.amount)}
               </div>
             )}
@@ -531,7 +536,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
               <div style={{ fontSize: ".88rem", color: "#4a5568", marginBottom: 8 }}>מטרה: {loanNotif.body}</div>
             )}
             {loanNotif.admin_note && (
-              <div style={{ background: loanNotif.status === "done" ? "#eef6f3" : "#fde8e8", borderRadius: 10, padding: "0.75rem 1rem", fontSize: ".88rem", color: "#1a1a2e", marginBottom: 16, whiteSpace: "pre-wrap" }}>
+              <div style={{ background: loanNotif.status === "done" ? "#eef6f3" : "#fde8e8", borderRadius: 10, padding: "0.75rem 1rem", fontSize: ".88rem", color: "var(--text)", marginBottom: 16, whiteSpace: "pre-wrap" }}>
                 <strong>הגבאי:</strong> {loanNotif.admin_note}
               </div>
             )}
@@ -548,7 +553,8 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
           style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem", backdropFilter: "blur(2px)" }}>
           <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 20px 60px rgba(0,0,0,.2)", width: "100%", maxWidth: 480, padding: "1.6rem", direction: "rtl" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-              <h2 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 800, color: BRAND, display: "flex", alignItems: "center", gap: 8 }}>
+              <h2 className="display" style={{ margin: 0, fontSize: "1.1rem", fontWeight: 800, color: BRAND, display: "flex", alignItems: "center", gap: 8 }}>
+                <span className="section-bar" style={{ marginInlineEnd: 8 }} />
                 <Banknote size={20} /> בקשת הלוואה חדשה
               </h2>
               <button onClick={() => setLoanOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.2rem", color: "#9aa5b5" }}>✕</button>
@@ -593,7 +599,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
                   }}>
                     <div style={{ fontSize: "1.4rem", lineHeight: 1 }}>{/\.pdf$/i.test(loanFile.name) ? "📄" : "🖼️"}</div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: ".85rem", fontWeight: 700, color: "#1a1a2e", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{loanFile.name}</div>
+                      <div style={{ fontSize: ".85rem", fontWeight: 700, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{loanFile.name}</div>
                       <div style={{ fontSize: ".72rem", color: BRAND }}>✓ הקובץ מוכן לשליחה</div>
                     </div>
                     <button onClick={() => setLoanFile(null)} className="btn btn-danger btn-sm">הסר</button>
@@ -617,7 +623,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
           style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem", backdropFilter: "blur(2px)" }}>
           <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 20px 60px rgba(0,0,0,.2)", width: "100%", maxWidth: 480, padding: "1.6rem", direction: "rtl" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-              <h2 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 800, color: BRAND }}>הצעת תיקון לפעולה</h2>
+              <h2 className="display" style={{ margin: 0, fontSize: "1.1rem", fontWeight: 800, color: BRAND, display: "flex", alignItems: "center" }}><span className="section-bar" style={{ marginInlineEnd: 8 }} />הצעת תיקון לפעולה</h2>
               <button onClick={() => setPropTxn(null)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.2rem", color: "#9aa5b5" }}>✕</button>
             </div>
             <div style={{ fontSize: ".82rem", color: "#7a8699", marginBottom: 12 }}>הצעתך תישלח לגבאי לאישור. הפעולה לא תשתנה עד שהגבאי יאשר.</div>
@@ -645,7 +651,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
               </div>
               <div style={{ gridColumn: "1/-1" }}>
                 <label style={lblS}>תאריך עברי (מחושב)</label>
-                <div style={{ ...inp, background: "#f4faf8", color: propForm.heb_date ? "#1a1a2e" : "#9aa5b5", display: "flex", alignItems: "center", minHeight: 38 }}>{propForm.heb_date || "—"}</div>
+                <div style={{ ...inp, background: "#f4faf8", color: propForm.heb_date ? "var(--text)" : "#9aa5b5", display: "flex", alignItems: "center", minHeight: 38 }}>{propForm.heb_date || "—"}</div>
               </div>
               <div style={{ gridColumn: "1/-1" }}>
                 <label style={lblS}>הערות</label>
@@ -670,7 +676,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
           style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem", backdropFilter: "blur(2px)" }}>
           <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 20px 60px rgba(0,0,0,.2)", width: "100%", maxWidth: 480, padding: "1.6rem", direction: "rtl", maxHeight: "92vh", overflowY: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-              <h2 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 800, color: BRAND }}>הגשת פעולה חדשה לאישור</h2>
+              <h2 className="display" style={{ margin: 0, fontSize: "1.1rem", fontWeight: 800, color: BRAND, display: "flex", alignItems: "center" }}><span className="section-bar" style={{ marginInlineEnd: 8 }} />הגשת פעולה חדשה לאישור</h2>
               <button onClick={() => setAddReqOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.2rem", color: "#9aa5b5" }}>✕</button>
             </div>
             <div style={{ fontSize: ".82rem", color: "#7a8699", marginBottom: 12 }}>פרט את הפעולה שביצעת וצרף מסמך תיעוד. הבקשה תיכנס לתיק שלך ותמתין לאישור הגבאי.</div>
@@ -698,7 +704,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
               </div>
               <div style={{ gridColumn: "1/-1" }}>
                 <label style={lblS}>תאריך עברי (מחושב)</label>
-                <div style={{ ...inp, background: "#f4faf8", color: addForm.heb_date ? "#1a1a2e" : "#9aa5b5", display: "flex", alignItems: "center", minHeight: 38 }}>{addForm.heb_date || "—"}</div>
+                <div style={{ ...inp, background: "#f4faf8", color: addForm.heb_date ? "var(--text)" : "#9aa5b5", display: "flex", alignItems: "center", minHeight: 38 }}>{addForm.heb_date || "—"}</div>
               </div>
               <div style={{ gridColumn: "1/-1" }}>
                 <label style={lblS}>הערות</label>
@@ -729,7 +735,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
             <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#e8f5f0", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
               <CheckCircle2 size={38} color={BRAND} />
             </div>
-            <h2 style={{ margin: "0 0 6px", fontSize: "1.2rem", fontWeight: 800, color: BRAND }}>הבקשה הוגשה בהצלחה</h2>
+            <h2 className="display" style={{ margin: "0 0 6px", fontSize: "1.2rem", fontWeight: 800, color: BRAND }}>הבקשה הוגשה בהצלחה</h2>
             <div style={{ fontSize: ".85rem", color: "#7a8699", marginBottom: 16 }}>הבקשה מועברת לטיפול ההנהלה ותיכנס לתיק שלך.</div>
             <div style={{ textAlign: "right", background: "#f8fafc", borderRadius: 12, padding: "0.9rem 1rem", display: "flex", flexDirection: "column", gap: 7 }}>
               <SuccessRow label="סוג" value={successInfo.type} />
@@ -752,8 +758,8 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
 function SuccessRow({ label, value }: { label: string; value: string }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: ".86rem" }}>
-      <span style={{ color: "#9aa5b5", fontWeight: 600 }}>{label}</span>
-      <span style={{ color: "#1a1a2e", fontWeight: 700, textAlign: "left" }}>{value}</span>
+      <span style={{ color: "var(--muted)", fontWeight: 600 }}>{label}</span>
+      <span style={{ color: "var(--text)", fontWeight: 700, textAlign: "left" }}>{value}</span>
     </div>
   );
 }

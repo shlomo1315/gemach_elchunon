@@ -148,9 +148,10 @@ export default function RequestsPage() {
         changes.length === 0 ? <Empty text="אין בקשות תיקון" /> : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {changes.map(cr => (
-              <div key={cr.id} style={cardStyle(cr.status)}>
+              <div key={cr.id} className="hover-lift" style={cardStyle(cr.status)}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-                  <div style={{ fontWeight: 800, color: "#1a1a2e" }}>
+                  <div style={{ display: "flex", alignItems: "center", fontWeight: 800, color: "var(--text)" }}>
+                    <span className="section-bar" style={{ marginInlineEnd: 8 }} />
                     {cr.members?.name || "—"} · {cr.kind === "edit" ? "תיקון פעולה" : cr.kind === "add" ? "הוספת פעולה" : "מחיקת פעולה"}
                   </div>
                   <span style={{ ...pill, background: STATUS_COLOR[cr.status] }}>{cr.status === "pending" ? "ממתין" : cr.status === "approved" ? "אושר" : "נדחה"}</span>
@@ -182,9 +183,10 @@ export default function RequestsPage() {
         loanRequests.length === 0 ? <Empty text="אין בקשות הלוואה" /> : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {loanRequests.map(r => (
-              <div key={r.id} style={cardStyle(r.status)}>
+              <div key={r.id} className="hover-lift" style={cardStyle(r.status)}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-                  <div style={{ fontWeight: 800, color: "#1a1a2e", fontSize: "1rem" }}>
+                  <div style={{ display: "flex", alignItems: "center", fontWeight: 800, color: "var(--text)", fontSize: "1rem" }}>
+                    <span className="section-bar" style={{ marginInlineEnd: 8 }} />
                     💳 {r.members?.name || "—"}{r.amount ? ` · ${ils(r.amount)}` : ""}
                   </div>
                   <span style={{ ...pill, background: STATUS_COLOR[r.status] }}>{REQ_STATUS_LABEL[r.status]}</span>
@@ -192,7 +194,7 @@ export default function RequestsPage() {
                 {r.body && <div style={{ fontSize: ".88rem", color: "#4a5568", marginTop: 6, whiteSpace: "pre-wrap" }}>מטרה: {r.body}</div>}
                 {r.document_url && <DocPreview path={r.document_url} />}
                 {r.admin_note && (
-                  <div style={{ marginTop: 8, background: r.status === "done" ? "#eef6f3" : "#fde8e8", borderInlineStart: `3px solid ${r.status === "done" ? BRAND : RED}`, borderRadius: 8, padding: "0.5rem 0.75rem", fontSize: ".85rem", color: "#1a1a2e" }}>
+                  <div style={{ marginTop: 8, background: r.status === "done" ? "#eef6f3" : "#fde8e8", borderInlineStart: `3px solid ${r.status === "done" ? BRAND : RED}`, borderRadius: 8, padding: "0.5rem 0.75rem", fontSize: ".85rem", color: "var(--text)" }}>
                     {r.admin_note}
                   </div>
                 )}
@@ -213,9 +215,10 @@ export default function RequestsPage() {
         otherRequests.length === 0 ? <Empty text="אין פניות" /> : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {otherRequests.map(r => (
-              <div key={r.id} style={cardStyle(r.status)}>
+              <div key={r.id} className="hover-lift" style={cardStyle(r.status)}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-                  <div style={{ fontWeight: 800, color: "#1a1a2e" }}>
+                  <div style={{ display: "flex", alignItems: "center", fontWeight: 800, color: "var(--text)" }}>
+                    <span className="section-bar" style={{ marginInlineEnd: 8 }} />
                     {r.members?.name || "—"} · {REQ_TYPE_LABEL[r.type]}{r.amount ? ` · ${ils(r.amount)}` : ""}
                   </div>
                   <span style={{ ...pill, background: STATUS_COLOR[r.status] }}>{REQ_STATUS_LABEL[r.status]}</span>
@@ -308,5 +311,5 @@ function TabBtn({ active, onClick, label }: { active: boolean; onClick: () => vo
 
 const pill: React.CSSProperties = { color: "#fff", borderRadius: 999, padding: "0.15rem 0.7rem", fontSize: ".78rem", fontWeight: 700 };
 function cardStyle(status: string): React.CSSProperties {
-  return { background: "#fff", borderRadius: 14, padding: "1rem 1.25rem", boxShadow: "var(--shadow)", borderInlineStart: `4px solid ${STATUS_COLOR[status] || "#ccc"}` };
+  return { background: "#fff", border: "1px solid var(--line)", borderRadius: "var(--r-lg)", padding: "1rem 1.25rem", boxShadow: "var(--shadow)", borderInlineStart: `4px solid ${STATUS_COLOR[status] || "#ccc"}` };
 }
