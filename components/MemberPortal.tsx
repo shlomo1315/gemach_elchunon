@@ -18,7 +18,7 @@ const BRAND = "#1e6f5c";
 const BRAND_DARK = "#16513f";
 const RED = "#e05252";
 
-const inp: React.CSSProperties = { padding: "0.55rem 0.8rem", border: "1.5px solid #d8dde5", borderRadius: 10, fontSize: ".9rem", width: "100%", boxSizing: "border-box", outline: "none" };
+const inp: React.CSSProperties = { padding: "0.55rem 0.8rem", border: "1.5px solid #dce1e8", borderRadius: 10, fontSize: ".9rem", width: "100%", boxSizing: "border-box", outline: "none" };
 
 function gregOf(t: Transaction): string {
   if (t.greg_date) return gdate(t.greg_date);
@@ -28,7 +28,7 @@ function gregOf(t: Transaction): string {
 
 function Stat({ label, value, color, icon }: { label: string; value: string; color: string; icon: React.ReactNode }) {
   return (
-    <div style={{ background: "#fff", borderRadius: 16, padding: "1.25rem 1.4rem", boxShadow: "0 2px 8px rgba(0,0,0,.06)", borderTop: `4px solid ${color}`, flex: "1 1 180px" }}>
+    <div style={{ background: "#fff", borderRadius: 16, padding: "1.25rem 1.4rem", boxShadow: "var(--shadow)", borderTop: `4px solid ${color}`, flex: "1 1 180px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ fontSize: ".8rem", color: "#9aa5b5", fontWeight: 600 }}>{label}</div>
         <div style={{ color, opacity: .7 }}>{icon}</div>
@@ -344,7 +344,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
 
       <div style={{ maxWidth: 900, margin: "0 auto", padding: "1.5rem" }}>
         {/* שורת מידע יומי — זהה לממשק הניהול */}
-        <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 2px 8px rgba(0,0,0,.06)", padding: "1.1rem 1.25rem", marginBottom: 18 }}>
+        <div style={{ background: "#fff", borderRadius: 16, boxShadow: "var(--shadow)", padding: "1.1rem 1.25rem", marginBottom: 18 }}>
           <HebrewInfoBar />
         </div>
 
@@ -364,7 +364,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
         </div>
 
         {/* בקשת הלוואה חדשה */}
-        <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 2px 8px rgba(0,0,0,.06)", padding: "1.1rem 1.25rem", marginBottom: 18, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+        <div style={{ background: "#fff", borderRadius: 16, boxShadow: "var(--shadow)", padding: "1.1rem 1.25rem", marginBottom: 18, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
           <div>
             <div style={{ fontWeight: 800, color: "#1a1a2e", display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
               <Banknote size={18} color={BRAND} /> בקשת הלוואה חדשה
@@ -377,7 +377,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
         </div>
 
         {/* שינוי סיסמה */}
-        <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 2px 8px rgba(0,0,0,.06)", overflow: "hidden", marginBottom: 18 }}>
+        <div style={{ background: "#fff", borderRadius: 16, boxShadow: "var(--shadow)", overflow: "hidden", marginBottom: 18 }}>
           <button onClick={() => { setShowPass(s => !s); setPassMsg(""); }} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "1.1rem 1.25rem", background: "none", border: "none", cursor: "pointer", fontWeight: 800, color: "#1a1a2e", fontSize: ".95rem" }}>
             <span style={{ display: "flex", alignItems: "center", gap: 8 }}><KeyRound size={18} color={BRAND} /> שינוי סיסמה</span>
             <span style={{ color: "#9aa5b5", fontSize: "1.1rem" }}>{showPass ? "−" : "+"}</span>
@@ -397,7 +397,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
         </div>
 
         {/* פעולות אחרונות */}
-        <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 2px 8px rgba(0,0,0,.06)", overflow: "hidden" }}>
+        <div style={{ background: "#fff", borderRadius: 16, boxShadow: "var(--shadow)", overflow: "hidden" }}>
           <div style={{ padding: "1.1rem 1.25rem", borderBottom: "1px solid #f0f2f5", fontWeight: 800, color: "#1a1a2e", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
             <span>הפעולות שלך</span>
             <button onClick={openAddReq} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "0.45rem 1rem", background: BRAND, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".85rem", cursor: "pointer" }}>
@@ -443,7 +443,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
         </div>
 
         {/* פניות ובקשות */}
-        <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 2px 8px rgba(0,0,0,.06)", marginTop: 18, padding: "1.25rem" }}>
+        <div style={{ background: "#fff", borderRadius: 16, boxShadow: "var(--shadow)", marginTop: 18, padding: "1.25rem" }}>
           <div style={{ fontWeight: 800, color: "#1a1a2e", display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
             <MessageSquarePlus size={18} color={BRAND} /> פנייה / בקשה לגבאי
           </div>

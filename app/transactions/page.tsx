@@ -53,7 +53,7 @@ function MemberCombobox({ members, value, onChange }: {
       {open && filtered.length > 0 && (
         <div style={{
           position: "absolute", top: "calc(100% + 4px)", right: 0, left: 0,
-          background: "#fff", border: "1.5px solid #d8dde5", borderRadius: 10,
+          background: "#fff", border: "1.5px solid #dce1e8", borderRadius: 10,
           boxShadow: "0 8px 24px rgba(0,0,0,.12)", zIndex: 100,
           maxHeight: 220, overflowY: "auto",
         }}>
@@ -474,7 +474,7 @@ function IconBtn({ children, title, color, onClick, disabled }: {
   );
 }
 
-const inp: React.CSSProperties = { padding: "0.5rem 0.75rem", border: "1.5px solid #d8dde5", borderRadius: 8, fontSize: ".9rem" };
+const inp: React.CSSProperties = { padding: "0.5rem 0.75rem", border: "1.5px solid #dce1e8", borderRadius: 8, fontSize: ".9rem" };
 const lbl: React.CSSProperties = { fontSize: ".78rem", color: "#7a8699", fontWeight: 600, marginBottom: 4, display: "block" };
 const overlay: React.CSSProperties = { position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem", backdropFilter: "blur(2px)" };
 const modalBox: React.CSSProperties = { background: "#fff", borderRadius: 16, boxShadow: "0 20px 60px rgba(0,0,0,.2)", width: "100%", maxWidth: 500, padding: "1.75rem", direction: "rtl", animation: "modalIn 0.18s ease" };

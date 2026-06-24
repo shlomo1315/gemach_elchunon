@@ -43,7 +43,7 @@ function Chip({ label, value, color, sub }: { label: string; value: string; colo
 
 function Panel({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ background: "#fff", borderRadius: 16, padding: "1.25rem", boxShadow: "0 2px 8px rgba(0,0,0,.06)", marginBottom: 16 }}>
+    <div style={{ background: "#fff", borderRadius: 16, padding: "1.25rem", boxShadow: "var(--shadow)", marginBottom: 16 }}>
       {children}
     </div>
   );

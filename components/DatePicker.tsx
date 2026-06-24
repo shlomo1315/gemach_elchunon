@@ -44,7 +44,7 @@ function sameISO(a: Date, b: Date): boolean {
 }
 
 const inpStyle: React.CSSProperties = {
-  padding: "0.5rem 0.75rem", border: "1.5px solid #d8dde5", borderRadius: 8, fontSize: ".9rem",
+  padding: "0.5rem 0.75rem", border: "1.5px solid #dce1e8", borderRadius: 8, fontSize: ".9rem",
   width: "100%", boxSizing: "border-box", background: "#fff", cursor: "pointer", textAlign: "right",
   display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, color: "#1a1a2e",
 };

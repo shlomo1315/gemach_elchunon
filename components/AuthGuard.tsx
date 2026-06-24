@@ -32,7 +32,7 @@ function LoginPage({ onLogin }: { onLogin: (u: User) => void }) {
 
   const inp: React.CSSProperties = {
     width: "100%", padding: "0.7rem 1rem",
-    border: "1.5px solid #d8dde5", borderRadius: 10,
+    border: "1.5px solid #dce1e8", borderRadius: 10,
     fontSize: "1rem", boxSizing: "border-box",
     direction: "ltr", outline: "none",
   };

@@ -11,7 +11,7 @@ const RED = "#e05252";
 
 const inp: React.CSSProperties = {
   width: "100%", padding: "0.65rem 0.9rem",
-  border: "1.5px solid #d8dde5", borderRadius: 10,
+  border: "1.5px solid #dce1e8", borderRadius: 10,
   fontSize: ".95rem", boxSizing: "border-box", outline: "none",
 };
 const lbl: React.CSSProperties = { fontSize: ".82rem", fontWeight: 600, color: "#4a5568", display: "block", marginBottom: 6 };

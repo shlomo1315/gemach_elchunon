@@ -13,7 +13,7 @@ const RED = "#e05252";
 
 const inp: React.CSSProperties = {
   padding: "0.55rem 0.8rem",
-  border: "1.5px solid #d8dde5",
+  border: "1.5px solid #dce1e8",
   borderRadius: 10,
   fontSize: ".9rem",
   width: "100%",
@@ -238,7 +238,7 @@ export default function MembersPage() {
       </div>
 
       {/* חיפוש */}
-      <div style={{ background: "#fff", borderRadius: 12, padding: "0.75rem 1rem", boxShadow: "0 1px 3px rgba(0,0,0,.06)", marginBottom: 12 }}>
+      <div style={{ background: "#fff", borderRadius: 12, padding: "0.75rem 1rem", boxShadow: "var(--shadow)", marginBottom: 12 }}>
         <input placeholder="🔍 חיפוש לפי שם / קוד / טלפון / כתובת…" value={q} onChange={e => setQ(e.target.value)}
           style={{ ...inp, border: "1.5px solid #e2e8f0", background: "#f8fafc" }} />
       </div>

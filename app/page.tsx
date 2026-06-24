@@ -93,7 +93,7 @@ function MemberCombobox({ members, value, onChange }: {
       <input value={q} onChange={e => { setQ(e.target.value); onChange(e.target.value); setOpen(true); }}
         onFocus={() => setOpen(true)} style={inp} placeholder="הקלד שם חבר…" autoComplete="off" autoFocus />
       {open && filtered.length > 0 && (
-        <div style={{ position: "absolute", top: "calc(100% + 4px)", right: 0, left: 0, background: "#fff", border: "1.5px solid #d8dde5", borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,.12)", zIndex: 100, maxHeight: 220, overflowY: "auto" }}>
+        <div style={{ position: "absolute", top: "calc(100% + 4px)", right: 0, left: 0, background: "#fff", border: "1.5px solid #dce1e8", borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,.12)", zIndex: 100, maxHeight: 220, overflowY: "auto" }}>
           {filtered.map(m => (
             <div key={m.id} onMouseDown={() => select(m.name)}
               style={{ padding: "0.55rem 0.85rem", cursor: "pointer", fontSize: ".9rem", borderBottom: "1px solid #f0f2f5" }}
@@ -374,7 +374,7 @@ export default function Dashboard() {
       )}
 
       {/* פעילות לפי תקופה */}
-      <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 2px 8px rgba(0,0,0,.06)", padding: "1.1rem 1.25rem", marginBottom: 20 }}>
+      <div style={{ background: "#fff", borderRadius: 16, boxShadow: "var(--shadow)", padding: "1.1rem 1.25rem", marginBottom: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
           <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 800, color: "#1a1a2e", display: "flex", alignItems: "center", gap: 7 }}>
             <Clock size={18} color={BRAND} /> פעילות {PERIOD_LABEL[period]}
@@ -408,7 +408,7 @@ export default function Dashboard() {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 16, alignItems: "start" }}>
 
         {/* פעולות אחרונות */}
-        <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 2px 8px rgba(0,0,0,.06)", overflow: "hidden" }}>
+        <div style={{ background: "#fff", borderRadius: 16, boxShadow: "var(--shadow)", overflow: "hidden" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1.1rem 1.25rem", borderBottom: "1px solid #f0f2f5" }}>
             <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 800, color: "#1a1a2e" }}>פעולות אחרונות</h3>
             <Link href="/transactions" style={{ fontSize: ".78rem", color: BRAND, fontWeight: 600, textDecoration: "none" }}>
@@ -465,7 +465,7 @@ export default function Dashboard() {
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
 
           {/* פאי */}
-          <div style={{ background: "#fff", borderRadius: 16, padding: "1.1rem 1.25rem", boxShadow: "0 2px 8px rgba(0,0,0,.06)" }}>
+          <div style={{ background: "#fff", borderRadius: 16, padding: "1.1rem 1.25rem", boxShadow: "var(--shadow)" }}>
             <h3 style={{ margin: "0 0 0.75rem", fontSize: "1rem", fontWeight: 800, color: "#1a1a2e" }}>הפקדות מול משיכות</h3>
             <div style={{ position: "relative" }}>
               <ResponsiveContainer width="100%" height={160}>
@@ -493,7 +493,7 @@ export default function Dashboard() {
           </div>
 
           {/* יתרות מובילות */}
-          <div style={{ background: "#fff", borderRadius: 16, padding: "1.1rem 1.25rem", boxShadow: "0 2px 8px rgba(0,0,0,.06)" }}>
+          <div style={{ background: "#fff", borderRadius: 16, padding: "1.1rem 1.25rem", boxShadow: "var(--shadow)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
               <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 800, color: "#1a1a2e" }}>יתרות מובילות</h3>
               <Link href="/members" style={{ fontSize: ".75rem", color: BRAND, fontWeight: 600, textDecoration: "none" }}>הכל ←</Link>
@@ -525,7 +525,7 @@ export default function Dashboard() {
           </div>
 
           {/* קיצורי דרך */}
-          <div style={{ background: "#fff", borderRadius: 16, padding: "1.1rem 1.25rem", boxShadow: "0 2px 8px rgba(0,0,0,.06)" }}>
+          <div style={{ background: "#fff", borderRadius: 16, padding: "1.1rem 1.25rem", boxShadow: "var(--shadow)" }}>
             <h3 style={{ margin: "0 0 0.75rem", fontSize: "1rem", fontWeight: 800, color: "#1a1a2e" }}>קיצורי דרך</h3>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <ShortcutBtn icon={<UserPlus size={17} />} label="הוספת חבר" color={BRAND} onClick={() => { setFormErr({}); setAddMember(true); }} />

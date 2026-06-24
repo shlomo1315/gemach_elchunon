@@ -588,12 +588,12 @@ export default function ImportPage() {
 
 function Stat({ label, value, color }: { label: string; value: string; color: string }) {
   return (
-    <div style={{ background: "#fff", borderRadius: 12, padding: "0.8rem 1.2rem", borderTop: `3px solid ${color}`, boxShadow: "0 1px 3px rgba(0,0,0,.06)", flex: "1 1 130px" }}>
+    <div style={{ background: "#fff", borderRadius: 12, padding: "0.8rem 1.2rem", borderTop: `3px solid ${color}`, boxShadow: "var(--shadow)", flex: "1 1 130px" }}>
       <div style={{ fontSize: ".75rem", color: "#9aa5b5" }}>{label}</div>
       <div style={{ fontSize: "1.5rem", fontWeight: 800, color }}>{value}</div>
     </div>
   );
 }
 
-const inp: React.CSSProperties = { padding: "0.5rem 0.75rem", border: "1.5px solid #d8dde5", borderRadius: 8, fontSize: ".88rem", width: "100%", boxSizing: "border-box", background: "#fff" };
+const inp: React.CSSProperties = { padding: "0.5rem 0.75rem", border: "1.5px solid #dce1e8", borderRadius: 8, fontSize: ".88rem", width: "100%", boxSizing: "border-box", background: "#fff" };
 const lbl: React.CSSProperties = { fontSize: ".78rem", color: "#7a8699", fontWeight: 600, marginBottom: 4, display: "block" };

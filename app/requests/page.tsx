@@ -292,7 +292,7 @@ function ReplyBox({ initial, busy, onSave }: { initial: string; busy: boolean; o
     <div style={{ marginTop: 10, background: "#f8fafc", borderRadius: 10, padding: "0.6rem 0.75rem" }}>
       <label style={{ fontSize: ".78rem", color: "#7a8699", fontWeight: 700, display: "block", marginBottom: 4 }}>תשובה לחבר {initial && <span style={{ color: BRAND }}>· נשלחה תשובה</span>}</label>
       <textarea value={text} onChange={e => setText(e.target.value)} rows={2} placeholder="כתוב כאן תשובה שהחבר יראה בפורטל האישי…"
-        style={{ width: "100%", boxSizing: "border-box", padding: "0.5rem 0.7rem", border: "1.5px solid #d8dde5", borderRadius: 8, fontSize: ".85rem", resize: "vertical", fontFamily: "inherit", direction: "rtl" }} />
+        style={{ width: "100%", boxSizing: "border-box", padding: "0.5rem 0.7rem", border: "1.5px solid #dce1e8", borderRadius: 8, fontSize: ".85rem", resize: "vertical", fontFamily: "inherit", direction: "rtl" }} />
       <button onClick={() => onSave(text)} disabled={busy || !changed} style={{ ...btn(changed ? BRAND : "#cbd5e0"), marginTop: 6, cursor: changed && !busy ? "pointer" : "default" }}>
         {initial ? "עדכן תשובה" : "שלח תשובה"}
       </button>
@@ -308,7 +308,7 @@ function TabBtn({ active, onClick, label }: { active: boolean; onClick: () => vo
 
 const pill: React.CSSProperties = { color: "#fff", borderRadius: 999, padding: "0.15rem 0.7rem", fontSize: ".78rem", fontWeight: 700 };
 function cardStyle(status: string): React.CSSProperties {
-  return { background: "#fff", borderRadius: 14, padding: "1rem 1.25rem", boxShadow: "0 2px 8px rgba(0,0,0,.06)", borderInlineStart: `4px solid ${STATUS_COLOR[status] || "#ccc"}` };
+  return { background: "#fff", borderRadius: 14, padding: "1rem 1.25rem", boxShadow: "var(--shadow)", borderInlineStart: `4px solid ${STATUS_COLOR[status] || "#ccc"}` };
 }
 function btn(bg: string, color = "#fff"): React.CSSProperties {
   return { padding: "0.45rem 1rem", background: bg, color, border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".85rem", cursor: "pointer" };
