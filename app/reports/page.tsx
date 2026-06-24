@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import {
   BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip,
-  ResponsiveContainer, Legend, LineChart, Line, CartesianGrid,
+  ResponsiveContainer, Legend, AreaChart, Area, CartesianGrid,
 } from "recharts";
 import { supabase } from "@/lib/supabase";
 import { ils } from "@/lib/format";
@@ -167,23 +167,29 @@ export default function ReportsPage() {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
           <Panel>
             <PanelTitle>הפקדות מול משיכות</PanelTitle>
-            <ResponsiveContainer width="100%" height={260}>
-              <PieChart>
-                <Pie data={typeData} dataKey="value" nameKey="name" cx="50%" cy="50%"
-                  outerRadius={95} innerRadius={48} paddingAngle={4}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  labelLine={{ stroke: "#ccc" }}>
-                  <Cell fill={BRAND} />
-                  <Cell fill={RED} />
-                </Pie>
-                <Tooltip content={<IlsTip />} />
-              </PieChart>
-            </ResponsiveContainer>
-            <div style={{ display: "flex", justifyContent: "center", gap: 20, marginTop: 8 }}>
-              {[["הפקדות", ils(dep), BRAND], ["משיכות", ils(wit), RED]].map(([l, v, c]) => (
+            <div style={{ position: "relative" }}>
+              <ResponsiveContainer width="100%" height={250}>
+                <PieChart>
+                  <Pie data={typeData} dataKey="value" nameKey="name" cx="50%" cy="50%"
+                    outerRadius={92} innerRadius={60} paddingAngle={3} stroke="none">
+                    <Cell fill={BRAND} />
+                    <Cell fill={RED} />
+                  </Pie>
+                  <Tooltip content={<IlsTip />} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", textAlign: "center", pointerEvents: "none" }}>
+                <div style={{ fontSize: ".72rem", color: "var(--faint)", fontWeight: 600 }}>סך הכל</div>
+                <div style={{ fontSize: "1.15rem", fontWeight: 800, color: "var(--text)", fontVariantNumeric: "tabular-nums" }} dir="ltr">{ils(dep + wit)}</div>
+              </div>
+            </div>
+            <div style={{ display: "flex", justifyContent: "center", gap: 28, marginTop: 12 }}>
+              {[["הפקדות", ils(dep), BRAND, dep + wit > 0 ? Math.round((dep / (dep + wit)) * 100) : 0], ["משיכות", ils(wit), RED, dep + wit > 0 ? Math.round((wit / (dep + wit)) * 100) : 0]].map(([l, v, c, p]) => (
                 <div key={l as string} style={{ textAlign: "center" }}>
-                  <div style={{ fontSize: ".7rem", color: "#9aa5b5" }}>{l}</div>
-                  <div style={{ fontWeight: 700, color: c as string }}>{v}</div>
+                  <div style={{ fontSize: ".75rem", color: "var(--muted)", display: "flex", alignItems: "center", gap: 5, justifyContent: "center", fontWeight: 600 }}>
+                    <span style={{ width: 9, height: 9, borderRadius: "50%", background: c as string, display: "inline-block" }} />{l} · {p}%
+                  </div>
+                  <div style={{ fontWeight: 800, color: c as string, fontVariantNumeric: "tabular-nums", marginTop: 3 }} dir="ltr">{v}</div>
                 </div>
               ))}
             </div>
@@ -192,14 +198,14 @@ export default function ReportsPage() {
           <Panel>
             <PanelTitle>פילוח לפי אופן פעולה</PanelTitle>
             <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={methodData} margin={{ top: 10, right: 8 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `${(v / 1000).toFixed(0)}k`} />
-                <Tooltip content={<IlsTip />} />
-                <Bar dataKey="הפקדות" fill={BRAND} radius={[4, 4, 0, 0]} />
-                <Bar dataKey="משיכות" fill={RED} radius={[4, 4, 0, 0]} />
-                <Legend />
+              <BarChart data={methodData} margin={{ top: 10, right: 8, bottom: 22 }} barGap={2}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#6b7688" }} interval={0} angle={-18} textAnchor="end" height={52} />
+                <YAxis tick={{ fontSize: 10, fill: "#9aa5b5" }} tickFormatter={v => `${(v / 1000).toFixed(0)}k`} width={42} />
+                <Tooltip content={<IlsTip />} cursor={{ fill: "rgba(16,122,94,.05)" }} />
+                <Legend wrapperStyle={{ fontSize: 12, paddingTop: 4 }} />
+                <Bar dataKey="הפקדות" fill={BRAND} radius={[5, 5, 0, 0]} maxBarSize={46} />
+                <Bar dataKey="משיכות" fill={RED} radius={[5, 5, 0, 0]} maxBarSize={46} />
               </BarChart>
             </ResponsiveContainer>
           </Panel>
@@ -298,15 +304,25 @@ export default function ReportsPage() {
             <div style={{ textAlign: "center", padding: "3rem", color: "#9aa5b5" }}>אין נתוני תאריך לתצוגת מגמה</div>
           ) : (
             <ResponsiveContainer width="100%" height={320}>
-              <LineChart data={trendData} margin={{ top: 10, right: 16 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `${(v / 1000).toFixed(0)}k`} />
+              <AreaChart data={trendData} margin={{ top: 10, right: 16 }}>
+                <defs>
+                  <linearGradient id="gDep" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={BRAND} stopOpacity={0.28} />
+                    <stop offset="100%" stopColor={BRAND} stopOpacity={0.02} />
+                  </linearGradient>
+                  <linearGradient id="gWit" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={RED} stopOpacity={0.24} />
+                    <stop offset="100%" stopColor={RED} stopOpacity={0.02} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#6b7688" }} minTickGap={20} />
+                <YAxis tick={{ fontSize: 10, fill: "#9aa5b5" }} tickFormatter={v => `${(v / 1000).toFixed(0)}k`} width={42} />
                 <Tooltip content={<IlsTip />} />
-                <Legend />
-                <Line type="monotone" dataKey="הפקדות" stroke={BRAND} strokeWidth={2.5} dot={{ r: 4, fill: BRAND }} activeDot={{ r: 6 }} />
-                <Line type="monotone" dataKey="משיכות" stroke={RED} strokeWidth={2.5} dot={{ r: 4, fill: RED }} activeDot={{ r: 6 }} />
-              </LineChart>
+                <Legend wrapperStyle={{ fontSize: 12, paddingTop: 4 }} />
+                <Area type="monotone" dataKey="הפקדות" stroke={BRAND} strokeWidth={2.5} fill="url(#gDep)" dot={{ r: 3, fill: BRAND }} activeDot={{ r: 6 }} />
+                <Area type="monotone" dataKey="משיכות" stroke={RED} strokeWidth={2.5} fill="url(#gWit)" dot={{ r: 3, fill: RED }} activeDot={{ r: 6 }} />
+              </AreaChart>
             </ResponsiveContainer>
           )}
         </Panel>
