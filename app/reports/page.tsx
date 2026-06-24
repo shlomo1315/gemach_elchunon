@@ -263,7 +263,7 @@ export default function ReportsPage() {
                   boxShadow: topN === n ? "var(--shadow-brand)" : undefined,
                   color: topN === n ? "#fff" : "#4a5568",
                   fontWeight: 600, fontSize: ".78rem", cursor: "pointer",
-                }}>Top {n}</button>
+                }}>{n} המובילים</button>
               ))}
             </div>
           </div>
