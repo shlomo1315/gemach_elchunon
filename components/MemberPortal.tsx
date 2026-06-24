@@ -336,7 +336,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
         <div style={{ position: "absolute", insetBlockEnd: 0, insetInline: 0, height: 3, background: "var(--grad-gold)" }} />
         <div style={{ position: "absolute", insetBlockStart: -60, insetInlineEnd: -40, width: 220, height: 220, borderRadius: "50%", background: "radial-gradient(circle, rgba(199,154,62,.22), transparent 70%)", pointerEvents: "none" }} />
         <div style={{ position: "relative" }}>
-          <div className="display" style={{ fontSize: "1.45rem", fontWeight: 800 }}>גמ״ח חסדי אהרן</div>
+          <div className="display" style={{ fontSize: "1.45rem", fontWeight: 800 }}>גמ״ח זכרון אהרן</div>
           <div style={{ fontSize: ".85rem", opacity: .85, marginTop: 2 }}>שלום, {member?.name} · אזור אישי (צפייה בלבד)</div>
         </div>
         <button onClick={logout} className="btn btn-soft btn-sm">

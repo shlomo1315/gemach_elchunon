@@ -3,7 +3,7 @@
 import { HandHeart } from "lucide-react";
 
 /**
- * אמבלמת הלוגו של "חסדי אהרן" — יד מחזיקה לב (סמל החסד והנתינה)
+ * אמבלמת הלוגו של "זכרון אהרן" — יד מחזיקה לב (סמל החסד והנתינה)
  * בזהב, על מגן אמרלד עם טבעת זהב וזוהר. סקיילבילי לכל גודל.
  */
 export function LogoMark({ size = 46 }: { size?: number }) {
@@ -47,7 +47,7 @@ export function Logo({
       <LogoMark size={size} />
       <div style={{ minWidth: 0 }}>
         <div className="display" style={{ fontSize: nameSize ?? Math.round(size * 0.42), fontWeight: 800, lineHeight: 1.15, color: onDark ? "#fff" : "var(--brand-dark)", whiteSpace: "nowrap" }}>
-          חסדי אהרן
+          זכרון אהרן
         </div>
         {subtitle && (
           <div style={{ fontSize: ".7rem", opacity: onDark ? 0.64 : 0.75, marginTop: 2, letterSpacing: ".03em", color: onDark ? "#fff" : "var(--muted)", whiteSpace: "nowrap" }}>

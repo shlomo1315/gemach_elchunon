@@ -3,8 +3,8 @@ import "./globals.css";
 import AuthGuard from "@/components/AuthGuard";
 
 export const metadata: Metadata = {
-  title: 'גמ"ח חסדי אהרן',
-  description: 'מערכת ניהול גמ"ח חסדי אהרן',
+  title: 'גמ"ח זכרון אהרן',
+  description: 'מערכת ניהול גמ"ח זכרון אהרן',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

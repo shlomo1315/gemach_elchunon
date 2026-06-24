@@ -62,7 +62,7 @@ function LoginPage({ onLogin }: { onLogin: (u: User) => void }) {
             <LogoMark size={76} />
           </div>
           <h1 className="display" style={{ margin: 0, fontSize: "1.7rem", fontWeight: 800, color: BRAND_DARK }}>
-            גמ״ח חסדי אהרן
+            גמ״ח זכרון אהרן
           </h1>
           <div style={{ width: 54, height: 3, borderRadius: 999, margin: "0.7rem auto 0", background: "linear-gradient(90deg, transparent, var(--gold), transparent)" }} />
           <p style={{ margin: "0.7rem 0 0", fontSize: ".9rem", color: "#7a8699", letterSpacing: ".02em" }}>
@@ -139,7 +139,7 @@ function SplashCard({ user, onDone }: { user: User; onDone: () => void }) {
         </div>
         <div style={{ fontSize: "1rem", color: "#4a5568", lineHeight: 1.6 }}>
           ברוכים הבאים<br />
-          לתוכנת ניהול גמ״ח חסדי אהרן
+          לתוכנת ניהול גמ״ח זכרון אהרן
         </div>
         <div style={{ marginTop: "1.4rem", height: 5, background: "#eef0f4", borderRadius: 999, overflow: "hidden" }}>
           <div style={{ height: "100%", background: "linear-gradient(90deg, var(--brand), var(--gold))", borderRadius: 999, animation: "splashBar 2.2s linear forwards" }} />
