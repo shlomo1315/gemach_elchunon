@@ -23,8 +23,6 @@ const inp: React.CSSProperties = {
 const lbl: React.CSSProperties = { fontSize: ".78rem", color: "#7a8699", fontWeight: 600, marginBottom: 4, display: "block" };
 const overlay: React.CSSProperties = { position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem", backdropFilter: "blur(2px)" };
 const modalBox: React.CSSProperties = { background: "#fff", borderRadius: 16, boxShadow: "0 20px 60px rgba(0,0,0,.2)", width: "100%", maxWidth: 480, padding: "1.75rem", direction: "rtl", animation: "modalIn 0.18s ease" };
-const saveBtnStyle: React.CSSProperties = { padding: "0.55rem 1.2rem", background: BRAND, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".9rem", cursor: "pointer" };
-const ghostBtnStyle: React.CSSProperties = { padding: "0.55rem 1.2rem", background: "#eef2f1", color: BRAND, border: "none", borderRadius: 8, fontWeight: 600, fontSize: ".9rem", cursor: "pointer" };
 
 function initials(name: string) {
   return name.split(" ").filter(Boolean).map(w => w[0]).slice(0, 2).join("").toUpperCase();
@@ -345,8 +343,8 @@ export default function MembersPage() {
               ))}
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: "1.5rem" }}>
-              <button onClick={() => { setViewing(null); openEdit(viewing); }} style={saveBtnStyle}>עריכה</button>
-              <button onClick={() => setViewing(null)} style={ghostBtnStyle}>סגור</button>
+              <button onClick={() => { setViewing(null); openEdit(viewing); }} className="btn btn-primary">עריכה</button>
+              <button onClick={() => setViewing(null)} className="btn btn-soft">סגור</button>
             </div>
           </div>
         </div>
@@ -390,7 +388,7 @@ export default function MembersPage() {
                 <div style={{ fontSize: ".82rem", fontWeight: 700, color: BRAND, marginBottom: 6 }}>🔐 התחברות לפורטל האישי (צפייה בלבד)</div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                   <input value={loginPass} onChange={e => setLoginPass(e.target.value)} style={{ ...inp, flex: 1, minWidth: 140 }} dir="ltr" type="text" placeholder="סיסמה לחבר (לפחות 6 תווים)" />
-                  <button onClick={createLogin} disabled={creatingLogin} style={{ padding: "0.5rem 1rem", background: BRAND, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".85rem", cursor: "pointer", whiteSpace: "nowrap" }}>
+                  <button onClick={createLogin} disabled={creatingLogin} className="btn btn-primary btn-sm">
                     {creatingLogin ? "יוצר…" : "צור התחברות"}
                   </button>
                 </div>
@@ -399,8 +397,8 @@ export default function MembersPage() {
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: "1.5rem" }}>
-              <button onClick={saveMember} disabled={saving} style={saveBtnStyle}>{saving ? "שומר…" : "✓ שמור שינויים"}</button>
-              <button onClick={() => setEditing(null)} style={ghostBtnStyle}>ביטול</button>
+              <button onClick={saveMember} disabled={saving} className="btn btn-primary">{saving ? "שומר…" : "✓ שמור שינויים"}</button>
+              <button onClick={() => setEditing(null)} className="btn btn-soft">ביטול</button>
             </div>
           </div>
         </div>

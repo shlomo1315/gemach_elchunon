@@ -168,8 +168,8 @@ export default function RequestsPage() {
                 <div style={{ fontSize: ".72rem", color: "#b0bac7", marginTop: 6 }}>{new Date(cr.created_at).toLocaleString("he-IL")}</div>
                 {cr.status === "pending" && (
                   <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                    <button onClick={() => applyChange(cr)} disabled={busy === cr.id} style={btn(BRAND)}>✓ אשר והחל</button>
-                    <button onClick={() => rejectChange(cr)} disabled={busy === cr.id} style={btn("#fde8e8", RED)}>דחה</button>
+                    <button onClick={() => applyChange(cr)} disabled={busy === cr.id} className="btn btn-primary btn-sm">✓ אשר והחל</button>
+                    <button onClick={() => rejectChange(cr)} disabled={busy === cr.id} className="btn btn-danger btn-sm">דחה</button>
                   </div>
                 )}
               </div>
@@ -199,8 +199,8 @@ export default function RequestsPage() {
                 <div style={{ fontSize: ".72rem", color: "#b0bac7", marginTop: 6 }}>{new Date(r.created_at).toLocaleString("he-IL")}</div>
                 {r.status === "open" && (
                   <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-                    <button onClick={() => approveLoan(r)} disabled={busy === r.id} style={btn(BRAND)}>✓ אשר ויצור משיכה</button>
-                    <button onClick={() => rejectLoan(r)} disabled={busy === r.id} style={btn("#fde8e8", RED)}>דחה</button>
+                    <button onClick={() => approveLoan(r)} disabled={busy === r.id} className="btn btn-primary btn-sm">✓ אשר ויצור משיכה</button>
+                    <button onClick={() => rejectLoan(r)} disabled={busy === r.id} className="btn btn-danger btn-sm">דחה</button>
                   </div>
                 )}
               </div>
@@ -225,9 +225,9 @@ export default function RequestsPage() {
                 <div style={{ fontSize: ".72rem", color: "#b0bac7", marginTop: 6 }}>{new Date(r.created_at).toLocaleString("he-IL")}</div>
                 <ReplyBox initial={r.admin_note || ""} busy={busy === r.id} onSave={(t) => saveReply(r, t)} />
                 <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-                  {r.status !== "in_progress" && r.status !== "done" && <button onClick={() => setReqStatus(r, "in_progress")} disabled={busy === r.id} style={btn("#e8f0fe", "#3b82f6")}>סמן בטיפול</button>}
-                  {r.status !== "done" && <button onClick={() => setReqStatus(r, "done")} disabled={busy === r.id} style={btn(BRAND)}>✓ טופל</button>}
-                  {r.status !== "rejected" && <button onClick={() => setReqStatus(r, "rejected")} disabled={busy === r.id} style={btn("#fde8e8", RED)}>דחה</button>}
+                  {r.status !== "in_progress" && r.status !== "done" && <button onClick={() => setReqStatus(r, "in_progress")} disabled={busy === r.id} className="btn btn-soft btn-sm">סמן בטיפול</button>}
+                  {r.status !== "done" && <button onClick={() => setReqStatus(r, "done")} disabled={busy === r.id} className="btn btn-primary btn-sm">✓ טופל</button>}
+                  {r.status !== "rejected" && <button onClick={() => setReqStatus(r, "rejected")} disabled={busy === r.id} className="btn btn-danger btn-sm">דחה</button>}
                 </div>
               </div>
             ))}
@@ -293,7 +293,7 @@ function ReplyBox({ initial, busy, onSave }: { initial: string; busy: boolean; o
       <label style={{ fontSize: ".78rem", color: "#7a8699", fontWeight: 700, display: "block", marginBottom: 4 }}>תשובה לחבר {initial && <span style={{ color: BRAND }}>· נשלחה תשובה</span>}</label>
       <textarea value={text} onChange={e => setText(e.target.value)} rows={2} placeholder="כתוב כאן תשובה שהחבר יראה בפורטל האישי…"
         style={{ width: "100%", boxSizing: "border-box", padding: "0.5rem 0.7rem", border: "1.5px solid #dce1e8", borderRadius: 8, fontSize: ".85rem", resize: "vertical", fontFamily: "inherit", direction: "rtl" }} />
-      <button onClick={() => onSave(text)} disabled={busy || !changed} style={{ ...btn(changed ? BRAND : "#cbd5e0"), marginTop: 6, cursor: changed && !busy ? "pointer" : "default" }}>
+      <button onClick={() => onSave(text)} disabled={busy || !changed} className="btn btn-primary btn-sm" style={{ marginTop: 6 }}>
         {initial ? "עדכן תשובה" : "שלח תשובה"}
       </button>
     </div>
@@ -302,14 +302,11 @@ function ReplyBox({ initial, busy, onSave }: { initial: string; busy: boolean; o
 
 function TabBtn({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
   return (
-    <button onClick={onClick} style={{ padding: "0.5rem 1.2rem", borderRadius: 999, border: "none", cursor: "pointer", fontWeight: 700, fontSize: ".9rem", background: active ? BRAND : "#eef2f1", color: active ? "#fff" : "#7a8699" }}>{label}</button>
+    <button onClick={onClick} style={{ padding: "0.5rem 1.2rem", borderRadius: 999, border: "none", cursor: "pointer", fontWeight: 700, fontSize: ".9rem", background: active ? "var(--grad-brand)" : "#eef2f1", color: active ? "#fff" : "#7a8699", boxShadow: active ? "var(--shadow-brand)" : "none" }}>{label}</button>
   );
 }
 
 const pill: React.CSSProperties = { color: "#fff", borderRadius: 999, padding: "0.15rem 0.7rem", fontSize: ".78rem", fontWeight: 700 };
 function cardStyle(status: string): React.CSSProperties {
   return { background: "#fff", borderRadius: 14, padding: "1rem 1.25rem", boxShadow: "var(--shadow)", borderInlineStart: `4px solid ${STATUS_COLOR[status] || "#ccc"}` };
-}
-function btn(bg: string, color = "#fff"): React.CSSProperties {
-  return { padding: "0.45rem 1rem", background: bg, color, border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".85rem", cursor: "pointer" };
 }

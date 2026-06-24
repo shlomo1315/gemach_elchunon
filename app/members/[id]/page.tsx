@@ -515,7 +515,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
             <h3 style={{ margin: 0, fontSize: "1rem" }}>פרטי החבר</h3>
             {!editInfo && (
-              <button className="no-print" onClick={startEditInfo} style={{ display: "flex", alignItems: "center", gap: 5, padding: "0.35rem 0.8rem", background: "#eef2f1", color: BRAND, border: "none", borderRadius: 8, fontWeight: 600, fontSize: ".82rem", cursor: "pointer" }}>
+              <button className="no-print btn btn-ghost btn-sm" onClick={startEditInfo}>
                 <Pencil size={14} /> ערוך פרטים
               </button>
             )}
@@ -560,7 +560,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
                     <input value={loginPass} onChange={e => setLoginPass(e.target.value)} style={inp} dir="ltr" type="text" placeholder="סיסמה לחבר" />
                   </div>
                 </div>
-                <button onClick={createLogin} disabled={creatingLogin} style={{ width: "100%", marginTop: 12, padding: "0.6rem", background: BRAND, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".9rem", cursor: creatingLogin ? "default" : "pointer" }}>
+                <button onClick={createLogin} disabled={creatingLogin} className="btn btn-primary btn-block" style={{ marginTop: 12 }}>
                   {creatingLogin ? "שומר…" : member.email ? "עדכן פרטים" : "צור התחברות"}
                 </button>
                 {loginMsg && <div style={{ fontSize: ".78rem", marginTop: 6, color: loginMsg.startsWith("✓") ? BRAND : "#c0392b" }}>{loginMsg}</div>}
@@ -568,8 +568,8 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
               </div>
 
               <div style={{ gridColumn: "1/-1", display: "flex", gap: 10 }}>
-                <button onClick={saveInfo} disabled={savingInfo} style={{ padding: "0.5rem 1.2rem", background: BRAND, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".88rem", cursor: "pointer" }}>{savingInfo ? "שומר…" : "✓ שמור פרטים"}</button>
-                <button onClick={() => setEditInfo(false)} style={{ padding: "0.5rem 1.2rem", background: "#eef2f1", color: BRAND, border: "none", borderRadius: 8, fontWeight: 600, fontSize: ".88rem", cursor: "pointer" }}>ביטול</button>
+                <button onClick={saveInfo} disabled={savingInfo} className="btn btn-primary">{savingInfo ? "שומר…" : "✓ שמור פרטים"}</button>
+                <button onClick={() => setEditInfo(false)} className="btn btn-soft">ביטול</button>
               </div>
             </div>
           )}
@@ -584,7 +584,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
               <div style={{ fontSize: ".72rem", color: "#7a8699" }}>חוב הלוואות</div>
               <div style={{ fontWeight: 800, color: (member.loan_balance ?? 0) > 0 ? "#c0392b" : "var(--brand)" }}>{ils(Math.max(0, member.loan_balance ?? 0))}</div>
               {(member.loan_balance ?? 0) > 0 && (
-                <button className="no-print" onClick={downloadShtarChov} style={{ marginTop: 5, padding: "0.25rem 0.6rem", background: BRAND, color: "#fff", border: "none", borderRadius: 6, fontSize: ".72rem", fontWeight: 700, cursor: "pointer" }}>
+                <button className="no-print btn btn-primary btn-sm" onClick={downloadShtarChov} style={{ marginTop: 5 }}>
                   📄 שטר חוב
                 </button>
               )}
@@ -609,11 +609,11 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
           <h3 style={{ margin: 0 }}>היסטוריית פעולות</h3>
           <div className="no-print" style={{ display: "flex", gap: 8 }}>
             {txns.length > 0 && (
-              <button onClick={deleteAllTxns} disabled={deletingAll} style={{ display: "flex", alignItems: "center", gap: 6, padding: "0.45rem 1rem", background: "#fde8e8", color: "#c0392b", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".85rem", cursor: "pointer" }}>
+              <button onClick={deleteAllTxns} disabled={deletingAll} className="btn btn-danger btn-sm">
                 🗑️ {deletingAll ? "מוחק…" : "מחק את כל הפעולות"}
               </button>
             )}
-            <button onClick={openAdd} style={{ display: "flex", alignItems: "center", gap: 6, padding: "0.45rem 1rem", background: BRAND, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".85rem", cursor: "pointer" }}>
+            <button onClick={openAdd} className="btn btn-primary btn-sm">
               ＋ הוספת פעולה
             </button>
           </div>
@@ -625,10 +625,10 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
             {selected.size > 0 && (
               <div className="no-print" style={{ display: "flex", alignItems: "center", gap: 12, padding: "0.6rem 1.25rem", background: "#fef5f5", borderBottom: "1px solid #f3d7d7" }}>
                 <span style={{ fontWeight: 700, color: "#c0392b" }}>נבחרו {selected.size} פעולות</span>
-                <button onClick={deleteSelected} disabled={deletingSel} style={{ padding: "0.4rem 1rem", background: "#c0392b", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".85rem", cursor: "pointer" }}>
+                <button onClick={deleteSelected} disabled={deletingSel} className="btn btn-danger btn-sm">
                   🗑️ {deletingSel ? "מוחק…" : "מחק את הנבחרות"}
                 </button>
-                <button onClick={() => setSelected(new Set())} style={{ padding: "0.4rem 1rem", background: "#eef2f1", color: "#7a8699", border: "none", borderRadius: 8, fontWeight: 600, fontSize: ".85rem", cursor: "pointer" }}>
+                <button onClick={() => setSelected(new Set())} className="btn btn-soft btn-sm">
                   בטל בחירה
                 </button>
               </div>
@@ -774,7 +774,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
           )}
 
           <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 10 }}>
-            <button onClick={saveChecks} disabled={savingChks || chkDrafts.length === 0} style={{ padding: "0.55rem 1.4rem", background: BRAND, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".88rem", cursor: "pointer" }}>
+            <button onClick={saveChecks} disabled={savingChks || chkDrafts.length === 0} className="btn btn-primary">
               {savingChks ? "שומר…" : `✓ שמור ${chkDrafts.length || ""} שיקים`}
             </button>
             {(() => {
@@ -828,11 +828,11 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
                         <div style={{ display: "flex", gap: 6 }}>
                           {c.status === "pending" && (
                             <>
-                              <button onClick={() => markCashed(c)} disabled={chkBusy === c.id} style={{ padding: "0.3rem 0.7rem", background: BRAND, color: "#fff", border: "none", borderRadius: 7, fontSize: ".78rem", fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>נפדה ✓</button>
-                              <button onClick={() => markBounced(c)} disabled={chkBusy === c.id} style={{ padding: "0.3rem 0.7rem", background: "#fde8e8", color: "#c0392b", border: "none", borderRadius: 7, fontSize: ".78rem", fontWeight: 700, cursor: "pointer" }}>חזר</button>
+                              <button onClick={() => markCashed(c)} disabled={chkBusy === c.id} className="btn btn-primary btn-sm">נפדה ✓</button>
+                              <button onClick={() => markBounced(c)} disabled={chkBusy === c.id} className="btn btn-danger btn-sm">חזר</button>
                             </>
                           )}
-                          <button onClick={() => deleteCheck(c)} disabled={chkBusy === c.id} title="מחק שיק" style={{ padding: "0.3rem 0.7rem", background: "none", color: "#9aa5b5", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: ".78rem", cursor: "pointer" }}>🗑 מחק</button>
+                          <button onClick={() => deleteCheck(c)} disabled={chkBusy === c.id} title="מחק שיק" className="btn btn-danger btn-sm">🗑 מחק</button>
                         </div>
                       </td>
                     </tr>
@@ -881,9 +881,9 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: "1.5rem" }}>
-              <button onClick={save} disabled={saving} style={{ padding: "0.55rem 1.2rem", background: BRAND, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".9rem", cursor: "pointer" }}>{saving ? "שומר…" : "✓ שמור שינויים"}</button>
-              <button onClick={() => setEditing(null)} style={{ padding: "0.55rem 1.2rem", background: "#eef2f1", color: BRAND, border: "none", borderRadius: 8, fontWeight: 600, fontSize: ".9rem", cursor: "pointer" }}>ביטול</button>
-              <button onClick={remove} disabled={saving} style={{ padding: "0.55rem 1.2rem", background: "#fde8e8", color: "#c0392b", border: "none", borderRadius: 8, fontWeight: 600, fontSize: ".9rem", cursor: "pointer", marginInlineStart: "auto" }}>מחק</button>
+              <button onClick={save} disabled={saving} className="btn btn-primary">{saving ? "שומר…" : "✓ שמור שינויים"}</button>
+              <button onClick={() => setEditing(null)} className="btn btn-soft">ביטול</button>
+              <button onClick={remove} disabled={saving} className="btn btn-danger" style={{ marginInlineStart: "auto" }}>מחק</button>
             </div>
           </div>
         </div>
@@ -1014,8 +1014,8 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: "1.5rem" }}>
-              <button onClick={saveAdd} disabled={savingAdd} style={{ padding: "0.55rem 1.2rem", background: BRAND, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".9rem", cursor: "pointer" }}>{savingAdd ? "שומר…" : "✓ הוסף פעולה"}</button>
-              <button onClick={() => setAddTxn(false)} style={{ padding: "0.55rem 1.2rem", background: "#eef2f1", color: BRAND, border: "none", borderRadius: 8, fontWeight: 600, fontSize: ".9rem", cursor: "pointer" }}>ביטול</button>
+              <button onClick={saveAdd} disabled={savingAdd} className="btn btn-primary">{savingAdd ? "שומר…" : "✓ הוסף פעולה"}</button>
+              <button onClick={() => setAddTxn(false)} className="btn btn-soft">ביטול</button>
             </div>
           </div>
         </div>
@@ -1037,7 +1037,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
       {undoSnap && (
         <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 2000, background: "#1a1a2e", color: "#fff", borderRadius: 12, padding: "0.75rem 1.2rem", boxShadow: "0 8px 32px rgba(0,0,0,.35)", display: "flex", alignItems: "center", gap: 14, direction: "rtl", animation: "modalIn 0.2s ease" }}>
           <span style={{ fontSize: ".9rem" }}>{undoSnap.label}</span>
-          <button onClick={restoreDeleted} style={{ padding: "0.35rem 0.9rem", background: BRAND, color: "#fff", border: "none", borderRadius: 7, fontWeight: 700, fontSize: ".85rem", cursor: "pointer", whiteSpace: "nowrap" }}>↩ שחזר</button>
+          <button onClick={restoreDeleted} className="btn btn-primary btn-sm">↩ שחזר</button>
           <button onClick={() => { if (undoTimerRef.current) clearTimeout(undoTimerRef.current); setUndoSnap(null); }} style={{ background: "none", border: "none", color: "#9aa5b5", cursor: "pointer", fontSize: "1rem", padding: "0 4px" }}>✕</button>
         </div>
       )}

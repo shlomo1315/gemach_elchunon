@@ -15,11 +15,6 @@ const inp: React.CSSProperties = {
   fontSize: ".95rem", boxSizing: "border-box", outline: "none",
 };
 const lbl: React.CSSProperties = { fontSize: ".82rem", fontWeight: 600, color: "#4a5568", display: "block", marginBottom: 6 };
-const btn: React.CSSProperties = {
-  padding: "0.6rem 1.4rem", background: BRAND, color: "#fff",
-  border: "none", borderRadius: 9, fontWeight: 700, fontSize: ".9rem", cursor: "pointer",
-};
-const ghostBtn: React.CSSProperties = { ...btn, background: "#eef2f1", color: BRAND };
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -37,8 +32,9 @@ function TabBtn({ active, onClick, label }: { active: boolean; onClick: () => vo
     <button onClick={onClick} style={{
       padding: "0.5rem 1.3rem", borderRadius: 999, border: "none", cursor: "pointer",
       fontWeight: 700, fontSize: ".9rem",
-      background: active ? BRAND : "#eef2f1",
+      background: active ? "var(--grad-brand)" : "#eef2f1",
       color: active ? "#fff" : "#7a8699",
+      boxShadow: active ? "var(--shadow-brand)" : "none",
     }}>{label}</button>
   );
 }
@@ -175,10 +171,10 @@ function DeletedTransactionsTab() {
                 </td>
                 <td style={{ ...TD, textAlign: "center" }}>
                   <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
-                    <button onClick={() => restore(row)} disabled={restoring === row.id} style={{ padding: "0.28rem 0.8rem", background: BRAND, color: "#fff", border: "none", borderRadius: 7, fontWeight: 700, fontSize: ".78rem", cursor: restoring === row.id ? "default" : "pointer", whiteSpace: "nowrap" }}>
+                    <button onClick={() => restore(row)} disabled={restoring === row.id} className="btn btn-primary btn-sm">
                       {restoring === row.id ? "…" : "שחזר"}
                     </button>
-                    <button onClick={() => permanentDelete(row)} disabled={restoring === row.id} style={{ padding: "0.28rem 0.8rem", background: "#fde8e8", color: RED, border: "none", borderRadius: 7, fontWeight: 700, fontSize: ".78rem", cursor: "pointer", whiteSpace: "nowrap" }}>
+                    <button onClick={() => permanentDelete(row)} disabled={restoring === row.id} className="btn btn-danger btn-sm">
                       מחק
                     </button>
                   </div>
@@ -251,7 +247,7 @@ export default function SettingsPage() {
               <input value={displayName} onChange={e => setDisplayName(e.target.value)} style={inp} placeholder="השם שיוצג במערכת" />
             </div>
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-              <button onClick={saveDisplayName} disabled={savingName} style={btn}>
+              <button onClick={saveDisplayName} disabled={savingName} className="btn btn-primary">
                 {savingName ? "שומר…" : "שמור שם"}
               </button>
               {nameMsg && <span style={{ fontSize: ".82rem", color: nameMsg.startsWith("✓") ? BRAND : RED }}>{nameMsg}</span>}
@@ -268,7 +264,7 @@ export default function SettingsPage() {
               <input type="email" value={email} onChange={e => setEmail(e.target.value)} style={inp} dir="ltr" />
             </div>
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-              <button onClick={saveEmail} disabled={savingEmail} style={btn}>
+              <button onClick={saveEmail} disabled={savingEmail} className="btn btn-primary">
                 {savingEmail ? "שומר…" : "עדכן מייל"}
               </button>
               {emailMsg && <span style={{ fontSize: ".82rem", color: emailMsg.startsWith("✓") ? BRAND : RED }}>{emailMsg}</span>}
@@ -287,10 +283,10 @@ export default function SettingsPage() {
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-              <button onClick={savePassword} disabled={savingPass} style={btn}>
+              <button onClick={savePassword} disabled={savingPass} className="btn btn-primary">
                 {savingPass ? "שומר…" : "שנה סיסמה"}
               </button>
-              <button onClick={() => { setNewPass(""); setConfirmPass(""); setPassMsg(""); }} style={ghostBtn}>נקה</button>
+              <button onClick={() => { setNewPass(""); setConfirmPass(""); setPassMsg(""); }} className="btn btn-soft">נקה</button>
               {passMsg && <span style={{ fontSize: ".82rem", color: passMsg.startsWith("✓") ? BRAND : RED }}>{passMsg}</span>}
             </div>
           </Section>

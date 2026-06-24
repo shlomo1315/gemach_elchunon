@@ -253,8 +253,7 @@ export default function ResetImportPage() {
                 placeholder="הקלד: אפס"
                 style={{ padding: "0.6rem 0.9rem", border: `1.5px solid ${ready ? BRAND : "#d8dde5"}`, borderRadius: 10, fontSize: "1rem", width: 200, textAlign: "center", fontWeight: 700, marginBottom: 16 }} />
               <div style={{ display: "flex", gap: 10 }}>
-                <button onClick={runReset} disabled={!ready}
-                  style={{ padding: "0.6rem 1.4rem", background: ready ? RED : "#e2e8f0", color: ready ? "#fff" : "#9aa5b5", border: "none", borderRadius: 9, fontWeight: 700, fontSize: ".92rem", cursor: ready ? "pointer" : "not-allowed" }}>
+                <button onClick={runReset} disabled={!ready} className="btn btn-danger">
                   אפס וייבא הכל
                 </button>
                 <Button variant="ghost" onClick={() => { setParsed(null); setConfirmText(""); }}>ביטול</Button>

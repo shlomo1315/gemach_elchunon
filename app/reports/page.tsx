@@ -145,7 +145,8 @@ export default function ReportsPage() {
           <button key={t.id} onClick={() => setTab(t.id)} style={{
             padding: "0.45rem 1rem", borderRadius: 999,
             border: tab === t.id ? `2px solid ${BRAND}` : "2px solid #e2e8f0",
-            background: tab === t.id ? BRAND : "#fff",
+            background: tab === t.id ? "var(--grad-brand)" : "#fff",
+            boxShadow: tab === t.id ? "var(--shadow-brand)" : undefined,
             color: tab === t.id ? "#fff" : "#4a5568",
             fontWeight: 600, fontSize: ".84rem", cursor: "pointer",
           }}>
@@ -245,7 +246,8 @@ export default function ReportsPage() {
                 <button key={n} onClick={() => setTopN(n)} style={{
                   padding: "0.25rem 0.75rem", borderRadius: 999,
                   border: topN === n ? `1.5px solid ${BRAND}` : "1.5px solid #e2e8f0",
-                  background: topN === n ? BRAND : "#fff",
+                  background: topN === n ? "var(--grad-brand)" : "#fff",
+                  boxShadow: topN === n ? "var(--shadow-brand)" : undefined,
                   color: topN === n ? "#fff" : "#4a5568",
                   fontWeight: 600, fontSize: ".78rem", cursor: "pointer",
                 }}>Top {n}</button>

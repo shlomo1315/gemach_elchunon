@@ -393,7 +393,7 @@ export default function TransactionsPage() {
               )}
             </div>
             <div style={{ marginTop: "1.5rem" }}>
-              <button onClick={() => setViewing(null)} style={ghostBtnStyle}>סגור</button>
+              <button onClick={() => setViewing(null)} className="btn btn-soft">סגור</button>
             </div>
           </div>
         </div>
@@ -442,8 +442,8 @@ export default function TransactionsPage() {
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: "1.5rem" }}>
-              <button onClick={saveEdit} disabled={saving} style={saveBtnStyle}>{saving ? "שומר…" : "✓ שמור שינויים"}</button>
-              <button onClick={() => setEditing(null)} style={ghostBtnStyle}>ביטול</button>
+              <button onClick={saveEdit} disabled={saving} className="btn btn-primary">{saving ? "שומר…" : "✓ שמור שינויים"}</button>
+              <button onClick={() => setEditing(null)} className="btn btn-soft">ביטול</button>
             </div>
           </div>
         </div>
@@ -481,5 +481,3 @@ const modalBox: React.CSSProperties = { background: "#fff", borderRadius: 16, bo
 const modalHeader: React.CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" };
 const modalTitle: React.CSSProperties = { margin: 0, fontSize: "1.15rem", fontWeight: 800, color: "#107a5e" };
 const closeBtn: React.CSSProperties = { background: "none", border: "none", cursor: "pointer", fontSize: "1.2rem", color: "#9aa5b5" };
-const saveBtnStyle: React.CSSProperties = { padding: "0.55rem 1.2rem", background: "#107a5e", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".9rem", cursor: "pointer" };
-const ghostBtnStyle: React.CSSProperties = { padding: "0.55rem 1.2rem", background: "#eef2f1", color: "#107a5e", border: "none", borderRadius: 8, fontWeight: 600, fontSize: ".9rem", cursor: "pointer" };

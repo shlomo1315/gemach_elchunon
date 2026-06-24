@@ -68,8 +68,6 @@ const modalTitle: React.CSSProperties = { margin: 0, fontSize: "1.15rem", fontWe
 const closeBtn: React.CSSProperties = { background: "none", border: "none", cursor: "pointer", fontSize: "1.2rem", color: "#9aa5b5" };
 const inp: React.CSSProperties = { padding: "0.6rem 0.8rem", border: "1.5px solid #dce1e8", borderRadius: 10, fontSize: ".9rem", width: "100%", boxSizing: "border-box" };
 const lbl: React.CSSProperties = { fontSize: ".78rem", color: "#7a8699", fontWeight: 600, marginBottom: 4, display: "block" };
-const saveBtnStyle: React.CSSProperties = { padding: "0.55rem 1.2rem", background: BRAND, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".9rem", cursor: "pointer" };
-const ghostBtnStyle: React.CSSProperties = { padding: "0.55rem 1.2rem", background: "#eef2f1", color: BRAND, border: "none", borderRadius: 8, fontWeight: 600, fontSize: ".9rem", cursor: "pointer" };
 
 function Req() { return <span style={{ color: RED, marginRight: 2 }}>*</span>; }
 function Err({ children }: { children: string }) {
@@ -421,9 +419,9 @@ export default function Dashboard() {
                 style={{
                   border: "none", cursor: "pointer", padding: "0.4rem 1rem", borderRadius: 999,
                   fontSize: ".84rem", fontWeight: 700, transition: "all .15s",
-                  background: period === p ? BRAND : "transparent",
+                  background: period === p ? "var(--grad-brand)" : "transparent",
                   color: period === p ? "#fff" : "#7a8699",
-                  boxShadow: period === p ? "0 2px 6px rgba(30,111,92,.3)" : "none",
+                  boxShadow: period === p ? "0 3px 10px rgba(16,122,94,.32)" : "none",
                 }}>
                 {PERIOD_TAB[p]}
               </button>
@@ -642,8 +640,8 @@ export default function Dashboard() {
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: "1.5rem" }}>
-              <button onClick={saveTxn} disabled={saving} style={saveBtnStyle}>{saving ? "שומר…" : "✓ שמור פעולה"}</button>
-              <button onClick={closeTxn} style={ghostBtnStyle}>ביטול</button>
+              <button onClick={saveTxn} disabled={saving} className="btn btn-primary">{saving ? "שומר…" : "✓ שמור פעולה"}</button>
+              <button onClick={closeTxn} className="btn btn-soft">ביטול</button>
             </div>
           </div>
         </div>
@@ -683,8 +681,8 @@ export default function Dashboard() {
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: "1.5rem" }}>
-              <button onClick={saveMember} disabled={saving} style={saveBtnStyle}>{saving ? "שומר…" : "✓ הוסף חבר"}</button>
-              <button onClick={closeMember} style={ghostBtnStyle}>ביטול</button>
+              <button onClick={saveMember} disabled={saving} className="btn btn-primary">{saving ? "שומר…" : "✓ הוסף חבר"}</button>
+              <button onClick={closeMember} className="btn btn-soft">ביטול</button>
             </div>
           </div>
         </div>
@@ -753,8 +751,8 @@ export default function Dashboard() {
 
             {/* כפתורים */}
             <div style={{ borderTop: "1px solid #f0f2f5", padding: "0.85rem 1rem", display: "flex", gap: 10 }}>
-              <Link href="/requests" onClick={() => setNotifOpen(false)} style={{ flex: 1, textAlign: "center", background: BRAND, color: "#fff", borderRadius: 10, padding: "0.6rem", fontWeight: 700, fontSize: ".9rem", textDecoration: "none" }}>מעבר לטיפול בבקשות →</Link>
-              <button onClick={() => setNotifOpen(false)} style={{ background: "#eef2f1", color: BRAND, border: "none", borderRadius: 10, padding: "0.6rem 1.2rem", fontWeight: 700, fontSize: ".9rem", cursor: "pointer" }}>סגור</button>
+              <Link href="/requests" onClick={() => setNotifOpen(false)} className="btn btn-primary" style={{ flex: 1 }}>מעבר לטיפול בבקשות →</Link>
+              <button onClick={() => setNotifOpen(false)} className="btn btn-soft">סגור</button>
             </div>
           </div>
         </div>

@@ -337,7 +337,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
           <div style={{ fontSize: "1.3rem", fontWeight: 800 }}>גמ״ח חסדי אהרן</div>
           <div style={{ fontSize: ".85rem", opacity: .85, marginTop: 2 }}>שלום, {member?.name} · אזור אישי (צפייה בלבד)</div>
         </div>
-        <button onClick={logout} style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,.15)", border: "none", color: "#fff", borderRadius: 8, padding: "0.5rem 1rem", fontWeight: 600, cursor: "pointer", fontSize: ".9rem" }}>
+        <button onClick={logout} className="btn btn-soft btn-sm">
           <LogOut size={16} /> יציאה
         </button>
       </div>
@@ -371,7 +371,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
             </div>
             <div style={{ fontSize: ".82rem", color: "#9aa5b5" }}>הגש בקשה להלוואה — הגבאי יאשר ויזין לכרטסת שלך</div>
           </div>
-          <button onClick={openLoan} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "0.55rem 1.3rem", background: BRAND, color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: ".9rem", cursor: "pointer", whiteSpace: "nowrap" }}>
+          <button onClick={openLoan} className="btn btn-primary">
             💳 בקש הלוואה
           </button>
         </div>
@@ -387,7 +387,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
               <input type="password" value={newPass} onChange={e => setNewPass(e.target.value)} placeholder="סיסמה חדשה (לפחות 6 תווים)" dir="ltr" style={inp} />
               <input type="password" value={confirmPass} onChange={e => setConfirmPass(e.target.value)} placeholder="אימות סיסמה חדשה" dir="ltr" style={inp} />
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <button onClick={updatePassword} disabled={savingPass} style={{ padding: "0.55rem 1.3rem", background: BRAND, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".9rem", cursor: "pointer" }}>
+                <button onClick={updatePassword} disabled={savingPass} className="btn btn-primary">
                   {savingPass ? "שומר…" : "עדכן סיסמה"}
                 </button>
                 {passMsg && <span style={{ fontSize: ".82rem", fontWeight: 600, color: passMsg.startsWith("✓") ? BRAND : RED }}>{passMsg}</span>}
@@ -400,7 +400,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
         <div style={{ background: "#fff", borderRadius: 16, boxShadow: "var(--shadow)", overflow: "hidden" }}>
           <div style={{ padding: "1.1rem 1.25rem", borderBottom: "1px solid #f0f2f5", fontWeight: 800, color: "#1a1a2e", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
             <span>הפעולות שלך</span>
-            <button onClick={openAddReq} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "0.45rem 1rem", background: BRAND, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".85rem", cursor: "pointer" }}>
+            <button onClick={openAddReq} className="btn btn-primary btn-sm">
               ＋ הגש פעולה חדשה לאישור
             </button>
           </div>
@@ -430,7 +430,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
                       <td style={{ padding: "0.55rem 1rem", color: "#7a8699" }} dir="ltr">{gregOf(t) || "—"}</td>
                       <td style={{ padding: "0.55rem 1rem", color: "#7a8699" }}>{t.notes || "—"}</td>
                       <td style={{ padding: "0.55rem 1rem" }}>
-                        <button onClick={() => openPropose(t)} title="הצע תיקון" style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "none", border: "1px solid #d8dde5", borderRadius: 8, padding: "0.25rem 0.6rem", color: BRAND, fontSize: ".78rem", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
+                        <button onClick={() => openPropose(t)} title="הצע תיקון" className="btn btn-ghost btn-sm">
                           <Pencil size={13} /> הצע תיקון
                         </button>
                       </td>
@@ -472,7 +472,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
             <textarea value={reqForm.body} onChange={e => setReqForm(f => ({ ...f, body: e.target.value }))} rows={3} style={{ ...inp, resize: "vertical" }} />
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 10 }}>
-            <button onClick={submitRequest} disabled={savingReq} style={{ padding: "0.55rem 1.4rem", background: BRAND, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".9rem", cursor: "pointer" }}>{savingReq ? "שולח…" : "שלח בקשה"}</button>
+            <button onClick={submitRequest} disabled={savingReq} className="btn btn-primary">{savingReq ? "שולח…" : "שלח בקשה"}</button>
             {reqMsg && <span style={{ fontSize: ".82rem", fontWeight: 600, color: reqMsg.startsWith("✓") ? BRAND : RED }}>{reqMsg}</span>}
           </div>
 
@@ -535,7 +535,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
                 <strong>הגבאי:</strong> {loanNotif.admin_note}
               </div>
             )}
-            <button onClick={dismissLoanNotif} style={{ padding: "0.6rem 1.8rem", background: BRAND, color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: ".95rem", cursor: "pointer" }}>
+            <button onClick={dismissLoanNotif} className="btn btn-primary">
               הבנתי
             </button>
           </div>
@@ -569,7 +569,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
                 <div style={{ fontSize: ".85rem", color: "#4a5568" }}>
                   <strong>שלב 1:</strong> 📄 הורד שטר חוב{loanForm.amount && Number(loanForm.amount) > 0 ? " ממולא מראש" : ""}, הדפס וחתום
                 </div>
-                <button onClick={downloadLoanShtarChov} style={{ padding: "0.4rem 0.9rem", background: BRAND_DARK, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".82rem", cursor: "pointer", whiteSpace: "nowrap" }}>
+                <button onClick={downloadLoanShtarChov} className="btn btn-primary btn-sm">
                   הורד שטר חוב
                 </button>
               </div>
@@ -596,16 +596,16 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
                       <div style={{ fontSize: ".85rem", fontWeight: 700, color: "#1a1a2e", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{loanFile.name}</div>
                       <div style={{ fontSize: ".72rem", color: BRAND }}>✓ הקובץ מוכן לשליחה</div>
                     </div>
-                    <button onClick={() => setLoanFile(null)} style={{ background: "#fde8e8", border: "none", color: "#c0392b", borderRadius: 8, padding: "0.35rem 0.7rem", fontSize: ".78rem", fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>הסר</button>
+                    <button onClick={() => setLoanFile(null)} className="btn btn-danger btn-sm">הסר</button>
                   </div>
                 )}
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
-              <button onClick={submitLoanRequest} disabled={savingLoan || !loanFile} style={{ padding: "0.55rem 1.3rem", background: loanFile ? BRAND : "#9aa5b5", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".9rem", cursor: loanFile ? "pointer" : "not-allowed" }}>
+              <button onClick={submitLoanRequest} disabled={savingLoan || !loanFile} className="btn btn-primary">
                 {savingLoan ? "שולח…" : "שלח בקשה"}
               </button>
-              <button onClick={() => { setLoanOpen(false); setLoanFile(null); }} style={{ padding: "0.55rem 1.3rem", background: "#eef2f1", color: BRAND, border: "none", borderRadius: 8, fontWeight: 600, fontSize: ".9rem", cursor: "pointer" }}>ביטול</button>
+              <button onClick={() => { setLoanOpen(false); setLoanFile(null); }} className="btn btn-soft">ביטול</button>
             </div>
           </div>
         </div>
@@ -657,8 +657,8 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
-              <button onClick={submitPropose} disabled={savingProp} style={{ padding: "0.55rem 1.3rem", background: BRAND, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".9rem", cursor: "pointer" }}>{savingProp ? "שולח…" : "שלח הצעה"}</button>
-              <button onClick={() => setPropTxn(null)} style={{ padding: "0.55rem 1.3rem", background: "#eef2f1", color: BRAND, border: "none", borderRadius: 8, fontWeight: 600, fontSize: ".9rem", cursor: "pointer" }}>ביטול</button>
+              <button onClick={submitPropose} disabled={savingProp} className="btn btn-primary">{savingProp ? "שולח…" : "שלח הצעה"}</button>
+              <button onClick={() => setPropTxn(null)} className="btn btn-soft">ביטול</button>
             </div>
           </div>
         </div>
@@ -715,8 +715,8 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
-              <button onClick={submitAddReq} disabled={savingAddReq} style={{ padding: "0.55rem 1.3rem", background: BRAND, color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".9rem", cursor: "pointer" }}>{savingAddReq ? "שולח…" : "שלח לאישור"}</button>
-              <button onClick={() => setAddReqOpen(false)} style={{ padding: "0.55rem 1.3rem", background: "#eef2f1", color: BRAND, border: "none", borderRadius: 8, fontWeight: 600, fontSize: ".9rem", cursor: "pointer" }}>ביטול</button>
+              <button onClick={submitAddReq} disabled={savingAddReq} className="btn btn-primary">{savingAddReq ? "שולח…" : "שלח לאישור"}</button>
+              <button onClick={() => setAddReqOpen(false)} className="btn btn-soft">ביטול</button>
             </div>
           </div>
         </div>

@@ -271,8 +271,8 @@ export default function DatePicker({ value, onChange, placeholder = "בחר תא
 
           {/* כפתורים תחתונים */}
           <div style={{ display: "flex", gap: 8, marginTop: 10, justifyContent: "space-between" }}>
-            <button onClick={() => pick(new Date())} style={{ flex: 1, padding: "0.45rem", background: "#eef2f1", color: BRAND, border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".82rem", cursor: "pointer" }}>היום</button>
-            {value && <button onClick={() => { onChange(""); setOpen(false); }} style={{ flex: 1, padding: "0.45rem", background: "#fdeeee", color: "#c0392b", border: "none", borderRadius: 8, fontWeight: 700, fontSize: ".82rem", cursor: "pointer" }}>נקה</button>}
+            <button onClick={() => pick(new Date())} className="btn btn-soft btn-sm" style={{ flex: 1 }}>היום</button>
+            {value && <button onClick={() => { onChange(""); setOpen(false); }} className="btn btn-soft btn-sm" style={{ flex: 1 }}>נקה</button>}
           </div>
         </div>
       )}
