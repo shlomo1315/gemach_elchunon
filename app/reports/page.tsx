@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import {
   BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip,
-  ResponsiveContainer, Legend, LineChart, Line, CartesianGrid, LabelList,
+  ResponsiveContainer, Legend, LineChart, Line, CartesianGrid,
 } from "recharts";
 import { supabase } from "@/lib/supabase";
 import { ils } from "@/lib/format";
@@ -261,20 +261,32 @@ export default function ReportsPage() {
               ))}
             </div>
           </div>
-          <ResponsiveContainer width="100%" height={Math.max(280, topN * 36)}>
-            <BarChart data={topData} layout="vertical" margin={{ right: 70, left: 8 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
-              <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={v => `${(v / 1000).toFixed(0)}k`} />
-              <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11 }} />
-              <Tooltip content={<IlsTip />} />
-              <Bar dataKey="value" radius={[0, 6, 6, 0]}>
-                <LabelList dataKey="value" position="right" formatter={(v: number) => ils(v)} style={{ fontSize: 11, fill: "#4a5568" }} />
-                {topData.map((_, i) => (
-                  <Cell key={i} fill={i === 0 ? ORANGE : i === 1 ? "#94a3b8" : i === 2 ? "#cd7f32" : BRAND} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          {topData.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "3rem", color: "var(--faint)" }}>אין נתונים להצגה</div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, maxHeight: 540, overflowY: "auto", paddingInlineEnd: 4 }}>
+              {topData.map((m, i) => {
+                const max = topData[0]?.value || 1;
+                const pct = Math.max(1.5, Math.round((m.value / max) * 100));
+                const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : null;
+                const color = i === 0 ? GOLD : i === 1 ? "#94a3b8" : i === 2 ? "#cd7f32" : BRAND;
+                return (
+                  <div key={i}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 5 }}>
+                      <span style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>
+                        <span style={{ width: 26, textAlign: "center", fontSize: medal ? "1.05rem" : ".82rem", fontWeight: 800, color: "var(--faint)", flexShrink: 0 }}>{medal || (i + 1)}</span>
+                        <span style={{ fontWeight: 600, fontSize: ".92rem", color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.name}</span>
+                      </span>
+                      <span style={{ fontWeight: 800, fontSize: ".92rem", color, fontVariantNumeric: "tabular-nums", flexShrink: 0 }} dir="ltr">{ils(m.value)}</span>
+                    </div>
+                    <div style={{ height: 9, background: "#eef2f5", borderRadius: 999, overflow: "hidden" }}>
+                      <div style={{ width: `${pct}%`, height: "100%", background: i < 3 ? `linear-gradient(90deg, ${color}, ${color}bb)` : "var(--grad-brand)", borderRadius: 999, transition: "width .4s ease" }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </Panel>
       )}
 
