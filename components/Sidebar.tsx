@@ -23,28 +23,41 @@ export default function Sidebar() {
 
   return (
     <aside className="no-print" style={{
-      width: 220, background: "var(--brand-dark)",
-      color: "#fff", padding: "1.25rem 0.75rem",
+      width: 230, background: "linear-gradient(185deg, #1b6555 0%, var(--brand-dark) 55%, #123f31 100%)",
+      color: "#fff", padding: "1.25rem 0.85rem",
       flexShrink: 0, display: "flex", flexDirection: "column",
+      boxShadow: "2px 0 20px rgba(16,30,54,.12)",
     }}>
-      <div style={{ padding: "0 0.5rem 1.25rem", borderBottom: "1px solid rgba(255,255,255,.15)", marginBottom: "1rem" }}>
-        <div style={{ fontSize: "1.15rem", fontWeight: 800, lineHeight: 1.3 }}>גמ״ח חסדי אהרן</div>
-        <div style={{ fontSize: ".72rem", opacity: 0.6, marginTop: 2 }}>מערכת ניהול</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "0 0.4rem 1.25rem", borderBottom: "1px solid rgba(255,255,255,.14)", marginBottom: "1rem" }}>
+        <div style={{
+          width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+          background: "rgba(255,255,255,.16)", display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: "1.15rem", fontWeight: 900, letterSpacing: "-.04em",
+        }}>חא</div>
+        <div>
+          <div style={{ fontSize: "1.1rem", fontWeight: 800, lineHeight: 1.25 }}>גמ״ח חסדי אהרן</div>
+          <div style={{ fontSize: ".7rem", opacity: 0.6, marginTop: 1 }}>מערכת ניהול</div>
+        </div>
       </div>
 
-      <nav style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
+      <nav style={{ display: "flex", flexDirection: "column", gap: 3, flex: 1 }}>
         {links.map(({ href, label, icon: Icon }) => {
           const active = href === "/" ? path === "/" : path.startsWith(href);
           return (
             <Link key={href} href={href} style={{
-              display: "flex", alignItems: "center", gap: 10,
-              padding: "0.6rem 0.75rem", borderRadius: 8,
-              color: "#fff", textDecoration: "none",
-              background: active ? "rgba(255,255,255,.18)" : "transparent",
-              fontWeight: active ? 700 : 500,
-              transition: "background .1s",
-            }}>
-              <Icon size={18} />
+              position: "relative",
+              display: "flex", alignItems: "center", gap: 11,
+              padding: "0.62rem 0.8rem", borderRadius: 10,
+              color: active ? "#fff" : "rgba(255,255,255,.82)", textDecoration: "none",
+              background: active ? "rgba(255,255,255,.16)" : "transparent",
+              fontWeight: active ? 700 : 500, fontSize: ".93rem",
+              transition: "background .14s, color .14s",
+            }}
+              onMouseEnter={e => { if (!active) e.currentTarget.style.background = "rgba(255,255,255,.08)"; }}
+              onMouseLeave={e => { if (!active) e.currentTarget.style.background = "transparent"; }}
+            >
+              {active && <span style={{ position: "absolute", insetInlineStart: -0, top: "50%", transform: "translateY(-50%)", width: 3.5, height: 20, borderRadius: 999, background: "#7fe7c4" }} />}
+              <Icon size={18} style={{ flexShrink: 0, opacity: active ? 1 : .9 }} />
               {label}
             </Link>
           );

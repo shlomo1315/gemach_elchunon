@@ -1,10 +1,46 @@
 @import "tailwindcss";
+@import url("https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap");
 
 :root {
-  --bg: #f6f7fb;
+  /* רקעים ומשטחים */
+  --bg: #f3f5f9;
+  --bg-soft: #eef1f6;
   --card: #ffffff;
+
+  /* מותג */
   --brand: #1e6f5c;
   --brand-dark: #16513f;
+  --brand-light: #e8f3ef;
+  --brand-soft: #f1f8f5;
+
+  /* טקסט */
+  --text: #1a2233;
+  --muted: #6b7688;
+  --faint: #9aa5b5;
+
+  /* קווים וגבולות */
+  --line: #e7ebf1;
+  --line-soft: #f0f3f7;
+
+  /* סמנטי */
+  --green: #1e7d4f;
+  --green-bg: #e3f6ec;
+  --red: #d64545;
+  --red-bg: #fdeaea;
+  --amber: #b7791f;
+  --blue: #3b82f6;
+
+  /* צללים — רכים ושכבתיים */
+  --shadow-sm: 0 1px 2px rgba(16, 30, 54, .06);
+  --shadow: 0 2px 8px rgba(16, 30, 54, .07), 0 1px 2px rgba(16, 30, 54, .05);
+  --shadow-md: 0 6px 20px rgba(16, 30, 54, .09), 0 2px 6px rgba(16, 30, 54, .05);
+  --shadow-lg: 0 18px 50px rgba(16, 30, 54, .16);
+
+  /* רדיוסים */
+  --r-sm: 8px;
+  --r: 12px;
+  --r-lg: 16px;
+  --r-xl: 20px;
 }
 
 html,
@@ -12,15 +48,77 @@ body {
   padding: 0;
   margin: 0;
   background: var(--bg);
-  color: #1a1a2e;
-  font-family: system-ui, "Segoe UI", "Heebo", Arial, sans-serif;
+  color: var(--text);
+  font-family: "Heebo", system-ui, "Segoe UI", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  letter-spacing: -0.01em;
 }
 
 * {
   box-sizing: border-box;
 }
 
-/* טבלאות */
+button {
+  font-family: inherit;
+}
+
+/* ===== טפסים — מראה מודרני אחיד + טבעת מיקוד בכל המערכת ===== */
+input,
+select,
+textarea {
+  font-family: inherit;
+  color: var(--text);
+  transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+}
+input:focus,
+select:focus,
+textarea:focus,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  border-color: var(--brand) !important;
+  box-shadow: 0 0 0 3px rgba(30, 111, 92, .14);
+}
+input::placeholder,
+textarea::placeholder {
+  color: #b7c0cd;
+}
+
+/* ===== כפתורים אינטראקטיביים (רכיב Button המשותף) ===== */
+.ui-btn {
+  border: none;
+  border-radius: var(--r-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform .12s ease, box-shadow .15s ease, background .15s ease, filter .15s ease;
+  white-space: nowrap;
+}
+.ui-btn:not(:disabled):hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+.ui-btn:not(:disabled):active {
+  transform: translateY(0);
+  filter: brightness(.97);
+}
+.ui-btn:disabled {
+  cursor: not-allowed;
+  opacity: .55;
+}
+
+/* ===== כרטיס עם ריחוף ===== */
+.ui-card-hover {
+  transition: transform .16s ease, box-shadow .16s ease;
+}
+.ui-card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* ===== טבלאות ===== */
 .table {
   width: 100%;
   border-collapse: collapse;
@@ -28,20 +126,56 @@ body {
 }
 .table th,
 .table td {
-  padding: 0.6rem 0.75rem;
+  padding: 0.7rem 0.85rem;
   text-align: right;
-  border-bottom: 1px solid #eef0f4;
+  border-bottom: 1px solid var(--line-soft);
   font-size: 0.9rem;
 }
 .table th {
-  background: #f0f4f3;
-  font-weight: 600;
-  color: #2c3e50;
+  background: #f6f8fa;
+  font-weight: 700;
+  color: var(--muted);
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
   position: sticky;
   top: 0;
+  z-index: 1;
+}
+.table tbody tr {
+  transition: background .12s ease;
 }
 .table tbody tr:hover {
-  background: #f8fafb;
+  background: var(--brand-soft);
+}
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* ===== פסי גלילה דקים ומעודנים ===== */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cdd5df transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #cdd5df;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: #b3bdca;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::selection {
+  background: rgba(30, 111, 92, .18);
 }
 
 @keyframes modalIn {
@@ -77,6 +211,15 @@ body {
 @keyframes overlayOut {
   from { opacity: 1; }
   to   { opacity: 0; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 /* ===== מצב כהה (רך, מעודן ונוח לעין) ===== */

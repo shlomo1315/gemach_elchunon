@@ -40,18 +40,30 @@ function LoginPage({ onLogin }: { onLogin: (u: User) => void }) {
   return (
     <div style={{
       minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
-      background: `linear-gradient(135deg, ${BRAND_DARK} 0%, ${BRAND} 50%, #27ae60 100%)`,
+      padding: "1.25rem",
+      background: `radial-gradient(1200px 600px at 70% -10%, #2a8a72 0%, transparent 60%), linear-gradient(135deg, ${BRAND_DARK} 0%, ${BRAND} 55%, #259f6a 100%)`,
     }}>
       <div style={{
-        background: "#fff", borderRadius: 20, padding: "2.5rem",
+        background: "#fff", borderRadius: 24, padding: "2.75rem 2.5rem",
         width: "100%", maxWidth: 420,
-        boxShadow: "0 24px 80px rgba(0,0,0,.25)",
+        boxShadow: "0 30px 90px rgba(0,0,0,.35)",
         direction: "rtl",
+        animation: "fadeUp .4s ease",
       }}>
         <div style={{ textAlign: "center", marginBottom: "2rem" }}>
+          <div style={{
+            width: 64, height: 64, margin: "0 auto 1rem", borderRadius: 18,
+            background: `linear-gradient(135deg, ${BRAND} 0%, ${BRAND_DARK} 100%)`,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            color: "#fff", fontSize: "1.5rem", fontWeight: 900, letterSpacing: "-.04em",
+            boxShadow: "0 10px 24px rgba(30,111,92,.35)",
+          }}>חא</div>
           <h1 style={{ margin: 0, fontSize: "1.5rem", fontWeight: 800, color: BRAND_DARK }}>
             גמ״ח חסדי אהרן
           </h1>
+          <p style={{ margin: "0.4rem 0 0", fontSize: ".88rem", color: "#7a8699" }}>
+            התחברות למערכת הניהול
+          </p>
         </div>
 
         <form onSubmit={handleLogin}>
@@ -70,11 +82,12 @@ function LoginPage({ onLogin }: { onLogin: (u: User) => void }) {
             </div>
           )}
 
-          <button type="submit" disabled={loading} style={{
-            width: "100%", padding: "0.75rem",
+          <button type="submit" disabled={loading} className="ui-btn" style={{
+            width: "100%", padding: "0.8rem",
             background: loading ? "#9aa5b5" : `linear-gradient(135deg, ${BRAND_DARK} 0%, ${BRAND} 100%)`,
-            color: "#fff", border: "none", borderRadius: 10,
-            fontSize: "1rem", fontWeight: 700, cursor: loading ? "not-allowed" : "pointer",
+            color: "#fff", border: "none", borderRadius: 12,
+            fontSize: "1rem", fontWeight: 700,
+            boxShadow: loading ? "none" : "0 8px 22px rgba(30,111,92,.3)",
           }}>
             {loading ? "מתחבר…" : "כניסה למערכת"}
           </button>

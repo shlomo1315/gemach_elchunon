@@ -63,18 +63,22 @@ export function Card({
   children,
   style,
   id,
+  hover,
 }: {
   children: React.ReactNode;
   style?: React.CSSProperties;
   id?: string;
+  hover?: boolean;
 }) {
   return (
     <div
       id={id}
+      className={hover ? "ui-card-hover" : undefined}
       style={{
         background: "var(--card)",
-        borderRadius: 12,
-        boxShadow: "0 1px 3px rgba(0,0,0,.06)",
+        borderRadius: 16,
+        border: "1px solid var(--line)",
+        boxShadow: "var(--shadow)",
         padding: "1.25rem",
         ...style,
       }}
@@ -88,17 +92,30 @@ export function StatCard({
   label,
   value,
   color = "#1e6f5c",
+  icon,
+  sub,
 }: {
   label: string;
   value: string;
   color?: string;
+  icon?: React.ReactNode;
+  sub?: string;
 }) {
   return (
-    <Card style={{ flex: 1, minWidth: 170 }}>
-      <div style={{ fontSize: ".85rem", color: "#7a8699", marginBottom: 6 }}>
-        {label}
+    <Card hover style={{ flex: 1, minWidth: 170, padding: "1.15rem 1.3rem", position: "relative", overflow: "hidden" }}>
+      <div style={{ position: "absolute", insetInlineStart: 0, top: 0, bottom: 0, width: 4, background: color }} />
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+        <div style={{ fontSize: ".82rem", color: "var(--muted)", fontWeight: 600, marginBottom: 8 }}>
+          {label}
+        </div>
+        {icon && (
+          <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: 10, background: `${color}14`, color }}>
+            {icon}
+          </span>
+        )}
       </div>
-      <div style={{ fontSize: "1.6rem", fontWeight: 800, color }}>{value}</div>
+      <div style={{ fontSize: "1.65rem", fontWeight: 800, color, lineHeight: 1.1 }}>{value}</div>
+      {sub && <div style={{ fontSize: ".74rem", color: "var(--faint)", marginTop: 4 }}>{sub}</div>}
     </Card>
   );
 }
@@ -106,9 +123,11 @@ export function StatCard({
 export function PageTitle({
   children,
   action,
+  subtitle,
 }: {
   children: React.ReactNode;
   action?: React.ReactNode;
+  subtitle?: string;
 }) {
   return (
     <div
@@ -121,9 +140,15 @@ export function PageTitle({
         gap: 12,
       }}
     >
-      <h1 style={{ fontSize: "1.5rem", fontWeight: 800, margin: 0 }}>
-        {children}
-      </h1>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <span style={{ width: 5, height: 26, borderRadius: 999, background: "var(--brand)", flexShrink: 0 }} />
+        <div>
+          <h1 style={{ fontSize: "1.5rem", fontWeight: 800, margin: 0, lineHeight: 1.15 }}>
+            {children}
+          </h1>
+          {subtitle && <div style={{ fontSize: ".82rem", color: "var(--muted)", marginTop: 2 }}>{subtitle}</div>}
+        </div>
+      </div>
       {action}
     </div>
   );
@@ -143,23 +168,24 @@ export function Button({
   disabled?: boolean;
 }) {
   const styles: Record<string, React.CSSProperties> = {
-    primary: { background: "var(--brand)", color: "#fff" },
-    ghost: { background: "#eef2f1", color: "#1e6f5c" },
-    danger: { background: "#e74c3c", color: "#fff" },
+    primary: { background: "var(--brand)", color: "#fff", boxShadow: "0 2px 8px rgba(30,111,92,.25)" },
+    ghost: { background: "var(--brand-light)", color: "var(--brand)" },
+    danger: { background: "var(--red)", color: "#fff", boxShadow: "0 2px 8px rgba(214,69,69,.25)" },
   };
   return (
     <button
       type={type}
       onClick={onClick}
       disabled={disabled}
+      className="ui-btn"
       style={{
-        border: "none",
-        borderRadius: 8,
-        padding: "0.55rem 1rem",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 7,
+        borderRadius: 10,
+        padding: "0.6rem 1.1rem",
         fontSize: ".9rem",
-        fontWeight: 600,
-        cursor: disabled ? "not-allowed" : "pointer",
-        opacity: disabled ? 0.6 : 1,
         ...styles[variant],
       }}
     >
@@ -173,31 +199,57 @@ export function Badge({ type }: { type: string }) {
   return (
     <span
       style={{
-        background: isDep ? "#e3f6ec" : "#fde8e8",
-        color: isDep ? "#1e7d4f" : "#c0392b",
-        padding: "0.15rem 0.6rem",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 5,
+        background: isDep ? "var(--green-bg)" : "var(--red-bg)",
+        color: isDep ? "var(--green)" : "#c0392b",
+        padding: "0.2rem 0.65rem",
         borderRadius: 999,
-        fontSize: ".8rem",
-        fontWeight: 600,
+        fontSize: ".78rem",
+        fontWeight: 700,
       }}
     >
+      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "currentColor", opacity: .8 }} />
       {type}
     </span>
   );
 }
 
-export function Loading() {
+export function Spinner({ size = 26, color = "var(--brand)" }: { size?: number; color?: string }) {
   return (
-    <div style={{ padding: "3rem", textAlign: "center", color: "#7a8699" }}>
-      טוען נתונים…
+    <span
+      style={{
+        display: "inline-block",
+        width: size,
+        height: size,
+        border: `${Math.max(2, Math.round(size / 9))}px solid var(--line)`,
+        borderTopColor: color,
+        borderRadius: "50%",
+        animation: "spin .7s linear infinite",
+      }}
+    />
+  );
+}
+
+export function Loading({ text = "טוען נתונים…" }: { text?: string }) {
+  return (
+    <div style={{ padding: "4rem 2rem", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 14, color: "var(--muted)" }}>
+      <Spinner />
+      <span style={{ fontSize: ".92rem", fontWeight: 500 }}>{text}</span>
     </div>
   );
 }
 
-export function Empty({ text }: { text: string }) {
+export function Empty({ text, icon }: { text: string; icon?: React.ReactNode }) {
   return (
-    <div style={{ padding: "2.5rem", textAlign: "center", color: "#9aa5b5" }}>
-      {text}
+    <div style={{ padding: "3rem 2rem", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 12, color: "var(--faint)" }}>
+      {icon && (
+        <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 56, height: 56, borderRadius: "50%", background: "var(--bg-soft)", color: "var(--faint)" }}>
+          {icon}
+        </span>
+      )}
+      <span style={{ fontSize: ".95rem" }}>{text}</span>
     </div>
   );
 }
