@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, Pencil, Trash2 } from "lucide-react";
 import { supabase, fnErrMessage } from "@/lib/supabase";
+import { notify } from "@/lib/notify";
 import { ils } from "@/lib/format";
 import { PageTitle, Button, Loading, Empty } from "@/components/ui";
 import type { MemberBalance } from "@/types";
@@ -174,6 +175,20 @@ export default function MembersPage() {
     });
     setSaving(false);
     if (error) { alert("שגיאה: " + error.message); return; }
+    notify({
+      event: "member.created",
+      heading: "חבר חדש נוסף",
+      accent: "blue",
+      memberId: null,
+      memberName: addForm.name.trim(),
+      toMember: false,
+      rows: [
+        ["שם", addForm.name.trim()],
+        ["קוד", code || addForm.code.trim() || "—"],
+        ["טלפון", addForm.phone.trim() || "—"],
+        ["כתובת", addForm.address.trim() || "—"],
+      ],
+    });
     closeAdd();
     load();
   }
@@ -196,6 +211,20 @@ export default function MembersPage() {
     }).eq("id", editing.id);
     setSaving(false);
     if (error) { alert("שגיאה: " + error.message); return; }
+    notify({
+      event: "member.updated",
+      heading: "פרטי חבר עודכנו",
+      accent: "gold",
+      memberId: editing.id,
+      memberName: editForm.name.trim(),
+      toMember: false,
+      rows: [
+        ["שם", editForm.name.trim()],
+        ["קוד", editForm.code.trim() || "—"],
+        ["טלפון", editForm.phone.trim() || "—"],
+        ["כתובת", editForm.address.trim() || "—"],
+      ],
+    });
     setEditing(null);
     load();
   }
@@ -207,6 +236,19 @@ export default function MembersPage() {
     if (!confirm(msg)) return;
     setDeleting(m.id);
     await supabase.from("members").delete().eq("id", m.id);
+    notify({
+      event: "member.deleted",
+      heading: "חבר נמחק",
+      accent: "red",
+      memberId: m.id,
+      memberName: m.name,
+      toMember: false,
+      rows: [
+        ["שם", m.name || "—"],
+        ["קוד", m.code || "—"],
+        ["מזהה", m.id],
+      ],
+    });
     setDeleting(null);
     load();
   }

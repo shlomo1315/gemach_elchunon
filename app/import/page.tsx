@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { UploadCloud, FileSpreadsheet, CheckCircle2, AlertTriangle, ArrowRight } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { ils, toHebrewDate, TXN_METHODS } from "@/lib/format";
+import { notify } from "@/lib/notify";
 import { PageTitle, Card, Button, Loading } from "@/components/ui";
 import type { Member } from "@/types";
 
@@ -325,6 +326,18 @@ export default function ImportPage() {
         if (error) throw error;
       }
       txnsAdded = txnPayload.length;
+
+      notify({
+        event: "import.completed",
+        heading: "ייבוא הושלם",
+        accent: "blue",
+        toMember: false,
+        rows: [
+          ["חברים שנוספו", String(membersCreated)],
+          ["פעולות שנוספו", String(txnsAdded)],
+          ["פעולות דולגו", String(skipped)],
+        ],
+      });
 
       setResult({ membersCreated, txnsAdded, skipped });
       setStep(4);

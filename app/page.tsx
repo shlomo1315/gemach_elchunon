@@ -5,6 +5,7 @@ import Link from "next/link";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { supabase } from "@/lib/supabase";
 import { ils, num, gdate, toHebrewDate, hebrewDateLetters, TXN_TYPES, TXN_METHODS } from "@/lib/format";
+import { notify } from "@/lib/notify";
 import { hebTextToGregDisplay } from "@/lib/hebrewParse";
 import { Badge, Loading, SuccessPopup } from "@/components/ui";
 import type { FundSummary, Transaction, MemberBalance, Member, ChangeRequest, MemberRequest } from "@/types";
@@ -250,6 +251,22 @@ export default function Dashboard() {
     });
     setSaving(false);
     if (error) { alert("שגיאה: " + error.message); return; }
+    notify({
+      event: "transaction.created",
+      heading: txnForm.type === "משיכה" ? "משיכה חדשה נרשמה" : "הפקדה חדשה נרשמה",
+      accent: txnForm.type === "משיכה" ? "red" : "green",
+      amount: ils(amt),
+      memberId: member!.id,
+      memberName: member!.name,
+      rows: [
+        ["חבר", member!.name],
+        ["סוג", txnForm.type === "משיכה" ? `משיכה · ${effectiveSubtype === "refund" ? "החזר פיקדון" : "הלוואה"}` : txnForm.type],
+        ["סכום", ils(amt)],
+        ["אופן", txnForm.method],
+        ["תאריך", txnForm.heb_date || gdate(txnForm.greg_date)],
+        ...(txnForm.notes ? [["הערות", txnForm.notes] as [string, string]] : []),
+      ],
+    });
     const t: Toast = {
       title: "הפעולה נשמרה בהצלחה",
       lines: [
@@ -283,6 +300,19 @@ export default function Dashboard() {
     });
     setSaving(false);
     if (error) { alert("שגיאה: " + error.message); return; }
+    notify({
+      event: "member.created",
+      heading: "חבר חדש נוסף",
+      accent: "blue",
+      memberName: memberForm.name.trim(),
+      toMember: false,
+      rows: [
+        ["שם", memberForm.name.trim()],
+        ["קוד", code || "—"],
+        ["טלפון", memberForm.phone.trim()],
+        ...(memberForm.address ? [["כתובת", memberForm.address.trim()] as [string, string]] : []),
+      ],
+    });
     const t: Toast = {
       title: "החבר נוסף בהצלחה",
       lines: [

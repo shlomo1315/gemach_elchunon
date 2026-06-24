@@ -8,6 +8,7 @@ import { Card, PageTitle, Button, Badge, Loading, Empty, SuccessPopup } from "@/
 import DatePicker from "@/components/DatePicker";
 import type { Transaction, Member, MemberBalance } from "@/types";
 import { archiveTransactions } from "@/lib/archive";
+import { notify } from "@/lib/notify";
 
 type Row = Transaction & { members: { name: string } | null };
 
@@ -182,6 +183,22 @@ export default function TransactionsPage() {
     };
     closeModal();
     setToast(summary);
+    notify({
+      event: "transaction.created",
+      heading: form.type === "משיכה" ? "משיכה חדשה נרשמה" : "הפקדה חדשה נרשמה",
+      accent: form.type === "משיכה" ? "red" : "green",
+      amount: ils(amt),
+      memberId: member!.id,
+      memberName: member!.name,
+      rows: [
+        ["חבר", member!.name],
+        ["סוג", form.type === "משיכה" ? `משיכה · ${effectiveSubtype === "refund" ? "החזר פיקדון" : "הלוואה"}` : form.type],
+        ["סכום", ils(amt)],
+        ["אופן", form.method],
+        ["תאריך", form.heb_date || gdate(form.greg_date)],
+        ...(form.notes ? [["הערות", form.notes] as [string, string]] : []),
+      ],
+    });
     load();
   }
 
@@ -195,6 +212,22 @@ export default function TransactionsPage() {
     }).eq("id", editing.id);
     setSaving(false);
     if (error) { alert("שגיאה: " + error.message); return; }
+    notify({
+      event: "transaction.updated",
+      heading: "פעולה עודכנה",
+      accent: "gold",
+      amount: ils(Number(editForm.amount)),
+      memberId: editing.member_id,
+      memberName: editing.members?.name,
+      rows: [
+        ["חבר", editing.members?.name || "—"],
+        ["סוג", editForm.type],
+        ["סכום", ils(Number(editForm.amount))],
+        ["אופן", editForm.method || "—"],
+        ["תאריך", editForm.heb_date || gdate(editForm.greg_date) || "—"],
+        ...(editForm.notes ? [["הערות", editForm.notes] as [string, string]] : []),
+      ],
+    });
     setEditing(null);
     load();
   }
@@ -204,6 +237,24 @@ export default function TransactionsPage() {
     const row = rows.find(r => r.id === id);
     if (row) await archiveTransactions([row]);
     await supabase.from("transactions").delete().eq("id", id);
+    if (row) {
+      notify({
+        event: "transaction.deleted",
+        heading: "פעולה נמחקה",
+        accent: "red",
+        amount: ils(row.amount),
+        memberId: row.member_id,
+        memberName: row.members?.name,
+        rows: [
+          ["חבר", row.members?.name || "—"],
+          ["סוג", row.type],
+          ["סכום", ils(row.amount)],
+          ["אופן", row.method || "—"],
+          ["תאריך", row.heb_date || gdate(row.greg_date) || "—"],
+          ...(row.notes ? [["הערות", row.notes] as [string, string]] : []),
+        ],
+      });
+    }
     setDeleting(null);
     load();
   }

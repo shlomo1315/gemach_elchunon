@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { ils, gdate, toHebrewDate } from "@/lib/format";
+import { notify } from "@/lib/notify";
 import { PageTitle, Loading, Empty, Badge } from "@/components/ui";
 import type { ChangeRequest, MemberRequest } from "@/types";
 
@@ -55,6 +56,35 @@ export default function RequestsPage() {
     }
     if (err) { setBusy(null); alert("שגיאה בהחלת השינוי: " + err.message); return; }
     await supabase.from("transaction_change_requests").update({ status: "approved", resolved_at: new Date().toISOString() }).eq("id", cr.id);
+    if (cr.kind === "add") {
+      notify({
+        event: "transaction.created",
+        heading: "פעולה אושרה ונרשמה",
+        accent: p.type === "משיכה" ? "red" : "green",
+        amount: p.amount != null ? ils(Number(p.amount)) : undefined,
+        memberId: cr.member_id,
+        memberName: cr.members?.name ?? null,
+        rows: [
+          ["חבר", cr.members?.name ?? "—"],
+          ["סוג", String(p.type || "הפקדה")],
+          ["סכום", p.amount != null ? ils(Number(p.amount)) : "—"],
+          ["אופן", p.method ? String(p.method) : "—"],
+          ["תאריך", p.greg_date ? gdate(String(p.greg_date)) : "—"],
+        ],
+      });
+    } else {
+      notify({
+        event: "request.approved",
+        heading: "בקשה אושרה",
+        accent: "green",
+        memberId: cr.member_id,
+        memberName: cr.members?.name ?? null,
+        rows: [
+          ["חבר", cr.members?.name ?? "—"],
+          ["סוג בקשה", cr.kind === "edit" ? "תיקון פעולה" : "מחיקת פעולה"],
+        ],
+      });
+    }
     setBusy(null);
     load();
   }
@@ -63,6 +93,18 @@ export default function RequestsPage() {
     const note = prompt("סיבת הדחייה (אופציונלי):") ?? "";
     setBusy(cr.id);
     await supabase.from("transaction_change_requests").update({ status: "rejected", admin_note: note || null, resolved_at: new Date().toISOString() }).eq("id", cr.id);
+    notify({
+      event: "request.rejected",
+      heading: "בקשה נדחתה",
+      accent: "red",
+      memberId: cr.member_id,
+      memberName: cr.members?.name ?? null,
+      rows: [
+        ["חבר", cr.members?.name ?? "—"],
+        ["סוג בקשה", cr.kind === "edit" ? "תיקון פעולה" : cr.kind === "add" ? "הוספת פעולה" : "מחיקת פעולה"],
+        ...(note ? [["סיבת הדחייה", note]] as [string, string][] : []),
+      ],
+    });
     setBusy(null);
     load();
   }
@@ -89,6 +131,20 @@ export default function RequestsPage() {
       admin_note: `ההלוואה אושרה בסכום ${ils(amount)}.`,
       resolved_at: new Date().toISOString(),
     }).eq("id", r.id);
+    notify({
+      event: "transaction.created",
+      heading: "פעולה אושרה ונרשמה",
+      accent: "red",
+      amount: ils(amount),
+      memberId: r.member_id,
+      memberName: r.members?.name ?? null,
+      rows: [
+        ["חבר", r.members?.name ?? "—"],
+        ["סוג", "משיכה"],
+        ["סכום", ils(amount)],
+        ["תאריך", gdate(today)],
+      ],
+    });
     setBusy(null);
     load();
   }
@@ -101,6 +157,19 @@ export default function RequestsPage() {
       admin_note: note || null,
       resolved_at: new Date().toISOString(),
     }).eq("id", r.id);
+    notify({
+      event: "request.rejected",
+      heading: "בקשה נדחתה",
+      accent: "red",
+      memberId: r.member_id,
+      memberName: r.members?.name ?? null,
+      rows: [
+        ["חבר", r.members?.name ?? "—"],
+        ["סוג בקשה", "בקשת הלוואה"],
+        ...(r.amount ? [["סכום מבוקש", ils(r.amount)]] as [string, string][] : []),
+        ...(note ? [["סיבת הדחייה", note]] as [string, string][] : []),
+      ],
+    });
     setBusy(null);
     load();
   }
@@ -114,6 +183,44 @@ export default function RequestsPage() {
       status, admin_note: note || null,
       resolved_at: status === "done" || status === "rejected" ? new Date().toISOString() : null,
     }).eq("id", r.id);
+    if (status === "in_progress") {
+      notify({
+        event: "request.updated",
+        heading: "בקשה בטיפול",
+        accent: "gold",
+        memberId: r.member_id,
+        memberName: r.members?.name ?? null,
+        rows: [
+          ["חבר", r.members?.name ?? "—"],
+          ["סוג בקשה", REQ_TYPE_LABEL[r.type] || r.type],
+        ],
+      });
+    } else if (status === "done") {
+      notify({
+        event: "request.approved",
+        heading: "בקשה אושרה",
+        accent: "green",
+        memberId: r.member_id,
+        memberName: r.members?.name ?? null,
+        rows: [
+          ["חבר", r.members?.name ?? "—"],
+          ["סוג בקשה", REQ_TYPE_LABEL[r.type] || r.type],
+        ],
+      });
+    } else if (status === "rejected") {
+      notify({
+        event: "request.rejected",
+        heading: "בקשה נדחתה",
+        accent: "red",
+        memberId: r.member_id,
+        memberName: r.members?.name ?? null,
+        rows: [
+          ["חבר", r.members?.name ?? "—"],
+          ["סוג בקשה", REQ_TYPE_LABEL[r.type] || r.type],
+          ...(note ? [["סיבת הדחייה", note]] as [string, string][] : []),
+        ],
+      });
+    }
     setBusy(null);
     load();
   }

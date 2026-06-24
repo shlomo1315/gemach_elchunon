@@ -11,6 +11,7 @@ import { Card, PageTitle, Button, Badge, Loading, Empty } from "@/components/ui"
 import DatePicker from "@/components/DatePicker";
 import type { MemberBalance, Transaction, Check } from "@/types";
 import { archiveTransactions } from "@/lib/archive";
+import { notify } from "@/lib/notify";
 
 const BRAND = "#107a5e";
 
@@ -70,6 +71,21 @@ export default function MemberDetail() {
     }).eq("id", member.id);
     setSavingInfo(false);
     if (error) { alert("שגיאה: " + error.message); return; }
+    notify({
+      event: "member.updated",
+      heading: "פרטי חבר עודכנו",
+      accent: "gold",
+      memberId: member.id,
+      memberName: info.name.trim() || member.name,
+      toMember: false,
+      rows: [
+        ["שם", info.name.trim() || "—"],
+        ["קוד אישי", info.code.trim() || "—"],
+        ["טלפון", info.phone.trim() || "—"],
+        ["כתובת", info.address.trim() || "—"],
+        ["מייל", info.email.trim().toLowerCase() || "—"],
+      ],
+    });
     setEditInfo(false);
     load();
   }
@@ -193,6 +209,23 @@ export default function MemberDetail() {
     const { error } = await supabase.from("checks").insert(rows);
     setSavingChks(false);
     if (error) { alert("שגיאה: " + error.message); return; }
+    {
+      const totalAmount = rows.reduce((s, r) => s + r.amount, 0);
+      notify({
+        event: "check.created",
+        heading: "שיק חדש נרשם",
+        accent: "blue",
+        amount: ils(totalAmount),
+        memberId: member.id,
+        memberName: member.name,
+        rows: [
+          ["חבר", member.name || "—"],
+          ["מספר שיקים", String(rows.length)],
+          ["סכום כולל", ils(totalAmount)],
+          ["תאריך פירעון ראשון", rows[0]?.due_date ? gdate(rows[0].due_date) : "—"],
+        ],
+      });
+    }
     setChkMaster({ amount: "", due_date: "", count: "1", loan_transaction_id: "" });
     setChkDrafts([{ amount: "", due_date: "", notes: "" }]);
     load();
@@ -231,6 +264,21 @@ export default function MemberDetail() {
     if (tErr) { setChkBusy(null); alert("שגיאה ביצירת ההפקדה: " + tErr.message); return; }
     await supabase.from("checks").update({ status: "cashed", cashed_at: new Date().toISOString(), transaction_id: (txn as any)?.id || null }).eq("id", c.id);
     setChkBusy(null);
+    notify({
+      event: "check.cashed",
+      heading: "שיק נפדה",
+      accent: "green",
+      amount: ils(c.amount),
+      memberId: member.id,
+      memberName: member.name,
+      rows: [
+        ["חבר", member.name || "—"],
+        ["סכום", ils(c.amount)],
+        ["תאריך פירעון", c.due_date ? gdate(c.due_date) : "—"],
+        ["תאריך עברי", c.hebrew_due || "—"],
+        ["הערות", c.notes || "—"],
+      ],
+    });
     load();
   }
 
@@ -238,6 +286,21 @@ export default function MemberDetail() {
     setChkBusy(c.id);
     await supabase.from("checks").update({ status: "bounced" }).eq("id", c.id);
     setChkBusy(null);
+    notify({
+      event: "check.bounced",
+      heading: "שיק חזר",
+      accent: "red",
+      amount: ils(c.amount),
+      memberId: member?.id ?? null,
+      memberName: member?.name ?? null,
+      rows: [
+        ["חבר", member?.name || "—"],
+        ["סכום", ils(c.amount)],
+        ["תאריך פירעון", c.due_date ? gdate(c.due_date) : "—"],
+        ["תאריך עברי", c.hebrew_due || "—"],
+        ["הערות", c.notes || "—"],
+      ],
+    });
     load();
   }
 
@@ -246,6 +309,21 @@ export default function MemberDetail() {
     setChkBusy(c.id);
     await supabase.from("checks").delete().eq("id", c.id);
     setChkBusy(null);
+    notify({
+      event: "check.deleted",
+      heading: "שיק נמחק",
+      accent: "red",
+      amount: ils(c.amount),
+      memberId: member?.id ?? null,
+      memberName: member?.name ?? null,
+      rows: [
+        ["חבר", member?.name || "—"],
+        ["סכום", ils(c.amount)],
+        ["תאריך פירעון", c.due_date ? gdate(c.due_date) : "—"],
+        ["תאריך עברי", c.hebrew_due || "—"],
+        ["הערות", c.notes || "—"],
+      ],
+    });
     load();
   }
 
@@ -285,6 +363,22 @@ export default function MemberDetail() {
       heb_date: addForm.heb_date || null, notes: mainNotes, category,
     }).select("id").single();
     if (error) { setSavingAdd(false); alert("שגיאה: " + error.message); return; }
+    notify({
+      event: "transaction.created",
+      heading: addForm.type === "משיכה" ? "משיכה חדשה נרשמה" : "הפקדה חדשה נרשמה",
+      accent: addForm.type === "משיכה" ? "red" : "green",
+      amount: ils(Number(addForm.amount)),
+      memberId: member.id,
+      memberName: member.name,
+      rows: [
+        ["חבר", member.name || "—"],
+        ["סוג", addForm.type],
+        ["סכום", ils(Number(addForm.amount))],
+        ["אופן", addForm.method || "—"],
+        ["תאריך", addForm.greg_date ? gdate(addForm.greg_date) : (addForm.heb_date || "—")],
+        ["הערות", mainNotes || "—"],
+      ],
+    });
     // פעולה מקושרת לחבר אחר בגמ"ח (העברה לצד ג)
     if (addForm.method === "העברה לצד ג" && addForm.thirdPartyMemberId && addForm.thirdPartyLinkType) {
       const linkedType = addForm.thirdPartyLinkType === "loan" ? "משיכה" : "הפקדה";
@@ -332,6 +426,22 @@ export default function MemberDetail() {
     }).eq("id", editing.id);
     setSaving(false);
     if (error) { alert("שגיאה: " + error.message); return; }
+    notify({
+      event: "transaction.updated",
+      heading: "פעולה עודכנה",
+      accent: "gold",
+      amount: ils(Number(form.amount)),
+      memberId: member?.id ?? null,
+      memberName: member?.name ?? null,
+      rows: [
+        ["חבר", member?.name || "—"],
+        ["סוג", form.type],
+        ["סכום", ils(Number(form.amount))],
+        ["אופן", form.method || "—"],
+        ["תאריך", form.greg_date ? gdate(form.greg_date) : (form.heb_date || "—")],
+        ["הערות", form.notes || "—"],
+      ],
+    });
     setEditing(null);
     load();
   }
@@ -350,6 +460,22 @@ export default function MemberDetail() {
     const rows = snap.txns.map((t: Transaction) => { const { id: _id, created_at: _ca, ...rest } = t; return rest; });
     const { error } = await supabase.from("transactions").insert(rows);
     if (error) { alert("שגיאת שחזור: " + error.message); return; }
+    {
+      const totalAmount = snap.txns.reduce((s, t) => s + Number(t.amount || 0), 0);
+      notify({
+        event: "transaction.created",
+        heading: "פעולה שוחזרה",
+        accent: "green",
+        amount: ils(totalAmount),
+        memberId: member?.id ?? null,
+        memberName: member?.name ?? null,
+        rows: [
+          ["חבר", member?.name || "—"],
+          ["מספר פעולות", String(snap.txns.length)],
+          ["סכום כולל", ils(totalAmount)],
+        ],
+      });
+    }
     // הסרה מהארכיון הקבוע (בוטל תוך 8 שניות — לא נחשב למחיקה)
     const ids = snap.txns.map((t: Transaction) => t.id);
     await supabase.from("deleted_transactions").delete().in("original_id", ids);
@@ -365,6 +491,22 @@ export default function MemberDetail() {
     await supabase.from("transactions").delete().eq("id", editing.id);
     setSaving(false);
     setEditing(null);
+    notify({
+      event: "transaction.deleted",
+      heading: "פעולה נמחקה",
+      accent: "red",
+      amount: ils(snapshot.amount),
+      memberId: member?.id ?? null,
+      memberName: member?.name ?? null,
+      rows: [
+        ["חבר", member?.name || "—"],
+        ["סוג", snapshot.type],
+        ["סכום", ils(snapshot.amount)],
+        ["אופן", snapshot.method || "—"],
+        ["תאריך", snapshot.greg_date ? gdate(snapshot.greg_date) : (snapshot.heb_date || "—")],
+        ["הערות", snapshot.notes || "—"],
+      ],
+    });
     scheduleUndo([snapshot], "הפעולה נמחקה");
     load();
   }
@@ -380,6 +522,22 @@ export default function MemberDetail() {
     const { error } = await supabase.from("transactions").delete().eq("member_id", member.id);
     setDeletingAll(false);
     if (error) { alert("שגיאה: " + error.message); return; }
+    {
+      const totalAmount = txns.reduce((s, t) => s + Number(t.amount || 0), 0);
+      notify({
+        event: "transaction.deleted",
+        heading: "פעולה נמחקה",
+        accent: "red",
+        amount: ils(totalAmount),
+        memberId: member.id,
+        memberName: member.name,
+        rows: [
+          ["חבר", member.name || "—"],
+          ["מספר פעולות", String(txns.length)],
+          ["סכום כולל", ils(totalAmount)],
+        ],
+      });
+    }
     load();
   }
 
@@ -402,6 +560,22 @@ export default function MemberDetail() {
     setDeletingSel(false);
     if (error) { alert("שגיאה: " + error.message); return; }
     setSelected(new Set());
+    {
+      const totalAmount = snapshot.reduce((s, t) => s + Number(t.amount || 0), 0);
+      notify({
+        event: "transaction.deleted",
+        heading: "פעולה נמחקה",
+        accent: "red",
+        amount: ils(totalAmount),
+        memberId: member?.id ?? null,
+        memberName: member?.name ?? null,
+        rows: [
+          ["חבר", member?.name || "—"],
+          ["מספר פעולות", String(snapshot.length)],
+          ["סכום כולל", ils(totalAmount)],
+        ],
+      });
+    }
     scheduleUndo(snapshot, `${snapshot.length} פעולות נמחקו`);
     load();
   }
