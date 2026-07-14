@@ -69,12 +69,15 @@ export type ChangeRequest = {
 };
 
 // A5: שיק דחוי
+// סוג השיק: פרעון הלוואה (מקטין חוב) / הפקדה בגמ"ח (מגדיל זכות — חיסכון)
+export type CheckKind = "repayment" | "deposit";
+
 export type Check = {
   id: string;
   member_id: string;
   transaction_id: string | null;
   loan_transaction_id: string | null; // ההלוואה (משיכה) שהשיק משויך אליה
-  kind: "repayment" | "deposit";      // פרעון הלוואה / פיקדון (חיסכון)
+  kind: CheckKind;
   amount: number;
   due_date: string | null;
   hebrew_due: string | null;

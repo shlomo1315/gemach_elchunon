@@ -414,23 +414,27 @@ export default function Dashboard() {
         </Link>
       )}
 
-      {/* פרעון שיקים — לפרעון תוך 3 ימים (לחיצה פותחת את כרטיס החבר לסימון פדיון) */}
+      {/* שיקים שמועדם מגיע — פרעון הלוואה והפקדות כאחד (לחיצה פותחת את כרטיס החבר לסימון) */}
       {checksDueSoon.length > 0 && (
         <div style={{ background: "linear-gradient(135deg,#fef2f2,#fff7ed)", border: "1px solid #f5c2a8", borderRadius: 16, padding: "1rem 1.25rem", marginBottom: 20 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
             <span style={{ fontSize: "1.2rem" }}>🔔</span>
-            <div style={{ fontWeight: 800, color: "#1a1a2e" }}>פרעון שיקים — תוך 3 ימים ({checksDueSoon.length})</div>
+            <div style={{ fontWeight: 800, color: "#1a1a2e" }}>מועד שיקים — תוך 3 ימים ({checksDueSoon.length})</div>
             <span style={{ fontSize: ".82rem", color: "#b45309" }}>· סה״כ {ils(checksDueSoonSum)} — לחיצה פותחת את כרטיס החבר לסימון פדיון</span>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {checksDueSoon.slice(0, 10).map(c => {
               const overdue = c.due_date && new Date(c.due_date) < new Date(new Date().setHours(0, 0, 0, 0));
+              const isDeposit = c.kind === "deposit";
               return (
                 <Link key={c.id} href={`/members/${c.member_id}`} style={{ textDecoration: "none" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, background: "#fff", borderRadius: 10, padding: "0.5rem 0.85rem", fontSize: ".86rem" }}>
                     <span style={{ color: "#1a1a2e", fontWeight: 600 }}>{c.members?.name || "—"}</span>
+                    <span style={{ fontSize: ".72rem", fontWeight: 700, borderRadius: 999, padding: "0.1rem 0.5rem", color: "#fff", background: isDeposit ? "#107a5e" : "#f59e0b" }}>
+                      {isDeposit ? "הפקדה → זכות" : "פרעון"}
+                    </span>
                     <span style={{ color: overdue ? "#c0392b" : "#7a8699" }}>{c.due_date ? gdate(c.due_date) : ""}{overdue ? " · באיחור" : ""}</span>
-                    <span style={{ fontWeight: 800, color: "#c0392b" }}>{ils(c.amount)}</span>
+                    <span style={{ fontWeight: 800, color: isDeposit ? "#107a5e" : "#c0392b" }}>{ils(c.amount)}</span>
                   </div>
                 </Link>
               );

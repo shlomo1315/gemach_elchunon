@@ -9,7 +9,7 @@ import { ils, gdate, toHebrewDate, TXN_TYPES, TXN_METHODS } from "@/lib/format";
 import { hebTextToGreg } from "@/lib/hebrewParse";
 import { Card, PageTitle, Button, Badge, Loading, Empty } from "@/components/ui";
 import DatePicker from "@/components/DatePicker";
-import type { MemberBalance, Transaction, Check } from "@/types";
+import type { MemberBalance, Transaction, Check, CheckKind } from "@/types";
 import { archiveTransactions } from "@/lib/archive";
 import { notify } from "@/lib/notify";
 
@@ -132,14 +132,30 @@ export default function MemberDetail() {
   // A5: שיקים
   const [checks, setChecks] = useState<Check[]>([]);
   const [chkBusy, setChkBusy] = useState<string | null>(null);
+  // טאב פעיל: שיקים לפרעון הלוואה / שיקים להפקדה בגמ"ח (זכות לחבר)
+  const [chkTab, setChkTab] = useState<CheckKind>("repayment");
   // עורך שיקים מרובים: מקלידים מספר → נפתחות שורות; ממלאים מלמעלה והסכום משתכפל; עורכים ידנית; שומרים
   type ChkDraft = { amount: string; due_date: string; notes: string };
   const [chkMaster, setChkMaster] = useState({ amount: "", due_date: "", count: "1", loan_transaction_id: "" });
   const [chkDrafts, setChkDrafts] = useState<ChkDraft[]>([{ amount: "", due_date: "", notes: "" }]);
   const [savingChks, setSavingChks] = useState(false);
 
+  // שיקים ישנים נשמרו ללא kind — הם שיקים לפרעון
+  const kindOf = (c: Check): CheckKind => (c.kind === "deposit" ? "deposit" : "repayment");
+  // השיקים של הטאב הפעיל בלבד
+  const tabChecks = useMemo(() => checks.filter(c => kindOf(c) === chkTab), [checks, chkTab]);
+  const depositChecks = useMemo(() => checks.filter(c => kindOf(c) === "deposit"), [checks]);
+
   // ההלוואות של החבר (פעולות משיכה) — לשיוך שיקים אליהן
   const loans = useMemo(() => txns.filter(t => t.type === "משיכה"), [txns]);
+
+  // ברירת מחדל: הלוואה פעילה → טאב הפרעון; אחרת → טאב ההפקדה
+  const tabInit = useRef(false);
+  useEffect(() => {
+    if (!member || tabInit.current) return;
+    tabInit.current = true;
+    setChkTab((member.loan_balance ?? 0) > 0 ? "repayment" : "deposit");
+  }, [member]);
 
   // אם יש בדיוק הלוואה אחת — לשייך אליה אוטומטית את השיקים
   useEffect(() => {
@@ -177,23 +193,32 @@ export default function MemberDetail() {
 
   async function saveChecks() {
     if (!member) return;
+    const isDeposit = chkTab === "deposit";
     const valid = chkDrafts.filter(d => Number(d.amount) > 0 && d.due_date);
     if (valid.length === 0) { alert("אין שיקים תקינים לשמירה (סכום חיובי ותאריך פירעון לכל שיק)"); return; }
-    // אם יש יותר מהלוואה אחת — חובה לבחור לאיזו הלוואה השיקים מיועדים
-    if (loans.length > 1 && !chkMaster.loan_transaction_id) { alert("יש לבחור לאיזו הלוואה השיקים מיועדים"); return; }
-    // סך השיקים להלוואה לא יכול לחרוג מסכום ההלוואה
-    const loanId = chkMaster.loan_transaction_id;
-    if (loanId) {
-      const loan = loans.find(l => l.id === loanId);
-      if (loan) {
-        const existingSum = checks.filter(c => c.loan_transaction_id === loanId && c.status !== "bounced").reduce((s, c) => s + c.amount, 0);
-        const newSum = valid.reduce((s, d) => s + Number(d.amount), 0);
-        if (existingSum + newSum > loan.amount + 0.001) {
-          const remaining = Math.max(0, loan.amount - existingSum);
-          alert(`סכום השיקים חורג מסכום ההלוואה.\nהלוואה: ${ils(loan.amount)}\nשיקים קיימים להלוואה זו: ${ils(existingSum)}\nניתן להוסיף עוד עד ${ils(remaining)} (ניסית להוסיף ${ils(newSum)}).`);
-          return;
+    // שיקים להפקדה אינם משויכים להלוואה ואין להם תקרה — הוולידציות הבאות רק לשיקי פרעון
+    if (!isDeposit) {
+      // אם יש יותר מהלוואה אחת — חובה לבחור לאיזו הלוואה השיקים מיועדים
+      if (loans.length > 1 && !chkMaster.loan_transaction_id) { alert("יש לבחור לאיזו הלוואה השיקים מיועדים"); return; }
+      // סך השיקים להלוואה לא יכול לחרוג מסכום ההלוואה
+      const loanId = chkMaster.loan_transaction_id;
+      if (loanId) {
+        const loan = loans.find(l => l.id === loanId);
+        if (loan) {
+          const existingSum = checks.filter(c => c.loan_transaction_id === loanId && c.status !== "bounced").reduce((s, c) => s + c.amount, 0);
+          const newSum = valid.reduce((s, d) => s + Number(d.amount), 0);
+          if (existingSum + newSum > loan.amount + 0.001) {
+            const remaining = Math.max(0, loan.amount - existingSum);
+            alert(`סכום השיקים חורג מסכום ההלוואה.\nהלוואה: ${ils(loan.amount)}\nשיקים קיימים להלוואה זו: ${ils(existingSum)}\nניתן להוסיף עוד עד ${ils(remaining)} (ניסית להוסיף ${ils(newSum)}).`);
+            return;
+          }
         }
       }
+    }
+    // הדגשה לפני שמירת שיקים להפקדה: הכסף ייזקף כזכות לחבר בעת הפדיון
+    if (isDeposit) {
+      const total = valid.reduce((s, d) => s + Number(d.amount), 0);
+      if (!confirm(`${valid.length} שיקים להפקדה על סך ${ils(total)}.\n\nבעת פדיון כל שיק ייווצר פיקדון שיגדיל את יתרת החיסכון (הזכות) של ${member.name}.\n\nלשמור?`)) return;
     }
     setSavingChks(true);
     const rows = valid.map((d, i) => ({
@@ -203,8 +228,8 @@ export default function MemberDetail() {
       hebrew_due: toHebrewDate(d.due_date),
       notes: d.notes || (valid.length > 1 ? `שיק ${i + 1}/${valid.length}` : null),
       status: "pending",
-      kind: "repayment", // כל השיקים הם לפירעון חוב
-      loan_transaction_id: chkMaster.loan_transaction_id || null,
+      kind: chkTab, // לפי הטאב: פרעון הלוואה / הפקדה (זכות)
+      loan_transaction_id: isDeposit ? null : (chkMaster.loan_transaction_id || null),
     }));
     const { error } = await supabase.from("checks").insert(rows);
     setSavingChks(false);
@@ -213,13 +238,14 @@ export default function MemberDetail() {
       const totalAmount = rows.reduce((s, r) => s + r.amount, 0);
       notify({
         event: "check.created",
-        heading: "שיק חדש נרשם",
+        heading: isDeposit ? "שיק להפקדה נרשם" : "שיק חדש נרשם",
         accent: "blue",
         amount: ils(totalAmount),
         memberId: member.id,
         memberName: member.name,
         rows: [
           ["חבר", member.name || "—"],
+          ["סוג", isDeposit ? "הפקדה בגמ\"ח (זכות לחבר)" : "פרעון הלוואה"],
           ["מספר שיקים", String(rows.length)],
           ["סכום כולל", ils(totalAmount)],
           ["תאריך פירעון ראשון", rows[0]?.due_date ? gdate(rows[0].due_date) : "—"],
@@ -231,10 +257,11 @@ export default function MemberDetail() {
     load();
   }
 
-  // התקדמות פירעון: כמה מהחוב כבר נפרע בשיקים וכמה צפוי להיפרע
+  // התקדמות פירעון: כמה מהחוב כבר נפרע בשיקים וכמה צפוי להיפרע (שיקי פרעון בלבד)
   const checkStats = useMemo(() => {
-    const pend = checks.filter(c => c.status === "pending");
-    const cashed = checks.filter(c => c.status === "cashed");
+    const repay = checks.filter(c => kindOf(c) === "repayment");
+    const pend = repay.filter(c => c.status === "pending");
+    const cashed = repay.filter(c => c.status === "cashed");
     const pendSum = pend.reduce((s, c) => s + c.amount, 0);
     const cashedSum = cashed.reduce((s, c) => s + c.amount, 0);
     const debt = member ? Math.max(0, member.loan_balance ?? 0) : 0; // חוב הלוואות בפועל
@@ -243,36 +270,64 @@ export default function MemberDetail() {
     const progressPct = planTotal > 0 ? Math.round((cashedSum / planTotal) * 100) : 0;
     return {
       pend, pendSum, cashedSum, debt, projectedDebt, planTotal, progressPct,
-      total: checks.length, pendCount: pend.length, cashedCount: cashed.length,
+      total: repay.length, pendCount: pend.length, cashedCount: cashed.length,
     };
   }, [checks, member]);
 
-  // פדיון שיק → יוצר הפקדת פרעון שמקטינה את חוב ההלוואה ומקשר אותה לשיק.
+  // שיקים להפקדה: כמה ממתינים (צפויים להיזקף כזכות) וכמה כבר נזקפו
+  const depositStats = useMemo(() => {
+    const pend = depositChecks.filter(c => c.status === "pending");
+    const cashed = depositChecks.filter(c => c.status === "cashed");
+    return {
+      total: depositChecks.length,
+      pendCount: pend.length, pendSum: pend.reduce((s, c) => s + c.amount, 0),
+      cashedCount: cashed.length, cashedSum: cashed.reduce((s, c) => s + c.amount, 0),
+    };
+  }, [depositChecks]);
+
+  // שיקים ממתינים שהגיע/חלף מועד פירעונם — להתראה בראש הדף
+  const dueChecks = useMemo(() => {
+    const today = new Date(); today.setHours(23, 59, 59, 999);
+    return checks
+      .filter(c => c.status === "pending" && c.due_date && new Date(c.due_date) <= today)
+      .sort((a, b) => (a.due_date || "").localeCompare(b.due_date || ""));
+  }, [checks]);
+
+  // פדיון שיק → יוצר הפקדה ומקשר אותה לשיק.
+  //   שיק לפרעון → הפקדה בקטגוריה repayment → מקטינה את חוב ההלוואה.
+  //   שיק להפקדה → הפקדה בקטגוריה deposit    → מגדילה את יתרת החיסכון (הזכות) של החבר.
   async function markCashed(c: Check) {
     if (!member) return;
-    if (!confirm(`לסמן שיק על סך ${ils(c.amount)} כנפדה? תיווצר הפקדה שתקטין את חוב ההלוואה.`)) return;
+    const isDeposit = kindOf(c) === "deposit";
+    const question = isDeposit
+      ? `לסמן שיק הפקדה על סך ${ils(c.amount)} כנפדה?\n\nייווצר פיקדון שיגדיל את יתרת החיסכון (הזכות) של ${member.name}.`
+      : `לסמן שיק על סך ${ils(c.amount)} כנפדה? תיווצר הפקדה שתקטין את חוב ההלוואה.`;
+    if (!confirm(question)) return;
     setChkBusy(c.id);
     // הפניה להלוואה שהשיק פורע — תופיע בהערות הפעולה
-    const loan = c.loan_transaction_id ? txns.find(t => t.id === c.loan_transaction_id) : null;
-    const loanRef = loan ? ` · פרעון הלוואה ע״ס ${ils(loan.amount)}${loan.greg_date ? " מ-" + gdate(loan.greg_date) : ""}` : " (פרעון)";
+    const loan = !isDeposit && c.loan_transaction_id ? txns.find(t => t.id === c.loan_transaction_id) : null;
+    const ref = isDeposit
+      ? " (הפקדה לגמ״ח)"
+      : loan ? ` · פרעון הלוואה ע״ס ${ils(loan.amount)}${loan.greg_date ? " מ-" + gdate(loan.greg_date) : ""}` : " (פרעון)";
     const { data: txn, error: tErr } = await supabase.from("transactions").insert({
       member_id: member.id, amount: c.amount, type: "הפקדה", method: "צ'יקים",
       greg_date: c.due_date, heb_date: c.hebrew_due,
-      notes: "פדיון שיק" + loanRef + (c.notes ? " · " + c.notes : ""),
-      category: "repayment",
+      notes: "פדיון שיק" + ref + (c.notes ? " · " + c.notes : ""),
+      category: isDeposit ? "deposit" : "repayment",
     }).select("id").single();
     if (tErr) { setChkBusy(null); alert("שגיאה ביצירת ההפקדה: " + tErr.message); return; }
     await supabase.from("checks").update({ status: "cashed", cashed_at: new Date().toISOString(), transaction_id: (txn as any)?.id || null }).eq("id", c.id);
     setChkBusy(null);
     notify({
       event: "check.cashed",
-      heading: "שיק נפדה",
+      heading: isDeposit ? "שיק הפקדה נפדה — נזקף כזכות" : "שיק נפדה",
       accent: "green",
       amount: ils(c.amount),
       memberId: member.id,
       memberName: member.name,
       rows: [
         ["חבר", member.name || "—"],
+        ["סוג", isDeposit ? "הפקדה בגמ\"ח (זכות לחבר)" : "פרעון הלוואה"],
         ["סכום", ils(c.amount)],
         ["תאריך פירעון", c.due_date ? gdate(c.due_date) : "—"],
         ["תאריך עברי", c.hebrew_due || "—"],
@@ -777,8 +832,14 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
           </div>
           {checkStats.total > 0 && (
             <div style={{ marginTop: 2, fontSize: ".78rem", color: "#5a6b7b", background: "#f8fafc", borderRadius: 8, padding: "0.5rem 0.65rem", lineHeight: 1.7 }}>
-              <div><b style={{ color: "var(--text)" }}>שיקים:</b> {checkStats.total} במערכת · נפדו {checkStats.cashedCount} · ממתינים {checkStats.pendCount}</div>
+              <div><b style={{ color: "var(--text)" }}>שיקים לפרעון:</b> {checkStats.total} במערכת · נפדו {checkStats.cashedCount} · ממתינים {checkStats.pendCount}</div>
               <div>צפי פרעון (ממתינים): <b>{ils(checkStats.pendSum)}</b> · נותר חוב: <b style={{ color: checkStats.projectedDebt > 0 ? "#c0392b" : "var(--brand)" }}>{ils(checkStats.projectedDebt)}</b></div>
+            </div>
+          )}
+          {depositStats.total > 0 && (
+            <div style={{ marginTop: 2, fontSize: ".78rem", color: "#5a6b7b", background: "#f0faf6", borderRadius: 8, padding: "0.5rem 0.65rem", lineHeight: 1.7 }}>
+              <div><b style={{ color: "var(--text)" }}>שיקים להפקדה:</b> {depositStats.total} במערכת · הופקדו {depositStats.cashedCount} · ממתינים {depositStats.pendCount}</div>
+              {depositStats.pendCount > 0 && <div>צפוי להיזקף כזכות: <b style={{ color: "var(--brand)" }}>{ils(depositStats.pendSum)}</b></div>}
             </div>
           )}
           <div style={{ fontSize: ".78rem", color: "#9aa5b5", marginTop: 2 }}>{member.txn_count} פעולות</div>
@@ -861,39 +922,112 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
         )}
       </Card>
 
-      {/* A5: שיקים */}
+      {/* התראה: שיקים שהגיע מועד פירעונם — האם הופקדו בפועל? */}
+      {dueChecks.length > 0 && (
+        <div className="no-print" style={{ marginTop: 18, background: "#fff7ed", border: "1px solid #fdba74", borderRadius: "var(--r-md, 12px)", padding: "0.9rem 1.1rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 800, color: "#9a3412" }}>
+            <span style={{ fontSize: "1.1rem" }}>⏰</span>
+            הגיע מועד פירעון — האם השיק הופקד בפועל?
+            <span style={{ fontWeight: 600, fontSize: ".82rem", color: "#b45309" }}>
+              ({dueChecks.length} שיקים · {ils(dueChecks.reduce((s, c) => s + c.amount, 0))})
+            </span>
+          </div>
+          <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+            {dueChecks.map(c => (
+              <div key={c.id} style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, background: "#fff", border: "1px solid #fed7aa", borderRadius: 8, padding: "0.45rem 0.65rem" }}>
+                <b style={{ fontVariantNumeric: "tabular-nums" }}>{ils(c.amount)}</b>
+                <span style={{ fontSize: ".76rem", fontWeight: 700, borderRadius: 999, padding: "0.1rem 0.55rem", color: "#fff", background: kindOf(c) === "deposit" ? "var(--brand)" : "#f59e0b" }}>
+                  {kindOf(c) === "deposit" ? "הפקדה → זכות" : "פרעון הלוואה"}
+                </span>
+                <span dir="ltr" style={{ fontSize: ".82rem", color: "#7a8699" }}>{c.due_date ? gdate(c.due_date) : "—"}</span>
+                <span style={{ fontSize: ".82rem", color: "#7a8699" }}>{c.hebrew_due || ""}</span>
+                {c.notes && <span style={{ fontSize: ".8rem", color: "#9aa5b5" }}>{c.notes}</span>}
+                <div style={{ display: "flex", gap: 6, marginInlineStart: "auto" }}>
+                  <button onClick={() => markCashed(c)} disabled={chkBusy === c.id} className="btn btn-primary btn-sm">✓ הופקד</button>
+                  <button onClick={() => markBounced(c)} disabled={chkBusy === c.id} className="btn btn-danger btn-sm">חזר</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* A5: שיקים — שני טאבים: לפרעון הלוואה / להפקדה בגמ"ח */}
       <Card id="checks-section" style={{ padding: 0, marginTop: 18 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem 1.25rem 0", flexWrap: "wrap", gap: 8 }}>
           <h3 className="display" style={{ margin: 0, display: "flex", alignItems: "center" }}>
             <span className="section-bar" style={{ marginInlineEnd: 8 }} />
-            שיקים לפרעון
+            שיקים
           </h3>
           {(() => {
-            const pend = checks.filter(c => c.status === "pending");
+            const pend = tabChecks.filter(c => c.status === "pending");
             const sum = pend.reduce((s, c) => s + c.amount, 0);
             return pend.length > 0 ? <span style={{ fontSize: ".82rem", color: "#7a8699" }}>{pend.length} שיקים פתוחים · {ils(sum)}</span> : null;
           })()}
         </div>
 
-        {/* התקדמות פירעון ההלוואה בשיקים */}
-        {checks.length > 0 && (
+        {/* בורר טאבים */}
+        <div className="no-print" style={{ display: "flex", gap: 4, padding: "0.75rem 1.25rem 0", borderBottom: "1px solid #f0f2f5" }}>
+          {([
+            { k: "repayment" as CheckKind, label: "שיקים לפרעון", count: checkStats.total },
+            { k: "deposit" as CheckKind, label: "שיקים להפקדה", count: depositStats.total },
+          ]).map(t => {
+            const active = chkTab === t.k;
+            return (
+              <button key={t.k} onClick={() => setChkTab(t.k)}
+                style={{
+                  border: "none", cursor: "pointer", background: "none",
+                  padding: "0.55rem 1rem", fontSize: ".9rem", fontWeight: active ? 800 : 600,
+                  color: active ? BRAND : "#7a8699",
+                  borderBottom: `3px solid ${active ? BRAND : "transparent"}`,
+                  marginBottom: -1, transition: "color .15s",
+                }}>
+                {t.label}
+                {t.count > 0 && (
+                  <span style={{ marginInlineStart: 6, fontSize: ".75rem", fontWeight: 700, borderRadius: 999, padding: "0.05rem 0.45rem", background: active ? BRAND : "#e2e8f0", color: active ? "#fff" : "#7a8699" }}>
+                    {t.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* התקדמות פירעון ההלוואה בשיקים (רק בטאב הפרעון) */}
+        {chkTab === "repayment" && checkStats.planTotal > 0 && (
           <div style={{ padding: "0.75rem 1.25rem 0" }}>
-            {checkStats.planTotal > 0 && (
-              <div style={{ marginTop: 8 }}>
-                <div style={{ height: 8, background: "#eef2f1", borderRadius: 999, overflow: "hidden" }}>
-                  <div style={{ width: `${checkStats.progressPct}%`, height: "100%", background: "var(--grad-brand)", transition: "width .3s" }} />
-                </div>
-                <div style={{ fontSize: ".78rem", color: "#7a8699", marginTop: 4 }}>
-                  נפדו {ils(checkStats.cashedSum)} מתוך {ils(checkStats.planTotal)} · {checkStats.progressPct}% מתכנית השיקים
-                </div>
+            <div style={{ marginTop: 8 }}>
+              <div style={{ height: 8, background: "#eef2f1", borderRadius: 999, overflow: "hidden" }}>
+                <div style={{ width: `${checkStats.progressPct}%`, height: "100%", background: "var(--grad-brand)", transition: "width .3s" }} />
               </div>
-            )}
+              <div style={{ fontSize: ".78rem", color: "#7a8699", marginTop: 4 }}>
+                נפדו {ils(checkStats.cashedSum)} מתוך {ils(checkStats.planTotal)} · {checkStats.progressPct}% מתכנית השיקים
+              </div>
+            </div>
           </div>
         )}
 
-        {/* עורך שיקים — זמין רק לחבר עם הלוואה פעילה (כל השיקים הם לפירעון חוב) */}
-        {(member.loan_balance ?? 0) > 0 ? (
+        {/* סיכום שיקים להפקדה: כמה כבר נזקף כזכות וכמה צפוי */}
+        {chkTab === "deposit" && depositStats.total > 0 && (
+          <div style={{ padding: "0.85rem 1.25rem 0" }}>
+            <div style={{ fontSize: ".82rem", color: "#5a6b7b", background: "#f0faf6", border: "1px solid #cdebdd", borderRadius: 8, padding: "0.55rem 0.7rem", lineHeight: 1.7 }}>
+              נזקף כזכות עד כה: <b style={{ color: BRAND }}>{ils(depositStats.cashedSum)}</b> ({depositStats.cashedCount} שיקים)
+              {depositStats.pendCount > 0 && <> · צפוי להיזקף: <b>{ils(depositStats.pendSum)}</b> ({depositStats.pendCount} ממתינים)</>}
+            </div>
+          </div>
+        )}
+
+        {/* עורך שיקים.
+            טאב פרעון — זמין רק לחבר עם הלוואה פעילה (השיקים פורעים את החוב).
+            טאב הפקדה — פתוח תמיד; הפדיון ייזקף כזכות (חיסכון) לחבר. */}
+        {chkTab === "deposit" || (member.loan_balance ?? 0) > 0 ? (
         <div className="no-print" style={{ padding: "0.75rem 1.25rem 1rem", borderBottom: "1px solid #f0f2f5" }}>
+          {chkTab === "deposit" && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#f0faf6", border: "1px solid #cdebdd", borderRadius: 8, padding: "0.6rem 0.75rem", marginBottom: 12, fontSize: ".85rem", color: "#1e5c48" }}>
+              <span style={{ fontSize: "1.05rem" }}>💰</span>
+              <span>שיקים אלו ייכנסו כ<b>זכות (חיסכון) לחבר</b> בעת פדיונם — כל שיק שייפדה יגדיל את יתרת החיסכון של {member.name}.</span>
+            </div>
+          )}
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "flex-end" }}>
             <div style={{ width: 120 }}>
               <label style={lbl}>סכום לכל שיק ₪</label>
@@ -907,7 +1041,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
               <label style={lbl}>מספר שיקים</label>
               <input type="number" min={0} max={60} value={chkMaster.count} onChange={e => setMasterCount(e.target.value)} style={inp} />
             </div>
-            {loans.length > 0 && (
+            {chkTab === "repayment" && loans.length > 0 && (
               <div style={{ flex: 1, minWidth: 220 }}>
                 <label style={lbl}>{loans.length > 1 ? "לאיזו הלוואה השיקים מיועדים? (חובה)" : "שיוך להלוואה (משיכה)"}</label>
                 <select value={chkMaster.loan_transaction_id} onChange={e => setChkMaster(f => ({ ...f, loan_transaction_id: e.target.value }))} style={inp}>
@@ -923,6 +1057,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
             הזן מספר שיקים → ייפתחו שורות לעריכה. הסכום מלמעלה משתכפל לכולן והתאריך נפרס חודש-חודש; אפשר לערוך כל שורה ידנית ואז לשמור.
           </div>
           {(() => {
+            if (chkTab === "deposit") return null; // אין תקרה לשיקי הפקדה
             const loan = chkMaster.loan_transaction_id ? loans.find(l => l.id === chkMaster.loan_transaction_id) : null;
             if (!loan) return null;
             const existingSum = checks.filter(c => c.loan_transaction_id === loan.id && c.status !== "bounced").reduce((s, c) => s + c.amount, 0);
@@ -962,7 +1097,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
 
           <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 10 }}>
             <button onClick={saveChecks} disabled={savingChks || chkDrafts.length === 0} className="btn btn-primary">
-              {savingChks ? "שומר…" : `✓ שמור ${chkDrafts.length || ""} שיקים`}
+              {savingChks ? "שומר…" : `✓ שמור ${chkDrafts.length || ""} שיקים${chkTab === "deposit" ? " להפקדה" : ""}`}
             </button>
             {(() => {
               const total = chkDrafts.reduce((s, d) => s + (Number(d.amount) || 0), 0);
@@ -972,12 +1107,13 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
         </div>
         ) : (
           <div className="no-print" style={{ padding: "0.9rem 1.25rem", color: "#7a8699", fontSize: ".85rem", borderBottom: "1px solid #f0f2f5" }}>
-            שיקים זמינים רק לחבר עם הלוואה פעילה (כל השיקים הם לפירעון החוב). כדי להזין שיקים — רשום משיכה (הלוואה) ובחר "אופן החזר → שיקים".
+            שיקים לפרעון זמינים רק לחבר עם הלוואה פעילה. כדי להזין שיקים לפרעון — רשום משיכה (הלוואה) ובחר "אופן החזר → שיקים".
+            להפקדת שיקים כזכות לחבר — עבור לטאב <b>שיקים להפקדה</b>.
           </div>
         )}
 
-        {checks.length === 0 ? (
-          <Empty text="אין שיקים לחבר זה" />
+        {tabChecks.length === 0 ? (
+          <Empty text={chkTab === "deposit" ? "אין שיקים להפקדה לחבר זה" : "אין שיקים לפרעון לחבר זה"} />
         ) : (
           <div style={{ overflowX: "auto" }}>
             <table className="table">
@@ -992,16 +1128,20 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
                 </tr>
               </thead>
               <tbody>
-                {checks.map(c => {
+                {tabChecks.map(c => {
                   const overdue = c.status === "pending" && c.due_date && new Date(c.due_date) <= new Date();
                   return (
                     <tr key={c.id} style={{ background: overdue ? "#fff7ed" : "" }}>
                       <td style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
                         {ils(c.amount)}
-                        {c.loan_transaction_id && (() => {
-                          const l = txns.find(t => t.id === c.loan_transaction_id);
-                          return l ? <div style={{ fontSize: ".68rem", color: "#7a8699", fontWeight: 500 }}>↳ הלוואה {ils(l.amount)}</div> : null;
-                        })()}
+                        {kindOf(c) === "deposit"
+                          ? c.status === "cashed"
+                            ? <div style={{ fontSize: ".68rem", color: BRAND, fontWeight: 500 }}>↳ נזקף כזכות</div>
+                            : <div style={{ fontSize: ".68rem", color: "#7a8699", fontWeight: 500 }}>↳ ייזקף כזכות בפדיון</div>
+                          : c.loan_transaction_id && (() => {
+                              const l = txns.find(t => t.id === c.loan_transaction_id);
+                              return l ? <div style={{ fontSize: ".68rem", color: "#7a8699", fontWeight: 500 }}>↳ הלוואה {ils(l.amount)}</div> : null;
+                            })()}
                       </td>
                       <td dir="ltr" style={{ textAlign: "right" }}>{c.due_date ? gdate(c.due_date) : "—"}{overdue ? " ⚠️" : ""}</td>
                       <td>{c.hebrew_due || "—"}</td>
@@ -1015,7 +1155,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
                         <div style={{ display: "flex", gap: 6 }}>
                           {c.status === "pending" && (
                             <>
-                              <button onClick={() => markCashed(c)} disabled={chkBusy === c.id} className="btn btn-primary btn-sm">נפדה ✓</button>
+                              <button onClick={() => markCashed(c)} disabled={chkBusy === c.id} className="btn btn-primary btn-sm">{kindOf(c) === "deposit" ? "הופקד ✓" : "נפדה ✓"}</button>
                               <button onClick={() => markBounced(c)} disabled={chkBusy === c.id} className="btn btn-danger btn-sm">חזר</button>
                             </>
                           )}
