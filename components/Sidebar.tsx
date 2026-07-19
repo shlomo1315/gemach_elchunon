@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, ArrowLeftRight, BarChart3, LogOut, Settings, Upload, Sun, Moon, Inbox } from "lucide-react";
+import { LayoutDashboard, Users, ArrowLeftRight, BarChart3, LogOut, Settings, Upload, Sun, Moon, Inbox, Mail } from "lucide-react";
 import { useAuth } from "./AuthGuard";
 import { Logo } from "./Logo";
 
@@ -13,6 +13,7 @@ const links = [
   { href: "/requests", label: "בקשות", icon: Inbox },
   { href: "/import", label: "ייבוא מאקסל", icon: Upload },
   { href: "/reports", label: "דוחות", icon: BarChart3 },
+  { href: "/emails", label: "מיילים", icon: Mail },
   { href: "/settings", label: "הגדרות", icon: Settings },
 ];
 
