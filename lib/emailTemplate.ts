@@ -13,6 +13,7 @@ const ACCENTS = {
 export function buildEmail(opts: {
   heading: string;
   intro?: string;
+  paragraphs?: string[];
   rows: EmailRow[];
   amount?: string;
   accent?: keyof typeof ACCENTS;
@@ -62,6 +63,9 @@ export function buildEmail(opts: {
         <tr><td style="padding:28px;" dir="rtl">
           <div style="display:inline-block;background:${accent.bg};color:${accent.c};font-size:13px;font-weight:700;padding:5px 13px;border-radius:999px;margin-bottom:14px;">${esc(opts.heading)}</div>
           ${opts.intro ? `<p style="margin:0 0 18px;color:#14203a;font-size:15px;line-height:1.6;">${esc(opts.intro)}</p>` : ""}
+          ${(opts.paragraphs ?? [])
+            .map(p => `<p style="margin:0 0 14px;color:#14203a;font-size:15px;line-height:1.7;">${esc(p)}</p>`)
+            .join("")}
 
           ${opts.amount ? `
           <div style="background:${accent.bg};border-radius:14px;padding:16px 20px;margin-bottom:18px;text-align:center;">
