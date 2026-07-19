@@ -6,12 +6,18 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 const GMAIL_USER = process.env.GMAIL_USER;
 const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD;
+// חיבור OAuth2 — לא דורש אימות דו-שלבי בחשבון (ראה EMAIL_SETUP.md)
+const GMAIL_CLIENT_ID = process.env.GMAIL_CLIENT_ID;
+const GMAIL_CLIENT_SECRET = process.env.GMAIL_CLIENT_SECRET;
+const GMAIL_REFRESH_TOKEN = process.env.GMAIL_REFRESH_TOKEN;
 
 export const ADMIN_EMAIL = process.env.ADMIN_EMAIL || GMAIL_USER || "";
 const EMAIL_FROM = `"גמ״ח זכרון אהרן" <${GMAIL_USER}>`;
 
+const hasOAuth = !!(GMAIL_CLIENT_ID && GMAIL_CLIENT_SECRET && GMAIL_REFRESH_TOKEN);
+
 export function mailConfigured(): boolean {
-  return !!(GMAIL_USER && GMAIL_APP_PASSWORD);
+  return !!GMAIL_USER && (hasOAuth || !!GMAIL_APP_PASSWORD);
 }
 
 let transporter: nodemailer.Transporter | null = null;
@@ -21,7 +27,15 @@ function getTransporter(): nodemailer.Transporter {
       host: "smtp.gmail.com",
       port: 465,
       secure: true,
-      auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD },
+      auth: hasOAuth
+        ? {
+            type: "OAuth2",
+            user: GMAIL_USER,
+            clientId: GMAIL_CLIENT_ID,
+            clientSecret: GMAIL_CLIENT_SECRET,
+            refreshToken: GMAIL_REFRESH_TOKEN,
+          }
+        : { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD },
     });
   }
   return transporter;
