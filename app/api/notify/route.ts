@@ -1,12 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
 import { buildEmail, type EmailRow } from "@/lib/emailTemplate";
+import { ADMIN_EMAIL, categoryEnabled, getEmailSettings, sendAndLog } from "@/lib/mailer";
 
 export const runtime = "nodejs";
 
-// משתני סביבה (מוגדרים ב-Vercel → Project Settings → Environment Variables)
-const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
-const EMAIL_FROM = process.env.EMAIL_FROM || 'גמ"ח זכרון אהרן <onboarding@resend.dev>';
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -29,22 +26,6 @@ function json(data: unknown, status = 200) {
   });
 }
 
-async function sendViaResend(to: string, subject: string, html: string) {
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${RESEND_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ from: EMAIL_FROM, to: [to], subject, html }),
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`Resend ${res.status}: ${text}`);
-  }
-  return res.json().catch(() => ({}));
-}
-
 export async function POST(req: Request) {
   let body: NotifyBody;
   try {
@@ -53,8 +34,7 @@ export async function POST(req: Request) {
     return json({ ok: false, error: "bad_json" }, 400);
   }
 
-  // אם המערכת לא הוגדרה — לא שגיאה, פשוט מדלגים (האפליקציה ממשיכה לעבוד)
-  if (!RESEND_API_KEY || !ADMIN_EMAIL || !SUPABASE_URL || !SUPABASE_ANON) {
+  if (!SUPABASE_URL || !SUPABASE_ANON) {
     return json({ ok: true, skipped: "not_configured" });
   }
 
@@ -71,6 +51,12 @@ export async function POST(req: Request) {
   }
 
   if (!body?.heading) return json({ ok: false, error: "missing_heading" }, 400);
+
+  // הגדרות שליחה: קטגוריה כבויה => לא שולחים ולא רושמים
+  const settings = await getEmailSettings(supabase);
+  if (!categoryEnabled(settings, body.event)) {
+    return json({ ok: true, skipped: "category_disabled" });
+  }
 
   const rows: EmailRow[] = Array.isArray(body.rows) ? body.rows : [];
 
@@ -92,8 +78,8 @@ export async function POST(req: Request) {
   const subjectBase = `גמ"ח זכרון אהרן — ${body.heading}`;
   const results: Record<string, string> = {};
 
-  // === מייל למנהל (תמיד) ===
-  try {
+  // === מייל למנהל ===
+  if (settings.send_to_admin && ADMIN_EMAIL) {
     const adminHtml = buildEmail({
       heading: body.heading,
       intro: memberName ? `פעולה נרשמה בכרטיס החבר: ${memberName}` : "פעולה נרשמה במערכת.",
@@ -102,29 +88,33 @@ export async function POST(req: Request) {
       rows,
       footnote: "מייל זה נשלח אליך כמנהל המערכת בעקבות פעולה שבוצעה.",
     });
-    await sendViaResend(ADMIN_EMAIL, `[ניהול] ${subjectBase}`, adminHtml);
-    results.admin = "sent";
-  } catch (e) {
-    results.admin = `error: ${(e as Error).message}`;
+    const ok = await sendAndLog(supabase, {
+      to: ADMIN_EMAIL, subject: `[ניהול] ${subjectBase}`, html: adminHtml,
+      event: body.event, recipient_type: "admin",
+      member_id: body.memberId, member_name: memberName,
+    });
+    results.admin = ok ? "sent" : "failed";
+  } else {
+    results.admin = "skipped";
   }
 
   // === מייל לחבר (אם קשור אליו, יש memberId, ויש לו מייל) ===
-  const wantMember = body.toMember !== false && !!body.memberId;
+  const wantMember = settings.send_to_member && body.toMember !== false && !!body.memberId;
   if (wantMember && memberEmail) {
-    try {
-      const memberHtml = buildEmail({
-        heading: body.heading,
-        intro: `שלום${memberName ? ` ${memberName}` : ""}, נרשמה פעולה הקשורה לחשבונך בגמ"ח.`,
-        amount: body.amount,
-        accent: body.accent,
-        rows,
-        footnote: "לכל שאלה ניתן לפנות להנהלת הגמ\"ח. מייל זה נשלח אוטומטית.",
-      });
-      await sendViaResend(memberEmail, subjectBase, memberHtml);
-      results.member = "sent";
-    } catch (e) {
-      results.member = `error: ${(e as Error).message}`;
-    }
+    const memberHtml = buildEmail({
+      heading: body.heading,
+      intro: `שלום${memberName ? ` ${memberName}` : ""}, נרשמה פעולה הקשורה לחשבונך בגמ"ח.`,
+      amount: body.amount,
+      accent: body.accent,
+      rows,
+      footnote: "לכל שאלה ניתן לפנות להנהלת הגמ\"ח. מייל זה נשלח אוטומטית.",
+    });
+    const ok = await sendAndLog(supabase, {
+      to: memberEmail, subject: subjectBase, html: memberHtml,
+      event: body.event, recipient_type: "member",
+      member_id: body.memberId, member_name: memberName,
+    });
+    results.member = ok ? "sent" : "failed";
   } else {
     results.member = wantMember ? "no_email_on_file" : "skipped";
   }
