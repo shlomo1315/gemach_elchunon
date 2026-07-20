@@ -1,23 +1,31 @@
-// מודול שרת בלבד: שליחת מיילים דרך Gmail SMTP + רישום ביומן email_log.
+// מודול שרת בלבד: שליחת מיילים + רישום ביומן email_log.
+// דרך ראשית: Resend מהדומיין של הגמ"ח. גיבוי: Gmail SMTP (OAuth2 / סיסמת אפליקציה).
 // משמש את /api/notify, /api/send-email, /api/resend-email.
 
 import nodemailer from "nodemailer";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+// --- Resend (הדרך הראשית — שליחה מהדומיין gemach.shlomo4you.com) ---
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+
+// --- Gmail (גיבוי, אם אין RESEND_API_KEY) ---
 const GMAIL_USER = process.env.GMAIL_USER;
 const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD;
-// חיבור OAuth2 — לא דורש אימות דו-שלבי בחשבון (ראה EMAIL_SETUP.md)
 const GMAIL_CLIENT_ID = process.env.GMAIL_CLIENT_ID;
 const GMAIL_CLIENT_SECRET = process.env.GMAIL_CLIENT_SECRET;
 const GMAIL_REFRESH_TOKEN = process.env.GMAIL_REFRESH_TOKEN;
 
 export const ADMIN_EMAIL = process.env.ADMIN_EMAIL || GMAIL_USER || "";
-const EMAIL_FROM = `"גמ״ח זכרון אהרן" <${GMAIL_USER}>`;
+const EMAIL_FROM =
+  process.env.EMAIL_FROM ||
+  (RESEND_API_KEY
+    ? 'גמ"ח זכרון אהרן <noreply@gemach.shlomo4you.com>'
+    : `"גמ״ח זכרון אהרן" <${GMAIL_USER}>`);
 
 const hasOAuth = !!(GMAIL_CLIENT_ID && GMAIL_CLIENT_SECRET && GMAIL_REFRESH_TOKEN);
 
 export function mailConfigured(): boolean {
-  return !!GMAIL_USER && (hasOAuth || !!GMAIL_APP_PASSWORD);
+  return !!RESEND_API_KEY || (!!GMAIL_USER && (hasOAuth || !!GMAIL_APP_PASSWORD));
 }
 
 let transporter: nodemailer.Transporter | null = null;
@@ -41,9 +49,28 @@ function getTransporter(): nodemailer.Transporter {
   return transporter;
 }
 
+async function sendViaResend(to: string, subject: string, html: string): Promise<void> {
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${RESEND_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ from: EMAIL_FROM, to: [to], subject, html }),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Resend ${res.status}: ${text}`);
+  }
+}
+
 export async function sendMail(to: string, subject: string, html: string): Promise<void> {
   if (!mailConfigured()) throw new Error("not_configured");
-  await getTransporter().sendMail({ from: EMAIL_FROM, to, subject, html });
+  if (RESEND_API_KEY) {
+    await sendViaResend(to, subject, html);
+  } else {
+    await getTransporter().sendMail({ from: EMAIL_FROM, to, subject, html });
+  }
 }
 
 export type EmailSettings = {
