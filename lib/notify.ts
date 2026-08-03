@@ -22,12 +22,13 @@ export function notify(ev: NotifyEvent): void {
   // ריצה אסינכרונית "שגר ושכח" — לא ממתינים ולא מפילים את הזרימה
   (async () => {
     try {
+      // ההזדהות נשלחת בעוגייה — אין צורך בטוקן ב-header
       const { data } = await supabase.auth.getSession();
-      const token = data.session?.access_token;
-      if (!token) return;
+      if (!data.session) return;
       await fetch("/api/notify", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
         body: JSON.stringify(ev),
         keepalive: true,
       });

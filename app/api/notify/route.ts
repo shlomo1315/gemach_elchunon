@@ -1,14 +1,13 @@
-import { createClient } from "@supabase/supabase-js";
 import { buildEmail, type EmailRow } from "@/lib/emailTemplate";
+import { queryOne } from "@/lib/db";
+import { currentUser } from "@/lib/session";
 
 export const runtime = "nodejs";
 
-// משתני סביבה (מוגדרים ב-Vercel → Project Settings → Environment Variables)
+// משתני סביבה (מוגדרים ב-Railway → Service → Variables)
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 const EMAIL_FROM = process.env.EMAIL_FROM || 'גמ"ח זכרון אהרן <onboarding@resend.dev>';
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 type NotifyBody = {
   event?: string;
@@ -54,21 +53,14 @@ export async function POST(req: Request) {
   }
 
   // אם המערכת לא הוגדרה — לא שגיאה, פשוט מדלגים (האפליקציה ממשיכה לעבוד)
-  if (!RESEND_API_KEY || !ADMIN_EMAIL || !SUPABASE_URL || !SUPABASE_ANON) {
+  if (!RESEND_API_KEY || !ADMIN_EMAIL) {
     return json({ ok: true, skipped: "not_configured" });
   }
 
-  // אימות: רק משתמש מחובר יכול להפעיל שליחה (מונע ניצול לרעה)
-  const token = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
-  if (!token) return json({ ok: false, error: "no_auth" }, 401);
-
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-  const { data: userData, error: userErr } = await supabase.auth.getUser(token);
-  if (userErr || !userData?.user) {
-    return json({ ok: false, error: "invalid_auth" }, 401);
-  }
+  // אימות: רק משתמש מחובר יכול להפעיל שליחה (מונע ניצול לרעה).
+  // ההזדהות מגיעה מעוגיית ה-session, לא מטוקן ב-header.
+  const user = await currentUser();
+  if (!user) return json({ ok: false, error: "no_auth" }, 401);
 
   if (!body?.heading) return json({ ok: false, error: "missing_heading" }, 400);
 
@@ -78,11 +70,10 @@ export async function POST(req: Request) {
   let memberEmail: string | null = null;
   let memberName: string | null = body.memberName ?? null;
   if (body.memberId) {
-    const { data: m } = await supabase
-      .from("members")
-      .select("name,email")
-      .eq("id", body.memberId)
-      .maybeSingle();
+    const m = await queryOne<{ name: string | null; email: string | null }>(
+      `select name, email from members where id = $1`,
+      [body.memberId],
+    );
     if (m) {
       memberName = m.name ?? memberName;
       memberEmail = (m.email ?? "").trim() || null;

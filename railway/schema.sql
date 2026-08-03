@@ -129,17 +129,35 @@ create table if not exists deleted_transactions (
 -- סופאבייס שומר סיסמאות כ-bcrypt, שהוא פורמט סטנדרטי — ולכן ההאשים
 -- מועברים כמו שהם והמשתמשים ממשיכים להתחבר עם אותה סיסמה בדיוק.
 create table if not exists app_users (
-  id            uuid primary key default gen_random_uuid(),
-  email         text not null unique,
-  password_hash text not null,
-  role          text not null default 'member' check (role in ('admin','member')),
-  member_id     uuid references members(id) on delete cascade,
-  created_at    timestamptz not null default now(),
-  updated_at    timestamptz not null default now()
+  id              uuid primary key default gen_random_uuid(),
+  email           text not null unique,
+  password_hash   text not null,
+  full_name       text,
+  role            text not null default 'member' check (role in ('admin','member')),
+  member_id       uuid references members(id) on delete cascade,
+  last_sign_in_at timestamptz,
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now()
 );
 
 create index if not exists app_users_email_idx  on app_users (lower(email));
 create index if not exists app_users_member_idx on app_users (member_id);
+
+-- ---------- מסמכים (מחליף את Storage bucket "member-docs") ----------
+-- הקבצים קטנים ומעטים (מסמכים שחברים מצרפים לבקשות), ולכן נשמרים
+-- במסד עצמו — כך אין תלות בשירות אחסון חיצוני והגיבוי הוא אחד.
+-- ה-path נשמר בפורמט המקורי "<member_id>/<filename>" כדי שהערכים
+-- הקיימים ב-document_url ימשיכו להצביע נכון.
+create table if not exists documents (
+  path         text primary key,
+  member_id    uuid references members(id) on delete cascade,
+  content_type text,
+  size_bytes   integer,
+  data         bytea not null,
+  created_at   timestamptz not null default now()
+);
+
+create index if not exists documents_member_idx on documents (member_id);
 
 -- ---------- פונקציות עזר ----------
 -- סכום חתום: משיכה => שלילי, הפקדה => חיובי
