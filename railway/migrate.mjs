@@ -32,6 +32,11 @@ function fail(msg) {
   process.exit(1);
 }
 
+/** סופאבייס ו-Railway דורשים SSL; מסד מקומי לרוב לא תומך בו כלל. */
+function sslFor(url) {
+  return /localhost|127\.0\.0\.1/.test(url) ? undefined : { rejectUnauthorized: false };
+}
+
 /**
  * סדר ההעברה חייב לכבד את מפתחות הזרים:
  * members קודם, אחר כך transactions, ורק אז מה שמצביע עליהם.
@@ -122,13 +127,13 @@ async function insertBatch(dst, table, columns, rows) {
 async function main() {
   console.log("\n🚚 העברת נתונים: Supabase → Railway\n" + "─".repeat(46));
 
-  const src = new Client({ connectionString: SRC, ssl: { rejectUnauthorized: false } });
+  const src = new Client({ connectionString: SRC, ssl: sslFor(SRC) });
   await src.connect();
   console.log("✅ מחובר ל-Supabase");
 
   let dst = null;
   if (!DRY) {
-    dst = new Client({ connectionString: DST, ssl: { rejectUnauthorized: false } });
+    dst = new Client({ connectionString: DST, ssl: sslFor(DST) });
     await dst.connect();
     console.log("✅ מחובר ל-Railway");
   } else {
