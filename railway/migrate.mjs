@@ -24,7 +24,14 @@ const DST = process.env.RAILWAY_DB_URL;
 const DRY = process.argv.includes("--dry-run");
 const TRUNCATE = process.argv.includes("--truncate");
 
-if (!SRC) fail("חסר משתנה SUPABASE_DB_URL");
+if (!SRC) {
+  // יציאה נקייה (ולא שגיאה) כדי שהשירות ב-Railway יעלה ויחכה למשתנה,
+  // במקום להיכשל שוב ושוב לפני שהוגדר.
+  console.log("\n⏸  ממתין למשתנה SUPABASE_DB_URL — ההעברה לא רצה.\n");
+  console.log("   הוסף אותו ב-Railway תחת Service → Variables:");
+  console.log("   SUPABASE_DB_URL=postgresql://postgres:<סיסמה>@db.<project>.supabase.co:5432/postgres\n");
+  process.exit(0);
+}
 if (!DST && !DRY) fail("חסר משתנה RAILWAY_DB_URL");
 
 function fail(msg) {
