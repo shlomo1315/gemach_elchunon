@@ -17,22 +17,31 @@ function createPool() {
   return new Pool({
     connectionString,
     // Railway מגיש את Postgres עם תעודה עצמית — הצפנה כן, אימות תעודה לא.
-    ssl: connectionString.includes("localhost") ? undefined : { rejectUnauthorized: false },
+    ssl: /localhost|127\.0\.0\.1/.test(connectionString) ? undefined : { rejectUnauthorized: false },
     max: 10,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 10_000,
   });
 }
 
-// ב-dev, Next מרענן מודולים ויוצר pools חדשים בכל שינוי — שומרים אחד גלובלי.
-export const pool: Pool = global.__gemachPool ?? createPool();
-if (process.env.NODE_ENV !== "production") global.__gemachPool = pool;
+/**
+ * ה-pool נוצר בפעם הראשונה שמשתמשים בו, ולא בזמן טעינת המודול.
+ * חשוב: `next build` סורק את ה-route handlers וטוען את המודול הזה, וכל
+ * שגיאה בטעינה מפילה את הבנייה. בזמן בנייה אין (ולא צריך) DATABASE_URL —
+ * הוא נדרש רק בזמן ריצה.
+ *
+ * ב-dev, Next מרענן מודולים בכל שינוי — שומרים pool אחד גלובלי.
+ */
+export function getPool(): Pool {
+  if (!global.__gemachPool) global.__gemachPool = createPool();
+  return global.__gemachPool;
+}
 
 export async function query<T = Record<string, unknown>>(
   text: string,
   params: unknown[] = [],
 ): Promise<T[]> {
-  const res = await pool.query(text, params);
+  const res = await getPool().query(text, params);
   return res.rows as T[];
 }
 
@@ -46,7 +55,7 @@ export async function queryOne<T = Record<string, unknown>>(
 
 /** מריץ קבוצת פעולות בטרנזקציה אחת. */
 export async function transaction<T>(fn: (c: import("pg").PoolClient) => Promise<T>): Promise<T> {
-  const client = await pool.connect();
+  const client = await getPool().connect();
   try {
     await client.query("begin");
     const out = await fn(client);
