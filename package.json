@@ -5,7 +5,10 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "node railway/setup.mjs && next start",
+    "db:setup": "node railway/setup.mjs",
+    "db:migrate": "node railway/migrate.mjs",
+    "db:create-admin": "node railway/create-admin.mjs",
     "lint": "next lint"
   },
   "dependencies": {
