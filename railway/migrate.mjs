@@ -44,6 +44,56 @@ function sslFor(url) {
   return /localhost|127\.0\.0\.1/.test(url) ? undefined : { rejectUnauthorized: false };
 }
 
+/** מפרק מחרוזת חיבור להצגה — בלי לחשוף את הסיסמה. */
+function describeConn(raw) {
+  try {
+    const u = new URL(raw);
+    return {
+      user: decodeURIComponent(u.username || ""),
+      host: u.hostname,
+      port: u.port || "5432",
+      db: u.pathname.replace(/^\//, "") || "(ברירת מחדל)",
+      passwordLength: u.password ? decodeURIComponent(u.password).length : 0,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * מדפיס אבחון ממוקד לכשל התחברות. הטעויות הנפוצות הן שתיים:
+ * שם משתמש לא נכון עבור ה-pooler, וסיסמה עם תווים מיוחדים שלא קודדו.
+ */
+function diagnose(raw, label) {
+  const c = describeConn(raw);
+  console.error(`\n🔍 מה נקלט מ-${label}:`);
+  if (!c) {
+    console.error("   ❌ המחרוזת אינה URL תקין. ודא שהיא מתחילה ב-postgresql:// ואין בה רווחים או שורות חדשות.");
+    return;
+  }
+  console.error(`   משתמש: ${c.user || "(ריק)"}`);
+  console.error(`   שרת:   ${c.host}:${c.port}`);
+  console.error(`   מסד:   ${c.db}`);
+  console.error(`   סיסמה: ${c.passwordLength ? `${c.passwordLength} תווים` : "❌ חסרה"}`);
+
+  const isPooler = /pooler\.supabase\.com$/.test(c.host);
+  if (isPooler && !c.user.includes(".")) {
+    console.error(
+      `\n   ⚠️  זו הבעיה: ב-Session pooler שם המשתמש חייב לכלול את מזהה הפרויקט.\n` +
+      `      צריך:  postgres.<project-ref>\n` +
+      `      נקלט:  ${c.user}\n` +
+      `      העתק מחדש את המחרוזת מסופאבייס (Connect → Session pooler) והחלף רק את [YOUR-PASSWORD].`,
+    );
+  }
+
+  if (c.passwordLength && /[@/?#[\]%: ]/.test(new URL(raw).password)) {
+    console.error(
+      `\n   ⚠️  ייתכן שהסיסמה מכילה תו מיוחד (@ / ? # % : רווח) שמבלבל את פענוח הכתובת.\n` +
+      `      הפתרון הפשוט: אפס סיסמה בסופאבייס ובחר אחת עם אותיות וספרות בלבד.`,
+    );
+  }
+}
+
 /**
  * סדר ההעברה חייב לכבד את מפתחות הזרים:
  * members קודם, אחר כך transactions, ורק אז מה שמצביע עליהם.
@@ -239,8 +289,18 @@ async function main() {
 
 main().catch((e) => {
   console.error("\n❌ שגיאה:", e.message);
-  if (e.message.includes("Tenant or user not found") || e.message.includes("password authentication")) {
-    console.error("   בדוק את מחרוזת החיבור — צריך את הסיסמה של מסד הנתונים, לא את ה-API key.");
+
+  const authIssue =
+    /password authentication|Tenant or user not found|SASL|no pg_hba/i.test(e.message);
+
+  if (authIssue) {
+    console.error("   נדרשת הסיסמה של מסד הנתונים — לא ה-API key ולא סיסמת החשבון בסופאבייס.");
+    diagnose(SRC, "SUPABASE_DB_URL");
+  } else if (/ENOTFOUND|EAI_AGAIN|ETIMEDOUT|ECONNREFUSED|ENETUNREACH/i.test(e.message)) {
+    console.error("   לא הצלחנו להגיע לשרת. אם זהו החיבור הישיר (db.<ref>.supabase.co) — הוא IPv6 בלבד;");
+    console.error("   השתמש במחרוזת של Session pooler שעובדת מעל IPv4.");
+    diagnose(SRC, "SUPABASE_DB_URL");
   }
+
   process.exit(1);
 });
