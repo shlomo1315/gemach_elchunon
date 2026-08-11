@@ -26,7 +26,9 @@ function LoginPage({ onLogin }: { onLogin: (u: User) => void }) {
     setError("");
     const { data, error: err } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
-    if (err || !data.user) { setError("אימייל או סיסמה שגויים"); return; }
+    // חשוב להציג את השגיאה שהשרת החזיר ולא הודעה אחידה: תקלת רשת או תקלת
+    // שרת נראו כאן בעבר בדיוק כמו סיסמה שגויה, ושלחו לחפש את הבעיה במקום הלא נכון.
+    if (err || !data.user) { setError(err?.message || "אימייל או סיסמה שגויים"); return; }
     onLogin(data.user);
   }
 

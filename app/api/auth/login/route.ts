@@ -47,7 +47,15 @@ export async function POST(req: NextRequest) {
       error: null,
     });
   } catch (e) {
-    console.error("[auth/login]", (e as Error).message);
-    return NextResponse.json({ error: "שגיאת שרת" }, { status: 500 });
+    const msg = (e as Error).message;
+    console.error("[auth/login]", msg);
+
+    // תקלת תצורה (חסר AUTH_SECRET, אין גישה למסד) אינה טעות של המשתמש.
+    // מפרידים אותה מ"סיסמה שגויה" כדי שלא ישלחו את החברים לאפס סיסמאות לחינם.
+    const config = /AUTH_SECRET|DATABASE_URL|ECONNREFUSED|ETIMEDOUT|ENOTFOUND|ENETUNREACH/i.test(msg);
+    return NextResponse.json(
+      { error: config ? "תקלת תצורה בשרת — פנה למנהל המערכת" : "שגיאת שרת" },
+      { status: 500 },
+    );
   }
 }

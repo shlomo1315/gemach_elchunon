@@ -41,8 +41,10 @@ async function post(url: string, body: unknown): Promise<Result> {
       return { data: null, error: { message: String(msg) } };
     }
     return { data: json.data ?? null, error: json.error ?? null, count: json.count };
-  } catch (e) {
-    return { data: null, error: { message: (e as Error).message || "שגיאת רשת" } };
+  } catch {
+    // fetch נכשל עוד לפני שהתקבלה תשובה — כתובת שגויה, השרת כבוי, או אין רשת.
+    // ההודעה המקורית ("Failed to fetch") לא אומרת דבר למשתמש.
+    return { data: null, error: { message: "אין תקשורת עם השרת — בדוק את כתובת האתר ואת החיבור לאינטרנט" } };
   }
 }
 
