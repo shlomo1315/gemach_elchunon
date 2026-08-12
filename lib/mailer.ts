@@ -1,5 +1,7 @@
 // מודול שרת בלבד: שליחת מיילים + רישום ביומן email_log.
-// דרך ראשית: Resend מהדומיין של הגמ"ח. גיבוי: Gmail SMTP (OAuth2 / סיסמת אפליקציה).
+// דרך ראשית: Resend מכתובת office@gemach.shlomo4you.com.
+// גיבוי: Gmail SMTP (OAuth2 / סיסמת אפליקציה) — רק אם אין RESEND_API_KEY.
+// קבלת מיילים ל-office@ נעשית דרך Cloudflare Email Routing (ראה EMAIL_SETUP.md).
 // משמש את /api/notify, /api/send-email, /api/resend-email.
 
 import nodemailer from "nodemailer";
@@ -16,10 +18,11 @@ const GMAIL_CLIENT_SECRET = process.env.GMAIL_CLIENT_SECRET;
 const GMAIL_REFRESH_TOKEN = process.env.GMAIL_REFRESH_TOKEN;
 
 export const ADMIN_EMAIL = process.env.ADMIN_EMAIL || GMAIL_USER || "";
+export const OFFICE_EMAIL = "office@gemach.shlomo4you.com";
 const EMAIL_FROM =
   process.env.EMAIL_FROM ||
   (RESEND_API_KEY
-    ? 'גמ"ח זכרון אהרן <noreply@gemach.shlomo4you.com>'
+    ? `גמ"ח זכרון אהרן <${OFFICE_EMAIL}>`
     : `"גמ״ח זכרון אהרן" <${GMAIL_USER}>`);
 
 const hasOAuth = !!(GMAIL_CLIENT_ID && GMAIL_CLIENT_SECRET && GMAIL_REFRESH_TOKEN);
@@ -56,7 +59,8 @@ async function sendViaResend(to: string, subject: string, html: string): Promise
       Authorization: `Bearer ${RESEND_API_KEY}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ from: EMAIL_FROM, to: [to], subject, html }),
+    // reply_to: תשובות של חברים חוזרות ל-office@ (שמועבר לתיבה דרך Cloudflare)
+    body: JSON.stringify({ from: EMAIL_FROM, to: [to], subject, html, reply_to: OFFICE_EMAIL }),
   });
   if (!res.ok) {
     const text = await res.text().catch(() => "");
@@ -69,7 +73,7 @@ export async function sendMail(to: string, subject: string, html: string): Promi
   if (RESEND_API_KEY) {
     await sendViaResend(to, subject, html);
   } else {
-    await getTransporter().sendMail({ from: EMAIL_FROM, to, subject, html });
+    await getTransporter().sendMail({ from: EMAIL_FROM, to, subject, html, replyTo: OFFICE_EMAIL });
   }
 }
 

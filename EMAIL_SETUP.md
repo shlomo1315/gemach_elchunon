@@ -1,7 +1,7 @@
 # 📧 הפעלת מערכת המיילים — גמ"ח זכרון אהרן
 
 המערכת שולחת מייל HTML מעוצב **בכל פעולה** (הפקדה, משיכה, חבר חדש, עריכה,
-מחיקה, שיקים, אישור בקשות, ייבוא) דרך חשבון ה-Gmail הייעודי של הגמ"ח:
+מחיקה, שיקים, אישור בקשות, ייבוא) מכתובת הגמ"ח **office@gemach.shlomo4you.com**:
 
 - **למנהל** — על כל פעולה (ניתן לכיבוי בדף "מיילים" → הגדרות).
 - **לחבר** — אם הפעולה קשורה אליו **ויש לו כתובת מייל שמורה** בכרטיס.
@@ -12,61 +12,60 @@
 > בלי ההגדרה למטה המערכת עובדת רגיל — מיילים לא נשלחים, והכשלים
 > מופיעים ביומן עם השגיאה `not_configured`.
 
+**איך זה בנוי:** השליחה נעשית דרך **Resend** (שירות שליחה בלבד),
+והקבלה דרך **Cloudflare Email Routing** שמעביר כל מייל שמגיע ל-`office@`
+לתיבת הדואר האישית שלך. שני החלקים חינמיים ובלתי תלויים זה בזה.
+
 ---
 
-## הפעלה עם OAuth2 (בלי אימות דו-שלבי) — חד-פעמי
+## חלק א' — שליחה (Resend)
 
-ההגדרה נעשית פעם אחת ב-Google Cloud Console, מהחשבון Gmail הייעודי של הגמ"ח.
-בסוף התהליך יהיו בידיך שלושה ערכים: **Client ID**, **Client Secret**, **Refresh Token**.
+הדומיין `shlomo4you.com` מנוהל ב-**Cloudflare**, ולכן כל רשומות ה-DNS
+נוספות שם. ההגדרה חד-פעמית.
 
-### שלב א' — יצירת פרויקט והפעלת Gmail API
-1. נכנסים ל-https://console.cloud.google.com **מהחשבון Gmail של הגמ"ח**.
-2. למעלה: בורר הפרויקטים → **New Project** → שם: `gemach-mail` → **Create**,
-   ומוודאים שהפרויקט החדש נבחר.
-3. בתפריט: **APIs & Services → Library** → מחפשים **Gmail API** → **Enable**.
+### שלב 1 — הוספת הדומיין ב-Resend
+1. נכנסים ל-https://resend.com ומתחברים (אפשר בהרשמה עם Google).
+2. בתפריט הצדדי: **Domains** → **Add Domain**.
+3. בשדה הדומיין מקלידים בדיוק: `gemach.shlomo4you.com`
+4. בוחרים region (אפשר להשאיר ברירת מחדל) → **Add**.
+5. יופיע מסך עם רשומות DNS (בערך 3 שורות: `MX`, `TXT` של SPF,
+   ו-`TXT`/`CNAME` של DKIM). **משאירים את המסך פתוח** — צריך אותו בשלב הבא.
 
-### שלב ב' — מסך הסכמה (OAuth consent screen)
-1. **APIs & Services → OAuth consent screen** → אם מוצע "Get started" ממלאים:
-   - App name: `gemach-mail`, User support email: כתובת ה-Gmail של הגמ"ח.
-   - Audience: **External**.
-   - Contact information: אותה כתובת. → **Create**.
-2. חשוב: תחת **Audience** לוחצים **Publish app** (מעבר מ-Testing ל-**In production**).
-   בלי זה — ה-Refresh Token פג כל 7 ימים והמיילים יפסיקו להישלח.
+### שלב 2 — הוספת הרשומות ב-Cloudflare
+1. נכנסים ל-https://dash.cloudflare.com → בוחרים את הדומיין **shlomo4you.com**.
+2. בתפריט: **DNS** → **Records**.
+3. לכל שורה שמופיעה במסך של Resend לוחצים **Add record** ומעתיקים:
+   - **Type** — כפי שמופיע ב-Resend (`MX` / `TXT` / `CNAME`).
+   - **Name** — מעתיקים מ-Resend. אם Resend מציג שם מלא כמו
+     `send.gemach.shlomo4you.com`, ב-Cloudflare אפשר להזין רק
+     `send.gemach` (Cloudflare משלים את `shlomo4you.com` לבד).
+   - **Content / Value** — העתקה מדויקת מ-Resend.
+   - **Priority** — רק אם זו רשומת `MX` (בדרך כלל `10`).
+   - **Proxy status** — חייב להיות **DNS only** (ענן אפור, לא כתום).
+4. **Save** לכל רשומה.
 
-### שלב ג' — יצירת Client ID ו-Client Secret
-1. **APIs & Services → Credentials** → **Create credentials → OAuth client ID**.
-2. Application type: **Web application**, שם: `gemach-mail`.
-3. תחת **Authorized redirect URIs** מוסיפים בדיוק:
-   `https://developers.google.com/oauthplayground`
-4. **Create** → מעתיקים את **Client ID** ואת **Client Secret** (נשמור אותם לשלב ה').
+> ⚠️ הטעות הנפוצה: השארת ה-Proxy במצב כתום (Proxied). רשומות מייל
+> חייבות להיות **DNS only**, אחרת האימות ייכשל.
 
-### שלב ד' — הפקת Refresh Token (ב-OAuth Playground)
-1. נכנסים ל-https://developers.google.com/oauthplayground
-2. לוחצים על **גלגל השיניים** (למעלה מימין) → מסמנים
-   **Use your own OAuth credentials** → מדביקים את ה-Client ID וה-Client Secret.
-3. בצד שמאל, ב-**Step 1**: בשדה החופשי למטה ("Input your own scopes") מקלידים:
-   `https://mail.google.com/` → **Authorize APIs**.
-4. גוגל תבקש להתחבר — בוחרים את חשבון ה-Gmail של הגמ"ח.
-   אם מופיעה אזהרה "Google hasn't verified this app" → **Advanced** →
-   **Go to gemach-mail (unsafe)** → **Allow** (זו האפליקציה שלך — זה בטוח).
-5. ב-**Step 2**: לוחצים **Exchange authorization code for tokens** →
-   מעתיקים את ה-**Refresh token**.
+### שלב 3 — אימות
+חוזרים ל-Resend → **Domains** → לוחצים **Verify DNS Records**.
+הסטטוס אמור להפוך ל-**Verified** (בדרך כלל תוך דקות; לעיתים עד כמה שעות).
 
-### שלב ה' — משתני סביבה ב-Vercel
+### שלב 4 — מפתח API
+1. ב-Resend: **API Keys** → **Create API Key**.
+2. שם: `gemach`, הרשאה: **Sending access** → **Create**.
+3. מעתיקים את המפתח (`re_...`) — הוא מוצג **פעם אחת בלבד**.
+
+### שלב 5 — משתני סביבה ב-Vercel
 ב-**Vercel → הפרויקט → Settings → Environment Variables**, מוסיפים:
 
 | שם | ערך |
 |----|-----|
-| `GMAIL_USER` | כתובת ה-Gmail המלאה (למשל `gemach@gmail.com`) |
-| `GMAIL_CLIENT_ID` | ה-Client ID משלב ג' (מסתיים ב-`.apps.googleusercontent.com`) |
-| `GMAIL_CLIENT_SECRET` | ה-Client Secret משלב ג' |
-| `GMAIL_REFRESH_TOKEN` | ה-Refresh Token משלב ד' |
-| `ADMIN_EMAIL` | (אופציונלי) לאן יגיעו התראות המנהל. ברירת מחדל: `GMAIL_USER` |
+| `RESEND_API_KEY` | המפתח משלב 4 (מתחיל ב-`re_`) |
+| `ADMIN_EMAIL` | לאן יגיעו התראות המנהל (כתובת ה-Gmail שלך) |
+| `EMAIL_FROM` | (אופציונלי) ברירת המחדל כבר `גמ"ח זכרון אהרן <office@gemach.shlomo4you.com>` |
 
-> חשוב: לוודא ש-`RESEND_API_KEY` **לא** מוגדר — אם הוא קיים, המערכת תשלח
-> דרך Resend במקום דרך ה-Gmail.
-
-### שלב ו' — טבלאות ופריסה
+### שלב 6 — טבלאות ופריסה
 1. ב-**Supabase → SQL Editor** מריצים פעם אחת את `supabase/email-schema.sql`
    (יוצר את `email_log` ו-`email_settings`).
 2. ב-Vercel → **Deployments** → על הפריסה האחרונה → **Redeploy**
@@ -74,26 +73,62 @@
 
 ---
 
-## חלופות נתמכות (אם אי פעם תרצה)
+## חלק ב' — קבלה (Cloudflare Email Routing)
 
-- **סיסמת אפליקציה** (דורשת אימות דו-שלבי): במקום שלושת משתני ה-OAuth
-  מגדירים רק `GMAIL_USER` + `GMAIL_APP_PASSWORD`
-  (יוצרים ב-https://myaccount.google.com/apppasswords).
-- **Resend מדומיין** (`gemach.shlomo4you.com`): מאמתים את הדומיין ב-Resend
-  ומגדירים `RESEND_API_KEY` (+ אופציונלית `EMAIL_FROM`). אם המפתח מוגדר —
-  הוא קודם ל-Gmail.
+Resend **שולח בלבד** — הוא אינו תיבת דואר. כדי שמיילים שנשלחים אל
+`office@gemach.shlomo4you.com` יגיעו אליך, מגדירים העברה אוטומטית.
+ההגדרה חינמית ולוקחת כ-10 דקות.
+
+1. ב-**Cloudflare** → הדומיין `shlomo4you.com` → בתפריט: **Email** →
+   **Email Routing**.
+2. אם זו הפעם הראשונה — לוחצים **Get started** / **Enable Email Routing**.
+   Cloudflare יציע להוסיף רשומות MX אוטומטית → מאשרים.
+3. **Destination addresses** → **Add destination** → מזינים את כתובת
+   ה-Gmail שלך → Cloudflare שולחת לשם מייל אימות → לוחצים על הקישור שבמייל.
+4. **Routing rules** → **Create address**:
+   - Custom address: `office@gemach.shlomo4you.com`
+   - Action: **Send to an email**
+   - Destination: כתובת ה-Gmail שאימתת → **Save**.
+
+מעכשיו כל מייל שיישלח ל-`office@` יגיע לתיבה שלך.
+
+> ⚠️ שים לב לקונפליקט MX: אם Resend ביקש רשומת `MX` על
+> `gemach.shlomo4you.com` ו-Cloudflare Email Routing מוסיף MX משלו —
+> ודא שהם על שמות שונים (Resend בדרך כלל על תת-דומיין כמו `send.`).
+> אם שניהם על אותו שם בדיוק, פנה אליי לפני שאתה מוחק רשומה.
+
+### תשובה ישירה מ-Gmail (מומלץ)
+כדי שתוכל **להשיב** מ-Gmail והתשובה תצא מ-`office@` ולא מהכתובת הפרטית:
+Gmail → ⚙️ → **See all settings** → **Accounts and Import** →
+**Send mail as** → **Add another email address** → מזינים
+`office@gemach.shlomo4you.com`, מסירים את הסימון "Treat as an alias",
+ומאמתים דרך הקוד שיישלח (יגיע אליך בזכות ההעברה שהגדרת).
+
+---
+
+## חלופה: Gmail כגיבוי
+
+הקוד תומך גם בשליחה דרך Gmail SMTP, בשימוש **רק אם `RESEND_API_KEY`
+לא מוגדר**. אפשרי בשתי דרכים:
+
+- **OAuth2** (בלי אימות דו-שלבי): `GMAIL_USER` + `GMAIL_CLIENT_ID` +
+  `GMAIL_CLIENT_SECRET` + `GMAIL_REFRESH_TOKEN`
+  (הפקה ב-Google Cloud Console + https://developers.google.com/oauthplayground,
+  scope `https://mail.google.com/`).
+- **סיסמת אפליקציה** (דורשת אימות דו-שלבי): `GMAIL_USER` +
+  `GMAIL_APP_PASSWORD` (יוצרים ב-https://myaccount.google.com/apppasswords).
 
 ---
 
 ## איך זה עובד טכנית
 - כל פעולה קוראת ל-`notify()` (צד לקוח) שמפעיל את `/api/notify` (צד שרת).
-- השרת בודק את ההגדרות (דף "מיילים" → הגדרות), שולח דרך SMTP של Gmail
-  בחיבור XOAUTH2 (`lib/mailer.ts`), ורושם כל שליחה — הצלחה או כשל —
-  בטבלת `email_log`.
+- השרת בודק את ההגדרות (דף "מיילים" → הגדרות), שולח דרך Resend API
+  (`lib/mailer.ts`), ורושם כל שליחה — הצלחה או כשל — בטבלת `email_log`.
 - השליחה היא "שגר ושכח" — אם מייל נכשל, **הפעולה במערכת כבר נשמרה**.
   הכשל מופיע ביומן ואפשר לשלוח שוב בלחיצה.
 - שליחה יזומה: דף "מיילים" → "שליחה יזומה" → `/api/send-email`.
-- מגבלת Gmail: עד ~500 נמענים ביום — מספיק בהחלט לגמ"ח.
+- מגבלת Resend בתוכנית החינמית: 3,000 מיילים בחודש / 100 ביום —
+  מספיק בהחלט לגמ"ח.
 
 ## כדי שגם החברים יקבלו מייל
 צריך שלכרטיס החבר תהיה כתובת מייל. אפשר להוסיף מייל בכרטיס החבר.

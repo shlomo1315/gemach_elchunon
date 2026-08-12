@@ -232,11 +232,37 @@ function LogTab() {
 
 /* ================= לשונית שליחה יזומה ================= */
 
+// תבניות מוכנות — ממלאות נושא והודעה בלחיצה. {שם} מוחלף אוטומטית בשם החבר בשרת.
+const TEMPLATES: { label: string; subject: string; message: string }[] = [
+  {
+    label: "תזכורת תשלום",
+    subject: "תזכורת לתשלום",
+    message: "ברצוננו להזכיר בעדינות כי מועד התשלום הקרוב מתקרב.\nנשמח אם תוכל להסדיר את התשלום בהקדם.\nלכל שאלה או בקשה אנחנו כאן.",
+  },
+  {
+    label: "אישור קבלת תשלום",
+    subject: "אישור קבלת תשלום",
+    message: "קיבלנו את תשלומך בתודה, והוא נרשם בכרטסת שלך.\nתודה על שיתוף הפעולה.",
+  },
+  {
+    label: "הודעה כללית לחברים",
+    subject: "עדכון מהנהלת הגמ\"ח",
+    message: "שלום רב,\nברצוננו לעדכן אתכם בהודעה הבאה:\n\n(כאן ניתן לכתוב את תוכן ההודעה)\n\nבברכה,\nהנהלת הגמ\"ח",
+  },
+  {
+    label: "ברכה לחג",
+    subject: "ברכת חג שמח",
+    message: "לרגל החג הקרב ובא, ברצוננו לאחל לך ולכל בני המשפחה חג שמח וכשר.\nיהי רצון שתתברכו בכל טוב.\n\nבברכה,\nהנהלת גמ\"ח זכרון אהרן",
+  },
+];
+
 function ComposeTab() {
   const [members, setMembers] = useState<MemberOption[]>([]);
   const [loading, setLoading] = useState(true);
-  const [mode, setMode] = useState<"single" | "all">("single");
+  const [mode, setMode] = useState<"single" | "some" | "all">("single");
   const [memberId, setMemberId] = useState("");
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [search, setSearch] = useState("");
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
@@ -251,28 +277,48 @@ function ComposeTab() {
     })();
   }, []);
 
+  const shown = useMemo(() => {
+    const q = search.trim();
+    if (!q) return members;
+    return members.filter(m => `${m.name} ${m.email}`.includes(q));
+  }, [members, search]);
+
+  // מספר הנמענים בפועל לפי המצב הנבחר
+  const recipientCount = mode === "all" ? members.length : mode === "some" ? picked.size : (memberId ? 1 : 0);
+
+  function toggle(id: string) {
+    setPicked(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  function applyTemplate(t: typeof TEMPLATES[number]) {
+    if ((subject.trim() || message.trim()) && !confirm("להחליף את התוכן הנוכחי בתבנית?")) return;
+    setSubject(t.subject);
+    setMessage(t.message);
+  }
+
   async function send() {
     if (!subject.trim() || !message.trim()) { alert("יש למלא נושא והודעה"); return; }
-    if (mode === "single" && !memberId) { alert("יש לבחור חבר"); return; }
-    if (mode === "all" && !confirm(`לשלוח את המייל לכל ${members.length} החברים שיש להם כתובת מייל?`)) return;
+    if (recipientCount === 0) { alert("יש לבחור לפחות נמען אחד"); return; }
+    if (mode !== "single" && !confirm(`לשלוח את המייל ל-${recipientCount} חברים?`)) return;
 
     setSending(true);
     setResult(null);
     try {
       const headers = await authHeaders();
       if (!headers) { alert("יש להתחבר מחדש"); return; }
+      const memberIds = mode === "all" ? "all" : mode === "some" ? [...picked] : [memberId];
       const res = await fetch("/api/send-email", {
         method: "POST", headers,
-        body: JSON.stringify({
-          memberIds: mode === "all" ? "all" : [memberId],
-          subject: subject.trim(),
-          message: message.trim(),
-        }),
+        body: JSON.stringify({ memberIds, subject: subject.trim(), message: message.trim() }),
       });
       const data = await res.json();
       if (!data.ok) { alert("שגיאה: " + (data.error || "לא ידוע")); return; }
       setResult({ sent: data.sent, failed: data.failed });
-      if (data.failed === 0) { setSubject(""); setMessage(""); }
+      if (data.failed === 0) { setSubject(""); setMessage(""); setPicked(new Set()); }
     } finally {
       setSending(false);
     }
@@ -282,11 +328,27 @@ function ComposeTab() {
 
   return (
     <Card>
-      <div style={{ maxWidth: 560, display: "flex", flexDirection: "column", gap: 14 }}>
-        {/* בחירת נמען */}
-        <div style={{ display: "flex", gap: 16 }}>
+      <div style={{ maxWidth: 620, display: "flex", flexDirection: "column", gap: 14 }}>
+        {/* תבניות מוכנות */}
+        <div>
+          <div style={{ fontSize: ".8rem", color: "var(--muted)", fontWeight: 600, marginBottom: 6 }}>תבניות מוכנות</div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {TEMPLATES.map(t => (
+              <button key={t.label} onClick={() => applyTemplate(t)} style={{
+                padding: "0.35rem 0.8rem", borderRadius: 999, border: "1px solid var(--line)",
+                background: "var(--card)", cursor: "pointer", fontSize: ".82rem", color: "inherit",
+              }}>{t.label}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* בחירת נמענים */}
+        <div style={{ display: "flex", gap: 16, flexWrap: "wrap", paddingTop: 4, borderTop: "1px solid var(--line)" }}>
           <label style={radioLabel}>
             <input type="radio" checked={mode === "single"} onChange={() => setMode("single")} /> חבר בודד
+          </label>
+          <label style={radioLabel}>
+            <input type="radio" checked={mode === "some"} onChange={() => setMode("some")} /> בחירה מרובה
           </label>
           <label style={radioLabel}>
             <input type="radio" checked={mode === "all"} onChange={() => setMode("all")} /> כל החברים עם מייל ({members.length})
@@ -300,14 +362,39 @@ function ComposeTab() {
           </select>
         )}
 
+        {mode === "some" && (
+          <div style={{ border: "1px solid var(--line)", borderRadius: 10, overflow: "hidden" }}>
+            <div style={{ display: "flex", gap: 8, padding: 8, borderBottom: "1px solid var(--line)", alignItems: "center" }}>
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="חיפוש חבר…"
+                style={{ ...field, flex: 1, padding: "0.4rem 0.7rem" }} />
+              <button onClick={() => setPicked(new Set(shown.map(m => m.id)))} style={miniBtn}>סמן הכל</button>
+              <button onClick={() => setPicked(new Set())} style={miniBtn}>נקה</button>
+            </div>
+            <div style={{ maxHeight: 220, overflowY: "auto" }}>
+              {shown.length === 0
+                ? <div style={{ padding: "0.8rem", fontSize: ".85rem", color: "var(--muted)" }}>לא נמצאו חברים</div>
+                : shown.map(m => (
+                  <label key={m.id} style={{
+                    display: "flex", alignItems: "center", gap: 8, padding: "0.45rem 0.8rem",
+                    borderTop: "1px solid var(--line)", cursor: "pointer", fontSize: ".88rem",
+                  }}>
+                    <input type="checkbox" checked={picked.has(m.id)} onChange={() => toggle(m.id)} />
+                    <span style={{ fontWeight: 600 }}>{m.name}</span>
+                    <span dir="ltr" style={{ color: "var(--muted)", fontSize: ".82rem", marginInlineStart: "auto" }}>{m.email}</span>
+                  </label>
+                ))}
+            </div>
+          </div>
+        )}
+
         <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="נושא" style={field} />
         <textarea value={message} onChange={e => setMessage(e.target.value)} placeholder="תוכן ההודעה… (שורה חדשה מתחילה פסקה חדשה)"
-          rows={7} style={{ ...field, resize: "vertical", lineHeight: 1.6 }} />
+          rows={8} style={{ ...field, resize: "vertical", lineHeight: 1.6 }} />
 
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Button onClick={send} disabled={sending}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <Button onClick={send} disabled={sending || recipientCount === 0}>
             <Send size={15} />
-            {sending ? "שולח…" : "שליחה"}
+            {sending ? "שולח…" : recipientCount > 1 ? `שליחה ל-${recipientCount} חברים` : "שליחה"}
           </Button>
           {result && (
             <span style={{ fontSize: ".9rem", color: result.failed ? "#d64545" : "#107a5e", fontWeight: 600 }}>
@@ -410,6 +497,11 @@ const radioLabel: CSSProperties = {
 const iconBtn: CSSProperties = {
   background: "none", border: "none", cursor: "pointer", padding: 5,
   color: "var(--muted)", borderRadius: 7,
+};
+
+const miniBtn: CSSProperties = {
+  padding: "0.35rem 0.7rem", borderRadius: 8, border: "1px solid var(--line)",
+  background: "var(--card)", cursor: "pointer", fontSize: ".8rem", color: "inherit", whiteSpace: "nowrap",
 };
 
 const th: CSSProperties = { padding: "8px 6px", fontWeight: 700 };

@@ -12,6 +12,7 @@ import DatePicker from "@/components/DatePicker";
 import type { MemberBalance, Transaction, Check, CheckKind } from "@/types";
 import { archiveTransactions } from "@/lib/archive";
 import { notify } from "@/lib/notify";
+import MemberEmails from "@/components/MemberEmails";
 
 const BRAND = "#107a5e";
 
@@ -1170,6 +1171,9 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
           </div>
         )}
       </Card>
+
+      {/* תכתובת מייל מול החבר */}
+      <MemberEmails memberId={member.id} memberName={member.name} memberEmail={member.email ?? null} />
 
       {/* מודאל עריכה */}
       {editing && (
