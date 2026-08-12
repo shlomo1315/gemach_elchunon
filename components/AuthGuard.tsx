@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState, createContext, useContext } from "react";
-import { supabase } from "@/lib/supabase";
-import type { User } from "@supabase/supabase-js";
+import { supabase, type User } from "@/lib/supabase";
 import Sidebar from "./Sidebar";
 import MemberPortal from "./MemberPortal";
 import { LogoMark } from "./Logo";

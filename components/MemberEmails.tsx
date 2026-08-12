@@ -36,12 +36,8 @@ function eventLabel(event: string | null): string {
   }
 }
 
-async function authHeaders(): Promise<Record<string, string> | null> {
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
-  if (!token) return null;
-  return { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
-}
+// האימות נעשה בעוגיית ה-session (נשלחת אוטומטית) — אין צורך בטוקן ב-header.
+const JSON_HEADERS = { "Content-Type": "application/json" };
 
 export default function MemberEmails({
   memberId, memberName, memberEmail,
@@ -78,10 +74,8 @@ export default function MemberEmails({
     setSending(true);
     setSentMsg("");
     try {
-      const headers = await authHeaders();
-      if (!headers) { alert("יש להתחבר מחדש"); return; }
       const res = await fetch("/api/send-email", {
-        method: "POST", headers,
+        method: "POST", headers: JSON_HEADERS,
         body: JSON.stringify({ memberIds: [memberId], subject: subject.trim(), message: message.trim() }),
       });
       const data = await res.json();
@@ -101,10 +95,8 @@ export default function MemberEmails({
   async function resend(row: LogRow) {
     setBusy(row.id);
     try {
-      const headers = await authHeaders();
-      if (!headers) return;
       const res = await fetch("/api/resend-email", {
-        method: "POST", headers, body: JSON.stringify({ logId: row.id }),
+        method: "POST", headers: JSON_HEADERS, body: JSON.stringify({ logId: row.id }),
       });
       const data = await res.json();
       setSentMsg(data.status === "sent" ? "המייל נשלח מחדש בהצלחה" : "השליחה החוזרת נכשלה");

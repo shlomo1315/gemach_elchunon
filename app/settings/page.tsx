@@ -71,7 +71,7 @@ function DeletedTransactionsTab() {
       .select("*")
       .order("deleted_at", { ascending: false });
     if (error) {
-      setErrMsg("לא ניתן לטעון ארכיון — ייתכן שטבלת deleted_transactions עדיין לא נוצרה. הרץ את supabase/deleted-transactions-schema.sql בלוח הניהול של Supabase.");
+      setErrMsg("לא ניתן לטעון את הארכיון. ייתכן שטבלת deleted_transactions חסרה — היא נוצרת אוטומטית בפריסה מחדש ב-Railway.");
       setLoading(false);
       return;
     }

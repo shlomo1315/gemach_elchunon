@@ -1,10 +1,18 @@
-import { createClient } from "@supabase/supabase-js";
+import { queryOne } from "@/lib/db";
+import { currentUser } from "@/lib/session";
 import { sendAndLog } from "@/lib/mailer";
 
 export const runtime = "nodejs";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+type LogRow = {
+  recipient: string;
+  subject: string;
+  html: string;
+  event: string | null;
+  recipient_type: "admin" | "member";
+  member_id: string | null;
+  member_name: string | null;
+};
 
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -21,23 +29,22 @@ export async function POST(req: Request) {
     return json({ ok: false, error: "bad_json" }, 400);
   }
 
-  if (!SUPABASE_URL || !SUPABASE_ANON) return json({ ok: false, error: "not_configured" }, 500);
   if (!body.logId) return json({ ok: false, error: "missing_log_id" }, 400);
 
-  const token = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
-  if (!token) return json({ ok: false, error: "no_auth" }, 401);
+  // רק מנהל מחובר רשאי לשלוח מחדש (היומן חושף תוכן של כל החברים)
+  const user = await currentUser();
+  if (!user) return json({ ok: false, error: "no_auth" }, 401);
+  if (user.role !== "admin") return json({ ok: false, error: "forbidden" }, 403);
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-  const { data: userData, error: userErr } = await supabase.auth.getUser(token);
-  if (userErr || !userData?.user) return json({ ok: false, error: "invalid_auth" }, 401);
-
-  const { data: row } = await supabase.from("email_log").select("*").eq("id", body.logId).maybeSingle();
+  const row = await queryOne<LogRow>(
+    `select recipient, subject, html, event, recipient_type, member_id, member_name
+       from email_log where id = $1`,
+    [body.logId],
+  );
   if (!row) return json({ ok: false, error: "log_not_found" }, 404);
 
   // שליחה חוזרת של אותו מייל בדיוק — נרשמת כשורת יומן חדשה, המקור לא משתנה
-  const ok = await sendAndLog(supabase, {
+  const ok = await sendAndLog({
     to: row.recipient,
     subject: row.subject,
     html: row.html,

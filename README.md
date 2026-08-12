@@ -1,6 +1,6 @@
 # גמ"ח אייזנבלט — מערכת ניהול
 
-מערכת ווב לניהול גמ"ח (הפקדות, משיכות, חברים ויתרות), בנויה ב‑**Next.js 15** + **Supabase**, מותאמת לעברית (RTL).
+מערכת ווב לניהול גמ"ח (הפקדות, משיכות, חברים ויתרות), בנויה ב‑**Next.js 15** + **Railway PostgreSQL**, מותאמת לעברית (RTL).
 
 הנתונים יובאו מ‑Airtable: **117 חברים** ו‑**201 פעולות**.
 
@@ -15,39 +15,57 @@
 
 ## התקנה — שלב אחר שלב
 
-### 1. בסיס הנתונים (Supabase)
-1. ב‑Supabase, היכנס ל‑**SQL Editor**.
-2. הרץ את התוכן של `supabase/schema.sql` (יוצר את הטבלאות והמבטים).
-3. הרץ את התוכן של `supabase/seed.sql` (טוען את 117 החברים ו‑201 הפעולות).
+### 1. בסיס הנתונים (Railway PostgreSQL)
+1. ב‑Railway, צור שירות **Postgres** בפרויקט.
+2. הרץ את הסכמה: `psql "$DATABASE_URL" -f railway/schema.sql`
+   (או פשוט `npm start` — הסכמה רצה אוטומטית בכל עלייה).
+3. לנתוני התחלה: `psql "$DATABASE_URL" -f supabase/seed.sql`
+
+מגיע מסופאבייס? ראה **[`railway/README.md`](railway/README.md)** — שם נמצאים
+סקריפט ההעברה המלא והסבר על מה שהשתנה.
 
 ### 2. משתני סביבה
 העתק את `.env.local.example` ל‑`.env.local` והכנס:
 ```
-NEXT_PUBLIC_SUPABASE_URL=...        # Project URL מ-Supabase
-NEXT_PUBLIC_SUPABASE_ANON_KEY=...   # anon public key מ-Supabase
+DATABASE_URL=postgresql://...   # מ-Railway → Postgres → DATABASE_PUBLIC_URL
+AUTH_SECRET=...                 # openssl rand -base64 32
 ```
-ב‑**Vercel**: הוסף את אותם שני המשתנים תחת *Project Settings → Environment Variables*, ואז **Redeploy**.
+ב‑**Railway**: הוסף אותם תחת *Service → Variables*. עדיף להפנות למסד
+במקום להעתיק ערך: `DATABASE_URL=${{Postgres.DATABASE_URL}}`.
 
-### 3. הרצה מקומית
+### 3. משתמש מנהל
+```bash
+npm run db:create-admin -- admin@example.com <סיסמה>
+```
+מנהל מזוהה לפי כך שהמייל שלו **אינו** רשום בטבלת `members`; משתמש
+שהמייל שלו משויך לחבר נכנס אוטומטית לפורטל האישי (צפייה בלבד).
+
+### 4. הרצה מקומית
 ```bash
 npm install
 npm run dev
 ```
 פתח http://localhost:3000
 
-### 4. פריסה ל‑Vercel
-דחוף את התיקייה למאגר GitHub, חבר אותו ל‑Vercel, הוסף את משתני הסביבה, ולחץ **Deploy**.
+### 5. פריסה ל‑Railway
+דחוף למאגר GitHub, חבר אותו ל‑Railway, הוסף את משתני הסביבה, ו‑**Deploy**.
 
 ---
 
-## אבטחה ⚠️
-המערכת משתמשת במפתח `anon` עם גישה מלאה (מתאים לכלי פנימי). **לפני חשיפה ציבורית** מומלץ להוסיף הזדהות (Supabase Auth) ולהדק את מדיניות ה‑RLS ב‑`schema.sql`.
+## אבטחה
+- **הזדהות** — עוגייה חתומה ב‑HMAC‑SHA256 (`AUTH_SECRET`), סיסמאות ב‑bcrypt.
+- **הרשאות** — הדפדפן לעולם לא שולח SQL אלא תיאור מובנה של השאילתה;
+  השרת מאמת אותו מול רשימת היתר של טבלאות ועמודות (`lib/authz.ts`),
+  ומצמיד בכפייה את סינון החבר. חבר רואה רק את הנתונים שלו.
+- **מסמכים** — כל בקשה נבדקת מול ה‑session; חבר ניגש רק לתיקייה שלו.
 
 ## מבנה
 ```
 app/            דפי המערכת (ראשי, חברים, פעולות, דוחות)
-components/      רכיבי UI משותפים
-lib/             לקוח Supabase ופונקציות עזר
-supabase/        schema.sql + seed.sql
-types.ts         טיפוסי TypeScript
+app/api/        שכבת השרת — שאילתות, הזדהות, מסמכים
+components/     רכיבי UI משותפים
+lib/            גישה למסד, sessions, הרשאות ופונקציות עזר
+railway/        סכמה, סקריפט העברה מסופאבייס, יצירת מנהל
+supabase/       קבצי ה-SQL ההיסטוריים + seed.sql
+types.ts        טיפוסי TypeScript
 ```

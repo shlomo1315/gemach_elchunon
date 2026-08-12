@@ -1,11 +1,9 @@
-import { createClient } from "@supabase/supabase-js";
 import { buildEmail, type EmailRow } from "@/lib/emailTemplate";
-import { ADMIN_EMAIL, categoryEnabled, getEmailSettings, sendAndLog } from "@/lib/mailer";
+import { ADMIN_EMAIL, categoryEnabled, getEmailSettings, mailConfigured, sendAndLog } from "@/lib/mailer";
+import { queryOne } from "@/lib/db";
+import { currentUser } from "@/lib/session";
 
 export const runtime = "nodejs";
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 type NotifyBody = {
   event?: string;
@@ -34,26 +32,20 @@ export async function POST(req: Request) {
     return json({ ok: false, error: "bad_json" }, 400);
   }
 
-  if (!SUPABASE_URL || !SUPABASE_ANON) {
+  // אם המערכת לא הוגדרה — לא שגיאה, פשוט מדלגים (האפליקציה ממשיכה לעבוד)
+  if (!mailConfigured()) {
     return json({ ok: true, skipped: "not_configured" });
   }
 
-  // אימות: רק משתמש מחובר יכול להפעיל שליחה (מונע ניצול לרעה)
-  const token = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
-  if (!token) return json({ ok: false, error: "no_auth" }, 401);
-
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-  const { data: userData, error: userErr } = await supabase.auth.getUser(token);
-  if (userErr || !userData?.user) {
-    return json({ ok: false, error: "invalid_auth" }, 401);
-  }
+  // אימות: רק משתמש מחובר יכול להפעיל שליחה (מונע ניצול לרעה).
+  // ההזדהות מגיעה מעוגיית ה-session, לא מטוקן ב-header.
+  const user = await currentUser();
+  if (!user) return json({ ok: false, error: "no_auth" }, 401);
 
   if (!body?.heading) return json({ ok: false, error: "missing_heading" }, 400);
 
   // הגדרות שליחה: קטגוריה כבויה => לא שולחים ולא רושמים
-  const settings = await getEmailSettings(supabase);
+  const settings = await getEmailSettings();
   if (!categoryEnabled(settings, body.event)) {
     return json({ ok: true, skipped: "category_disabled" });
   }
@@ -64,11 +56,10 @@ export async function POST(req: Request) {
   let memberEmail: string | null = null;
   let memberName: string | null = body.memberName ?? null;
   if (body.memberId) {
-    const { data: m } = await supabase
-      .from("members")
-      .select("name,email")
-      .eq("id", body.memberId)
-      .maybeSingle();
+    const m = await queryOne<{ name: string | null; email: string | null }>(
+      `select name, email from members where id = $1`,
+      [body.memberId],
+    );
     if (m) {
       memberName = m.name ?? memberName;
       memberEmail = (m.email ?? "").trim() || null;
@@ -88,7 +79,7 @@ export async function POST(req: Request) {
       rows,
       footnote: "מייל זה נשלח אליך כמנהל המערכת בעקבות פעולה שבוצעה.",
     });
-    const ok = await sendAndLog(supabase, {
+    const ok = await sendAndLog({
       to: ADMIN_EMAIL, subject: `[ניהול] ${subjectBase}`, html: adminHtml,
       event: body.event, recipient_type: "admin",
       member_id: body.memberId, member_name: memberName,
@@ -109,7 +100,7 @@ export async function POST(req: Request) {
       rows,
       footnote: "לכל שאלה ניתן לפנות להנהלת הגמ\"ח. מייל זה נשלח אוטומטית.",
     });
-    const ok = await sendAndLog(supabase, {
+    const ok = await sendAndLog({
       to: memberEmail, subject: subjectBase, html: memberHtml,
       event: body.event, recipient_type: "member",
       member_id: body.memberId, member_name: memberName,

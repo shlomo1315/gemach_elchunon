@@ -51,12 +51,8 @@ function fmtDate(iso: string): string {
   return d.toLocaleDateString("he-IL") + " " + d.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" });
 }
 
-async function authHeaders(): Promise<Record<string, string> | null> {
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
-  if (!token) return null;
-  return { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
-}
+// האימות נעשה בעוגיית ה-session (נשלחת אוטומטית) — אין צורך בטוקן ב-header.
+const JSON_HEADERS = { "Content-Type": "application/json" };
 
 export default function EmailsPage() {
   const [tab, setTab] = useState<"log" | "compose" | "settings">("log");
@@ -127,10 +123,8 @@ function LogTab() {
   async function resend(row: EmailLogRow) {
     setResending(row.id);
     try {
-      const headers = await authHeaders();
-      if (!headers) return;
       const res = await fetch("/api/resend-email", {
-        method: "POST", headers, body: JSON.stringify({ logId: row.id }),
+        method: "POST", headers: JSON_HEADERS, body: JSON.stringify({ logId: row.id }),
       });
       const data = await res.json();
       alert(data.status === "sent" ? "המייל נשלח מחדש בהצלחה" : "השליחה החוזרת נכשלה — ראה ביומן");
@@ -146,7 +140,7 @@ function LogTab() {
     <Card>
       {loadError && (
         <div style={{ background: "#fdeaea", color: "#d64545", borderRadius: 10, padding: "0.7rem 1rem", marginBottom: 14, fontSize: ".88rem" }}>
-          שגיאה בטעינת היומן: {loadError}. ודא שהרצת את supabase/email-schema.sql ב-Supabase.
+          שגיאה בטעינת היומן: {loadError}
         </div>
       )}
 
@@ -308,11 +302,9 @@ function ComposeTab() {
     setSending(true);
     setResult(null);
     try {
-      const headers = await authHeaders();
-      if (!headers) { alert("יש להתחבר מחדש"); return; }
       const memberIds = mode === "all" ? "all" : mode === "some" ? [...picked] : [memberId];
       const res = await fetch("/api/send-email", {
-        method: "POST", headers,
+        method: "POST", headers: JSON_HEADERS,
         body: JSON.stringify({ memberIds, subject: subject.trim(), message: message.trim() }),
       });
       const data = await res.json();

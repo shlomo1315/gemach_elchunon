@@ -56,8 +56,9 @@
 2. שם: `gemach`, הרשאה: **Sending access** → **Create**.
 3. מעתיקים את המפתח (`re_...`) — הוא מוצג **פעם אחת בלבד**.
 
-### שלב 5 — משתני סביבה ב-Vercel
-ב-**Vercel → הפרויקט → Settings → Environment Variables**, מוסיפים:
+### שלב 5 — משתני סביבה ב-Railway
+ב-**Railway → הפרויקט `gemach-elchunon` → השירות `gemach-app` → Variables**,
+מוסיפים:
 
 | שם | ערך |
 |----|-----|
@@ -66,10 +67,12 @@
 | `EMAIL_FROM` | (אופציונלי) ברירת המחדל כבר `גמ"ח זכרון אהרן <office@gemach.shlomo4you.com>` |
 
 ### שלב 6 — טבלאות ופריסה
-1. ב-**Supabase → SQL Editor** מריצים פעם אחת את `supabase/email-schema.sql`
-   (יוצר את `email_log` ו-`email_settings`).
-2. ב-Vercel → **Deployments** → על הפריסה האחרונה → **Redeploy**
-   (כדי שמשתני הסביבה ייטענו).
+הטבלאות `email_log` ו-`email_settings` הן חלק מ-`railway/schema.sql`, והוא
+רץ **אוטומטית בכל פריסה** (`npm start` → `node railway/setup.mjs`). אין צורך
+להריץ SQL ידנית.
+
+שמירת המשתנים ב-Railway מפעילה פריסה מחדש מעצמה. אם לא — **Deployments** →
+על הפריסה האחרונה → **Redeploy**.
 
 ---
 

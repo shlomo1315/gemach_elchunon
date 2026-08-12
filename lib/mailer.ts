@@ -5,7 +5,7 @@
 // משמש את /api/notify, /api/send-email, /api/resend-email.
 
 import nodemailer from "nodemailer";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { query, queryOne } from "@/lib/db";
 
 // --- Resend (הדרך הראשית — שליחה מהדומיין gemach.shlomo4you.com) ---
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
@@ -93,10 +93,10 @@ const DEFAULT_SETTINGS: EmailSettings = {
   ev_requests: true, ev_import: true,
 };
 
-export async function getEmailSettings(db: SupabaseClient): Promise<EmailSettings> {
+export async function getEmailSettings(): Promise<EmailSettings> {
   try {
-    const { data } = await db.from("email_settings").select("*").maybeSingle();
-    return data ? { ...DEFAULT_SETTINGS, ...data } : DEFAULT_SETTINGS;
+    const row = await queryOne<EmailSettings>(`select * from email_settings limit 1`);
+    return row ? { ...DEFAULT_SETTINGS, ...row } : DEFAULT_SETTINGS;
   } catch {
     return DEFAULT_SETTINGS;
   }
@@ -115,7 +115,6 @@ export function categoryEnabled(s: EmailSettings, event?: string | null): boolea
 }
 
 export async function sendAndLog(
-  db: SupabaseClient,
   args: {
     to: string; subject: string; html: string;
     event?: string | null;
@@ -132,16 +131,22 @@ export async function sendAndLog(
     error = (e as Error).message;
   }
   try {
-    await db.from("email_log").insert({
-      event: args.event ?? null,
-      recipient_type: args.recipient_type,
-      recipient: args.to,
-      member_id: args.member_id ?? null,
-      member_name: args.member_name ?? null,
-      subject: args.subject,
-      html: args.html,
-      status, error,
-    });
+    await query(
+      `insert into email_log
+         (event, recipient_type, recipient, member_id, member_name, subject, html, status, error)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [
+        args.event ?? null,
+        args.recipient_type,
+        args.to,
+        args.member_id ?? null,
+        args.member_name ?? null,
+        args.subject,
+        args.html,
+        status,
+        error,
+      ],
+    );
   } catch {
     /* כשל ברישום היומן לא מפיל את הזרימה */
   }
