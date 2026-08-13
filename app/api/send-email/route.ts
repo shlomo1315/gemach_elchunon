@@ -12,6 +12,17 @@ type SendBody = {
   message: string;
 };
 
+/**
+ * ולידציה מכוונת-מציאות: תו@תו.סיומת, בלי רווחים ובלי נקודה כפולה.
+ * לא מנסה לכסות את RFC 5322 — המטרה היא לתפוס שגיאות הקלדה נפוצות
+ * (רווח, פסיק במקום נקודה, סיומת חסרה) לפני שהן מגיעות לספק המייל.
+ */
+function isValidEmail(email: string): boolean {
+  const e = email.trim();
+  if (!e || e.length > 254 || /\s/.test(e) || e.includes("..")) return false;
+  return /^[^@,]+@[^@,.]+(\.[^@,.]+)+$/.test(e);
+}
+
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
@@ -53,13 +64,21 @@ export async function POST(req: Request) {
         [body.memberIds],
       );
 
-  if (!members.length) return json({ ok: true, sent: 0, failed: 0 });
+  if (!members.length) return json({ ok: true, sent: 0, failed: 0, skipped: 0 });
+
+  // כתובת פסולה נדחית כאן ולא נשלחת לספק: היא הייתה נכשלת ממילא, והמשתמש
+  // צריך לדעת שהתקלה היא בכרטיס החבר ולא בשליחה עצמה.
+  const valid = members.filter(m => isValidEmail(m.email));
+  const skipped = members.length - valid.length;
+  if (!valid.length) {
+    return json({ ok: true, sent: 0, failed: 0, skipped, invalid: members.map(m => m.name) });
+  }
 
   const paragraphs = message.split(/\r?\n+/).map(s => s.trim()).filter(Boolean);
   let sent = 0, failed = 0;
 
   // שליחה סדרתית — לא במקביל, כדי לא להיחסם על ידי ספק המייל
-  for (const m of members) {
+  for (const m of valid) {
     const html = buildEmail({
       heading: subject,
       intro: `שלום ${m.name},`,
@@ -80,5 +99,5 @@ export async function POST(req: Request) {
     if (ok) sent++; else failed++;
   }
 
-  return json({ ok: true, sent, failed });
+  return json({ ok: true, sent, failed, skipped });
 }

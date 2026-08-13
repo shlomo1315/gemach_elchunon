@@ -25,8 +25,8 @@ export function buildEmail(opts: {
     .map(
       ([label, value]) => `
         <tr>
-          <td style="padding:9px 0;color:#6b7688;font-size:14px;white-space:nowrap;vertical-align:top;width:38%;">${esc(label)}</td>
-          <td style="padding:9px 0;color:#14203a;font-size:14px;font-weight:700;text-align:left;">${esc(value)}</td>
+          <td style="padding:9px 0;color:#6b7688;font-size:14px;white-space:nowrap;vertical-align:top;width:27%;text-align:right;">${esc(label)}</td>
+          <td style="padding:9px 0;color:#14203a;font-size:14px;font-weight:700;text-align:right;">${esc(value)}</td>
         </tr>`
     )
     .join("");
@@ -50,7 +50,7 @@ export function buildEmail(opts: {
         <tr><td style="background:linear-gradient(135deg,#15795f 0%,#0c5642 60%,#073d2e 100%);padding:26px 28px;" dir="rtl">
           <table role="presentation" cellpadding="0" cellspacing="0"><tr>
             <td style="vertical-align:middle;">
-              <div style="width:46px;height:46px;border-radius:13px;background:linear-gradient(135deg,#e2c069,#c79a3e);text-align:center;line-height:46px;font-size:24px;color:#0c5642;border:1.5px solid rgba(255,255,255,.35);">&#9829;</div>
+              <div style="width:46px;height:46px;border-radius:13px;background:linear-gradient(135deg,#e2c069,#c79a3e);text-align:center;line-height:46px;font-size:21px;font-weight:800;font-family:'Segoe UI',Arial,Helvetica,sans-serif;color:#0c5642;border:1.5px solid rgba(255,255,255,.35);">ז&quot;א</div>
             </td>
             <td style="vertical-align:middle;padding-right:13px;">
               <div style="color:#ffffff;font-size:19px;font-weight:800;">גמ&quot;ח זכרון אהרן</div>

@@ -39,6 +39,13 @@ function eventLabel(event: string | null): string {
 // האימות נעשה בעוגיית ה-session (נשלחת אוטומטית) — אין צורך בטוקן ב-header.
 const JSON_HEADERS = { "Content-Type": "application/json" };
 
+/** אותה בדיקה כמו בשרת (app/api/send-email) — תופסת שגיאות הקלדה נפוצות. */
+function isValidEmail(email: string): boolean {
+  const e = email.trim();
+  if (!e || e.length > 254 || /\s/.test(e) || e.includes("..")) return false;
+  return /^[^@,]+@[^@,.]+(\.[^@,.]+)+$/.test(e);
+}
+
 export default function MemberEmails({
   memberId, memberName, memberEmail,
 }: { memberId: string; memberName: string; memberEmail: string | null }) {
@@ -54,6 +61,8 @@ export default function MemberEmails({
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [sentMsg, setSentMsg] = useState("");
+
+  const emailLooksValid = !!memberEmail && isValidEmail(memberEmail);
 
   const load = useCallback(async () => {
     const { data, error } = await supabase
@@ -83,6 +92,9 @@ export default function MemberEmails({
       if (data.sent > 0) {
         setSubject(""); setMessage(""); setOpen(false);
         setSentMsg("המייל נשלח בהצלחה");
+      } else if (data.skipped > 0) {
+        // הכתובת בכרטיס אינה תקינה — לא נעשה ניסיון שליחה, ולכן אין שורה ביומן
+        setSentMsg("הכתובת בכרטיס החבר אינה תקינה — תקן אותה ונסה שוב");
       } else {
         setSentMsg("השליחה נכשלה — ראה פירוט בטבלה");
       }
@@ -116,10 +128,12 @@ export default function MemberEmails({
             <span style={{ fontSize: ".8rem", color: "#7a8699" }}>({rows.length} הודעות)</span>
           )}
         </div>
-        {memberEmail
+        {memberEmail && emailLooksValid
           ? <Button onClick={() => setOpen(o => !o)}><Send size={15} />{open ? "סגור" : "שלח מייל"}</Button>
           : <span style={{ fontSize: ".82rem", color: "#a08b10", background: "#fef9e7", border: "1px solid #f0d060", borderRadius: 7, padding: "0.35rem 0.7rem" }}>
-              אין כתובת מייל בכרטיס החבר — הוסף כדי לשלוח
+              {memberEmail
+                ? <>הכתובת בכרטיס אינה תקינה (<span dir="ltr">{memberEmail}</span>) — תקן אותה כדי לשלוח</>
+                : "אין כתובת מייל בכרטיס החבר — הוסף כדי לשלוח"}
             </span>}
       </div>
 
@@ -130,7 +144,7 @@ export default function MemberEmails({
       )}
 
       {/* טופס שליחה */}
-      {open && memberEmail && (
+      {open && emailLooksValid && (
         <div style={{ padding: "1rem 1.2rem", borderBottom: "1px solid var(--line, #eef0f4)", background: "#fafbfc", display: "flex", flexDirection: "column", gap: 10 }}>
           <div style={{ fontSize: ".82rem", color: "#7a8699" }}>
             אל: <strong dir="ltr">{memberEmail}</strong> ({memberName})

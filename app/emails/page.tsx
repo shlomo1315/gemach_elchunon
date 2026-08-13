@@ -260,7 +260,7 @@ function ComposeTab() {
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
-  const [result, setResult] = useState<{ sent: number; failed: number } | null>(null);
+  const [result, setResult] = useState<{ sent: number; failed: number; skipped: number } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -309,8 +309,8 @@ function ComposeTab() {
       });
       const data = await res.json();
       if (!data.ok) { alert("שגיאה: " + (data.error || "לא ידוע")); return; }
-      setResult({ sent: data.sent, failed: data.failed });
-      if (data.failed === 0) { setSubject(""); setMessage(""); setPicked(new Set()); }
+      setResult({ sent: data.sent, failed: data.failed, skipped: data.skipped ?? 0 });
+      if (data.failed === 0 && !data.skipped) { setSubject(""); setMessage(""); setPicked(new Set()); }
     } finally {
       setSending(false);
     }
@@ -389,8 +389,8 @@ function ComposeTab() {
             {sending ? "שולח…" : recipientCount > 1 ? `שליחה ל-${recipientCount} חברים` : "שליחה"}
           </Button>
           {result && (
-            <span style={{ fontSize: ".9rem", color: result.failed ? "#d64545" : "#107a5e", fontWeight: 600 }}>
-              נשלחו {result.sent}{result.failed ? ` · נכשלו ${result.failed} (ראה ביומן)` : ""}
+            <span style={{ fontSize: ".9rem", color: result.failed ? "#d64545" : result.skipped ? "#a08b10" : "#107a5e", fontWeight: 600 }}>
+              נשלחו {result.sent}{result.failed ? ` · נכשלו ${result.failed} (ראה ביומן)` : ""}{result.skipped ? ` · ${result.skipped} דולגו (כתובת לא תקינה בכרטיס)` : ""}
             </span>
           )}
         </div>
