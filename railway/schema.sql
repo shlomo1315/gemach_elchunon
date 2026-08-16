@@ -243,3 +243,19 @@ create table if not exists email_settings (
 );
 
 insert into email_settings (id) values (true) on conflict do nothing;
+
+-- ---------- שחזור סיסמה: קודים זמניים ----------
+-- הקוד עצמו לעולם לא נשמר כטקסט — רק hash שלו (bcrypt), בדיוק כמו סיסמה.
+-- כך דליפה של המסד לא מאפשרת התחברות. הקוד תקף 15 דקות ולשימוש חד-פעמי.
+create table if not exists password_resets (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references app_users(id) on delete cascade,
+  code_hash  text not null,
+  expires_at timestamptz not null,
+  used_at    timestamptz,
+  attempts   int not null default 0,   -- הגנה מפני ניחוש הקוד בכוח
+  created_at timestamptz not null default now()
+);
+
+create index if not exists password_resets_user_idx on password_resets (user_id, created_at desc);
+create index if not exists password_resets_exp_idx  on password_resets (expires_at);

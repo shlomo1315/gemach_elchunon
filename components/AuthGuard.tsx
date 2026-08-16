@@ -14,11 +14,33 @@ export const useAuth = () => useContext(AuthContext);
 const BRAND = "#107a5e";
 const BRAND_DARK = "#0c5642";
 
+/** דרישות הסיסמה החדשה — זהות לאלה שנאכפות בשרת (api/auth/reset-password). */
+function passwordProblem(pw: string): string | null {
+  if (pw.length < 10) return "הסיסמה חייבת להיות באורך 10 תווים לפחות";
+  if (!/[0-9]/.test(pw)) return "הסיסמה חייבת לכלול לפחות ספרה אחת";
+  if (!/[A-Za-z]/.test(pw)) return "הסיסמה חייבת לכלול לפחות אות אחת באנגלית";
+  return null;
+}
+
+type Mode = "login" | "forgot" | "reset";
+
 function LoginPage({ onLogin }: { onLogin: (u: User) => void }) {
+  const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  // שחזור סיסמה
+  const [code, setCode] = useState("");
+  const [newPass, setNewPass] = useState("");
+  const [confirmPass, setConfirmPass] = useState("");
+
+  function switchMode(next: Mode) {
+    setMode(next);
+    setError("");
+    setNotice("");
+  }
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -30,11 +52,75 @@ function LoginPage({ onLogin }: { onLogin: (u: User) => void }) {
     onLogin(data.user);
   }
 
+  /** שלב 1: בקשת קוד זמני למייל */
+  async function handleForgot(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const json = await res.json();
+      if (!res.ok) { setError(json?.error || "אירעה שגיאה"); return; }
+      setNotice("אם המייל רשום במערכת, נשלח אליו קוד בן 6 ספרות. הקוד תקף ל-15 דקות.");
+      setMode("reset");
+    } catch {
+      setError("אירעה שגיאה בשליחה. נסה שוב.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  /** שלב 2: אימות הקוד וקביעת סיסמה חדשה */
+  async function handleReset(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+
+    const problem = passwordProblem(newPass);
+    if (problem) { setError(problem); return; }
+    if (newPass !== confirmPass) { setError("הסיסמאות אינן תואמות"); return; }
+
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, code, password: newPass }),
+      });
+      const json = await res.json();
+      if (!res.ok) { setError(json?.error || "אירעה שגיאה"); return; }
+
+      // הסיסמה הוחלפה — מתחברים מיד עם החדשה
+      const { data, error: err } = await supabase.auth.signInWithPassword({ email, password: newPass });
+      if (err || !data.user) {
+        switchMode("login");
+        setNotice("הסיסמה עודכנה. אפשר להתחבר עם הסיסמה החדשה.");
+        setPassword("");
+        return;
+      }
+      onLogin(data.user);
+    } catch {
+      setError("אירעה שגיאה. נסה שוב.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   const inp: React.CSSProperties = {
     width: "100%", padding: "0.7rem 1rem",
     border: "1.5px solid #dce1e8", borderRadius: 10,
     fontSize: "1rem", boxSizing: "border-box",
     direction: "ltr", outline: "none",
+  };
+
+  const linkBtn: React.CSSProperties = {
+    display: "block", width: "100%", marginTop: "1rem",
+    background: "none", border: "none", cursor: "pointer",
+    color: BRAND, fontSize: ".86rem", fontWeight: 600,
+    textAlign: "center", padding: "0.35rem", fontFamily: "inherit",
   };
 
   return (
@@ -65,36 +151,114 @@ function LoginPage({ onLogin }: { onLogin: (u: User) => void }) {
           </h1>
           <div style={{ width: 54, height: 3, borderRadius: 999, margin: "0.7rem auto 0", background: "linear-gradient(90deg, transparent, var(--gold), transparent)" }} />
           <p style={{ margin: "0.7rem 0 0", fontSize: ".9rem", color: "#7a8699", letterSpacing: ".02em" }}>
-            התחברות למערכת הניהול
+            {mode === "login" ? "התחברות למערכת הניהול"
+              : mode === "forgot" ? "שחזור סיסמה"
+              : "הזנת קוד וקביעת סיסמה חדשה"}
           </p>
         </div>
 
-        <form onSubmit={handleLogin}>
-          <div style={{ marginBottom: "1rem" }}>
-            <label style={{ fontSize: ".82rem", fontWeight: 600, color: "#4a5568", display: "block", marginBottom: 6 }}>כתובת מייל</label>
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)} style={inp} placeholder="user@example.com" required autoFocus />
+        {/* הודעות משותפות לכל המצבים */}
+        {notice && (
+          <div style={{ background: "#e7f5ef", color: "#0c5642", borderRadius: 8, padding: "0.65rem 0.9rem", fontSize: ".85rem", marginBottom: "1rem", textAlign: "center", lineHeight: 1.6 }}>
+            {notice}
           </div>
-          <div style={{ marginBottom: "1.5rem" }}>
-            <label style={{ fontSize: ".82rem", fontWeight: 600, color: "#4a5568", display: "block", marginBottom: 6 }}>סיסמה</label>
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} style={inp} placeholder="••••••••" required />
+        )}
+        {error && (
+          <div style={{ background: "#fde8e8", color: "#c0392b", borderRadius: 8, padding: "0.6rem 0.9rem", fontSize: ".85rem", marginBottom: "1rem", textAlign: "center" }}>
+            {error}
           </div>
+        )}
 
-          {error && (
-            <div style={{ background: "#fde8e8", color: "#c0392b", borderRadius: 8, padding: "0.6rem 0.9rem", fontSize: ".85rem", marginBottom: "1rem", textAlign: "center" }}>
-              {error}
+        {mode === "login" && (
+          <form onSubmit={handleLogin}>
+            <div style={{ marginBottom: "1rem" }}>
+              <label style={{ fontSize: ".82rem", fontWeight: 600, color: "#4a5568", display: "block", marginBottom: 6 }}>כתובת מייל</label>
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} style={inp} placeholder="user@example.com" required autoFocus />
             </div>
-          )}
+            <div style={{ marginBottom: "1.5rem" }}>
+              <label style={{ fontSize: ".82rem", fontWeight: 600, color: "#4a5568", display: "block", marginBottom: 6 }}>סיסמה</label>
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)} style={inp} placeholder="••••••••" required />
+            </div>
 
-          <button type="submit" disabled={loading} className="ui-btn" style={{
-            width: "100%", padding: "0.8rem",
-            background: loading ? "#9aa5b5" : `linear-gradient(135deg, ${BRAND_DARK} 0%, ${BRAND} 100%)`,
-            color: "#fff", border: "none", borderRadius: 12,
-            fontSize: "1rem", fontWeight: 700,
-            boxShadow: loading ? "none" : "0 8px 22px rgba(30,111,92,.3)",
-          }}>
-            {loading ? "מתחבר…" : "כניסה למערכת"}
-          </button>
-        </form>
+            <button type="submit" disabled={loading} className="ui-btn" style={{
+              width: "100%", padding: "0.8rem",
+              background: loading ? "#9aa5b5" : `linear-gradient(135deg, ${BRAND_DARK} 0%, ${BRAND} 100%)`,
+              color: "#fff", border: "none", borderRadius: 12,
+              fontSize: "1rem", fontWeight: 700,
+              boxShadow: loading ? "none" : "0 8px 22px rgba(30,111,92,.3)",
+            }}>
+              {loading ? "מתחבר…" : "כניסה למערכת"}
+            </button>
+
+            <button type="button" onClick={() => switchMode("forgot")} style={linkBtn}>
+              שכחתי סיסמה
+            </button>
+          </form>
+        )}
+
+        {mode === "forgot" && (
+          <form onSubmit={handleForgot}>
+            <p style={{ margin: "0 0 1rem", fontSize: ".86rem", color: "#7a8699", lineHeight: 1.7, textAlign: "center" }}>
+              הזן את כתובת המייל שלך, ויישלח אליך קוד זמני לאיפוס הסיסמה.
+            </p>
+            <div style={{ marginBottom: "1.5rem" }}>
+              <label style={{ fontSize: ".82rem", fontWeight: 600, color: "#4a5568", display: "block", marginBottom: 6 }}>כתובת מייל</label>
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} style={inp} placeholder="user@example.com" required autoFocus />
+            </div>
+
+            <button type="submit" disabled={loading} className="ui-btn" style={{
+              width: "100%", padding: "0.8rem",
+              background: loading ? "#9aa5b5" : `linear-gradient(135deg, ${BRAND_DARK} 0%, ${BRAND} 100%)`,
+              color: "#fff", border: "none", borderRadius: 12,
+              fontSize: "1rem", fontWeight: 700,
+              boxShadow: loading ? "none" : "0 8px 22px rgba(30,111,92,.3)",
+            }}>
+              {loading ? "שולח…" : "שלח לי קוד"}
+            </button>
+
+            <button type="button" onClick={() => switchMode("login")} style={linkBtn}>
+              חזרה לכניסה
+            </button>
+          </form>
+        )}
+
+        {mode === "reset" && (
+          <form onSubmit={handleReset}>
+            <div style={{ marginBottom: "1rem" }}>
+              <label style={{ fontSize: ".82rem", fontWeight: 600, color: "#4a5568", display: "block", marginBottom: 6 }}>הקוד שקיבלת במייל</label>
+              <input
+                value={code} onChange={e => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                style={{ ...inp, textAlign: "center", letterSpacing: ".4em", fontSize: "1.25rem", fontWeight: 700 }}
+                placeholder="000000" inputMode="numeric" required autoFocus
+              />
+            </div>
+            <div style={{ marginBottom: "1rem" }}>
+              <label style={{ fontSize: ".82rem", fontWeight: 600, color: "#4a5568", display: "block", marginBottom: 6 }}>סיסמה חדשה</label>
+              <input type="password" value={newPass} onChange={e => setNewPass(e.target.value)} style={inp} placeholder="••••••••••" required />
+              <div style={{ fontSize: ".76rem", color: "#7a8699", marginTop: 6, lineHeight: 1.6 }}>
+                לפחות 10 תווים, הכוללים ספרה ואות באנגלית
+              </div>
+            </div>
+            <div style={{ marginBottom: "1.5rem" }}>
+              <label style={{ fontSize: ".82rem", fontWeight: 600, color: "#4a5568", display: "block", marginBottom: 6 }}>אישור סיסמה</label>
+              <input type="password" value={confirmPass} onChange={e => setConfirmPass(e.target.value)} style={inp} placeholder="••••••••••" required />
+            </div>
+
+            <button type="submit" disabled={loading} className="ui-btn" style={{
+              width: "100%", padding: "0.8rem",
+              background: loading ? "#9aa5b5" : `linear-gradient(135deg, ${BRAND_DARK} 0%, ${BRAND} 100%)`,
+              color: "#fff", border: "none", borderRadius: 12,
+              fontSize: "1rem", fontWeight: 700,
+              boxShadow: loading ? "none" : "0 8px 22px rgba(30,111,92,.3)",
+            }}>
+              {loading ? "מעדכן…" : "קבע סיסמה חדשה"}
+            </button>
+
+            <button type="button" onClick={() => switchMode("forgot")} style={linkBtn}>
+              לא קיבלתי קוד — שלח שוב
+            </button>
+          </form>
+        )}
       </div>
     </div>
   );

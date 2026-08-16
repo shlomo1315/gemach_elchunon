@@ -1,7 +1,9 @@
-import { buildEmail, type EmailRow } from "@/lib/emailTemplate";
+import { buildEmail, type EmailRow, type BalanceSummary } from "@/lib/emailTemplate";
 import { ADMIN_EMAIL, categoryEnabled, getEmailSettings, mailConfigured, sendAndLog } from "@/lib/mailer";
 import { queryOne } from "@/lib/db";
 import { currentUser } from "@/lib/session";
+import { ils } from "@/lib/format";
+import { PORTAL_URL } from "@/lib/site";
 
 export const runtime = "nodejs";
 
@@ -55,14 +57,36 @@ export async function POST(req: Request) {
   // שליפת פרטי החבר (שם + מייל) לפי memberId, אם קיים
   let memberEmail: string | null = null;
   let memberName: string | null = body.memberName ?? null;
+  let balanceSummary: BalanceSummary | null = null;
   if (body.memberId) {
-    const m = await queryOne<{ name: string | null; email: string | null }>(
-      `select name, email from members where id = $1`,
+    const m = await queryOne<{ name: string | null; email: string | null; balance: number | null }>(
+      `select m.name, m.email, b.balance
+         from members m
+         left join member_balances b on b.id = m.id
+        where m.id = $1`,
       [body.memberId],
     );
     if (m) {
       memberName = m.name ?? memberName;
       memberEmail = (m.email ?? "").trim() || null;
+
+      // שיקים להפקדה שטרם נפדו — אותו חישוב כמו בפורטל ובכרטיס הניהול
+      const pend = await queryOne<{ sum: number | null; cnt: number }>(
+        `select coalesce(sum(amount), 0) as sum, count(*)::int as cnt
+           from checks
+          where member_id = $1 and status = 'pending' and coalesce(kind, 'repayment') <> 'repayment'`,
+        [body.memberId],
+      );
+      const balance = Number(m.balance ?? 0) || 0;
+      const pendSum = Number(pend?.sum ?? 0) || 0;
+      const pendCount = Number(pend?.cnt ?? 0) || 0;
+
+      balanceSummary = {
+        balance: ils(balance),
+        pendingChecks: pendCount > 0 ? ils(pendSum) : null,
+        pendingCount: pendCount,
+        projected: pendCount > 0 ? ils(balance + pendSum) : null,
+      };
     }
   }
 
@@ -98,6 +122,9 @@ export async function POST(req: Request) {
       amount: body.amount,
       accent: body.accent,
       rows,
+      balance: balanceSummary,
+      portalUrl: PORTAL_URL,
+      portalEmail: memberEmail,
       footnote: "לכל שאלה ניתן לפנות להנהלת הגמ\"ח. מייל זה נשלח אוטומטית.",
     });
     const ok = await sendAndLog({

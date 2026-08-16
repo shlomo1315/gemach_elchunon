@@ -10,6 +10,14 @@ const ACCENTS = {
   blue: { c: "#2563eb", bg: "#e8f0fe" },
 } as const;
 
+/** סיכום היתרה של החבר, מוצג בתחתית המייל כדי שתהיה לו תמונה מלאה. */
+export type BalanceSummary = {
+  balance: string;                 // היתרה בפועל, מפורמטת
+  pendingChecks?: string | null;   // סכום שיקים שטרם נפדו
+  pendingCount?: number;           // כמה שיקים ממתינים
+  projected?: string | null;       // יתרה צפויה לאחר פדיונם
+};
+
 export function buildEmail(opts: {
   heading: string;
   intro?: string;
@@ -18,6 +26,9 @@ export function buildEmail(opts: {
   amount?: string;
   accent?: keyof typeof ACCENTS;
   footnote?: string;
+  balance?: BalanceSummary | null;
+  portalUrl?: string | null;
+  portalEmail?: string | null;
 }): string {
   const accent = ACCENTS[opts.accent || "green"];
   const rowsHtml = opts.rows
@@ -30,6 +41,53 @@ export function buildEmail(opts: {
         </tr>`
     )
     .join("");
+
+  // --- סיכום יתרה ---
+  const b = opts.balance;
+  const balanceHtml = b
+    ? `
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;background:#f7f9fb;border:1px solid #eef2f7;border-radius:14px;">
+            <tr><td style="padding:16px 18px;" dir="rtl">
+              <div style="color:#6b7688;font-size:12px;font-weight:700;margin-bottom:10px;">סיכום היתרה שלך</div>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="color:#14203a;font-size:14px;padding:4px 0;text-align:right;">היתרה שלך בגמ&quot;ח</td>
+                  <td style="color:#107a5e;font-size:19px;font-weight:800;padding:4px 0;text-align:left;direction:ltr;">${esc(b.balance)}</td>
+                </tr>
+                ${b.pendingChecks ? `
+                <tr>
+                  <td style="color:#6b7688;font-size:13px;padding:4px 0;text-align:right;">צפוי להיזקף${b.pendingCount ? ` (${b.pendingCount} שיקים שטרם נפדו)` : ""}</td>
+                  <td style="color:#a07a26;font-size:15px;font-weight:700;padding:4px 0;text-align:left;direction:ltr;">${esc(b.pendingChecks)}</td>
+                </tr>` : ""}
+                ${b.projected ? `
+                <tr>
+                  <td style="color:#14203a;font-size:13px;font-weight:700;padding:8px 0 0;text-align:right;border-top:1px solid #e6ebf1;">יתרה צפויה לאחר פדיון השיקים</td>
+                  <td style="color:#107a5e;font-size:16px;font-weight:800;padding:8px 0 0;text-align:left;direction:ltr;border-top:1px solid #e6ebf1;">${esc(b.projected)}</td>
+                </tr>` : ""}
+              </table>
+            </td></tr>
+          </table>`
+    : "";
+
+  // --- פרטי גישה למערכת ---
+  const accessHtml = opts.portalUrl
+    ? `
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:18px;border:1px solid #e6ebf1;border-radius:14px;">
+            <tr><td style="padding:16px 18px;" dir="rtl">
+              <div style="color:#14203a;font-size:13px;font-weight:800;margin-bottom:8px;">פרטי הגישה למערכת</div>
+              <div style="color:#6b7688;font-size:13px;line-height:1.7;">
+                גמ&quot;ח זכרון אהרן — אזור אישי<br>
+                ${opts.portalEmail ? `שם משתמש: <span style="color:#14203a;font-weight:700;direction:ltr;display:inline-block;">${esc(opts.portalEmail)}</span><br>` : ""}
+              </div>
+              <div style="margin-top:12px;">
+                <a href="${esc(opts.portalUrl)}" style="display:inline-block;background:#107a5e;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;padding:11px 22px;border-radius:10px;">כניסה לאזור האישי</a>
+              </div>
+              <div style="color:#9aa5b5;font-size:12px;margin-top:10px;line-height:1.6;">
+                שכחת את הסיסמה? בדף הכניסה יש &quot;שכחתי סיסמה&quot; — יישלח אליך קוד זמני למייל.
+              </div>
+            </td></tr>
+          </table>`
+    : "";
 
   return `<!doctype html>
 <html lang="he" dir="rtl">
@@ -76,12 +134,16 @@ export function buildEmail(opts: {
             ${rowsHtml}
           </table>
 
+          ${balanceHtml}
+
+          ${accessHtml}
+
           ${opts.footnote ? `<p style="margin:18px 0 0;color:#6b7688;font-size:13px;line-height:1.6;background:#f7f9fb;border-radius:10px;padding:12px 14px;">${esc(opts.footnote)}</p>` : ""}
         </td></tr>
 
         <!-- כותרת תחתונה -->
         <tr><td style="padding:18px 28px;border-top:1px solid #eef2f7;background:#fafbfc;" dir="rtl">
-          <div style="color:#9aa5b5;font-size:12px;line-height:1.6;">הודעה אוטומטית ממערכת הניהול של גמ&quot;ח זכרון אהרן.<br>אין להשיב למייל זה.</div>
+          <div style="color:#9aa5b5;font-size:12px;line-height:1.6;">הודעה אוטומטית ממערכת הניהול של גמ&quot;ח זכרון אהרן.<br>ניתן להשיב למייל זה לכל שאלה.</div>
         </td></tr>
 
       </table>

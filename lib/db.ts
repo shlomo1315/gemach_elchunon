@@ -2,7 +2,19 @@
  * חיבור ל-Postgres של Railway.
  * צד שרת בלבד — לעולם לא נטען בדפדפן.
  */
-import { Pool } from "pg";
+import { Pool, types } from "pg";
+
+/**
+ * דרייבר pg מחזיר numeric ו-bigint כמחרוזות (כדי לא לאבד דיוק במספרים
+ * ענקיים). התוצאה בקוד הייתה שרשור במקום חיבור: "5000" + "3000" = "50003000",
+ * ומכאן גם NaN בכל חישוב שהמשיך משם. הסכומים כאן הם שקלים ב-numeric(14,2),
+ * הרחק מגבול הדיוק של Number, ולכן ההמרה בטוחה.
+ *
+ * הרישום חייב לקרות לפני יצירת ה-pool, ולכן הוא ברמת המודול.
+ * 1700 = numeric, 20 = int8/bigint (למשל count()).
+ */
+types.setTypeParser(1700, (v) => (v === null ? null : parseFloat(v)));
+types.setTypeParser(20, (v) => (v === null ? null : parseInt(v, 10)));
 
 declare global {
   // eslint-disable-next-line no-var

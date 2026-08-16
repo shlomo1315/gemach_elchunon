@@ -8,7 +8,7 @@ import { hebTextToGreg } from "@/lib/hebrewParse";
 import { Badge, Loading } from "@/components/ui";
 import HebrewInfoBar from "@/components/HebrewInfoBar";
 import DatePicker from "@/components/DatePicker";
-import type { MemberBalance, Transaction, ChangeRequest, MemberRequest } from "@/types";
+import type { MemberBalance, Transaction, ChangeRequest, MemberRequest, Check } from "@/types";
 
 const REQ_TYPE_LABEL: Record<string, string> = { message: "פנייה / הודעה", loan: "בקשת הלוואה", deposit_refund: "בקשת החזר פיקדון" };
 const REQ_STATUS_LABEL: Record<string, string> = { open: "פתוח", in_progress: "בטיפול", done: "טופל", rejected: "נדחה", pending: "ממתין", approved: "אושר" };
@@ -41,6 +41,7 @@ function Stat({ label, value, color, icon }: { label: string; value: string; col
 export default function MemberPortal({ memberId, logout }: { memberId: string; logout: () => void }) {
   const [member, setMember] = useState<MemberBalance | null>(null);
   const [txns, setTxns] = useState<Transaction[]>([]);
+  const [checks, setChecks] = useState<Check[]>([]);
   const [loading, setLoading] = useState(true);
   const [myChanges, setMyChanges] = useState<ChangeRequest[]>([]);
   const [myRequests, setMyRequests] = useState<MemberRequest[]>([]);
@@ -312,12 +313,14 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
 
   useEffect(() => {
     (async () => {
-      const [m, t] = await Promise.all([
+      const [m, t, c] = await Promise.all([
         supabase.from("member_balances").select("*").eq("id", memberId).single(),
         supabase.from("transactions").select("*").eq("member_id", memberId).order("created_at", { ascending: false }),
+        supabase.from("checks").select("*").eq("member_id", memberId).order("due_date", { ascending: true }),
       ]);
       setMember(m.data as MemberBalance);
       setTxns((t.data as Transaction[]) || []);
+      setChecks((c.data as Check[]) || []);
       setLoading(false);
       loadRequests();
     })();
@@ -325,9 +328,15 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
 
   if (loading) return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}><Loading /></div>;
 
-  const dep = txns.filter(t => t.type === "הפקדה").reduce((s, t) => s + t.amount, 0);
-  const wit = txns.filter(t => t.type === "משיכה").reduce((s, t) => s + t.amount, 0);
-  const balance = member?.balance ?? dep - wit;
+  const dep = txns.filter(t => t.type === "הפקדה").reduce((s, t) => s + (Number(t.amount) || 0), 0);
+  const wit = txns.filter(t => t.type === "משיכה").reduce((s, t) => s + (Number(t.amount) || 0), 0);
+  const balance = Number(member?.balance ?? dep - wit) || 0;
+
+  // שיקים להפקדה שטרם נפדו — הסכום ייזקף לזכות החבר רק לאחר אישור הגבאי,
+  // ולכן הוא מוצג בנפרד מהיתרה בפועל (אותו חישוב כמו בכרטיס הניהול).
+  const pendingDeposits = checks.filter(c => c.kind !== "repayment" && c.status === "pending");
+  const pendingSum = pendingDeposits.reduce((s, c) => s + (Number(c.amount) || 0), 0);
+  const projectedBalance = balance + pendingSum;
 
   return (
     <div style={{ direction: "rtl", minHeight: "100vh", background: "var(--bg)" }}>
@@ -356,6 +365,24 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
           <div style={{ fontSize: ".9rem", color: "var(--muted)", fontWeight: 600 }}>היתרה שלך בגמ״ח</div>
           <div className="display" style={{ fontSize: "2.8rem", fontWeight: 800, color: balance >= 0 ? BRAND : RED, lineHeight: 1.2, fontVariantNumeric: "tabular-nums" }}>{ils(balance)}</div>
           <div style={{ fontSize: ".85rem", color: "var(--faint)" }}>{txns.length} פעולות סה״כ</div>
+
+          {/* שיקים שטרם נפדו — מוצג כאן כדי שהיתרה הגדולה תישאר "מה שנזקף בפועל" */}
+          {pendingDeposits.length > 0 && (
+            <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px dashed var(--line)", display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 10, textAlign: "center" }}>
+              <div style={{ flex: "1 1 150px" }}>
+                <div style={{ fontSize: ".78rem", color: "var(--muted)", fontWeight: 600 }}>צפוי להיזקף</div>
+                <div style={{ fontSize: "1.35rem", fontWeight: 800, color: "#a07a26", fontVariantNumeric: "tabular-nums" }}>{ils(pendingSum)}</div>
+                <div style={{ fontSize: ".72rem", color: "var(--faint)" }}>
+                  {pendingDeposits.length} שיקים ממתינים
+                </div>
+              </div>
+              <div style={{ flex: "1 1 150px" }}>
+                <div style={{ fontSize: ".78rem", color: "var(--muted)", fontWeight: 600 }}>יתרה צפויה</div>
+                <div style={{ fontSize: "1.35rem", fontWeight: 800, color: BRAND, fontVariantNumeric: "tabular-nums" }}>{ils(projectedBalance)}</div>
+                <div style={{ fontSize: ".72rem", color: "var(--faint)" }}>לאחר פדיון כל השיקים</div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* מצב מפורט */}
@@ -365,6 +392,44 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
           <Stat label="יתרה נוכחית" value={ils(balance)} color={BRAND} icon={<Wallet size={20} />} />
           <Stat label="מספר פעולות" value={String(txns.length)} color="#3b82f6" icon={<ListChecks size={20} />} />
         </div>
+
+        {/* פירוט השיקים הממתינים — מועד פירעון וסכום לכל שיק */}
+        {pendingDeposits.length > 0 && (
+          <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: "var(--r-lg)", boxShadow: "var(--shadow)", overflow: "hidden", marginBottom: 18 }}>
+            <div style={{ padding: "1.1rem 1.25rem", borderBottom: "1px solid var(--line)" }}>
+              <div style={{ fontWeight: 800, color: "var(--text)", display: "flex", alignItems: "center", gap: 8 }}>
+                <span className="section-bar" style={{ marginInlineEnd: 8 }} />
+                שיקים שטרם נפדו
+              </div>
+              <div style={{ fontSize: ".82rem", color: "var(--muted)", marginTop: 4 }}>
+                כל שיק נזקף לזכותך במועד פירעונו, לאחר אישור הגבאי
+              </div>
+            </div>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: ".88rem" }}>
+                <thead>
+                  <tr style={{ background: "#fafbfc" }}>
+                    <th style={{ padding: "0.6rem 1.25rem", textAlign: "right", color: "var(--muted)", fontWeight: 600 }}>מועד פירעון</th>
+                    <th style={{ padding: "0.6rem 1.25rem", textAlign: "right", color: "var(--muted)", fontWeight: 600 }}>סכום</th>
+                    <th style={{ padding: "0.6rem 1.25rem", textAlign: "right", color: "var(--muted)", fontWeight: 600 }}>הערות</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pendingDeposits.map(c => (
+                    <tr key={c.id} style={{ borderTop: "1px solid #f0f2f5" }}>
+                      <td style={{ padding: "0.6rem 1.25rem", color: "var(--text)" }}>
+                        {c.due_date ? gdate(c.due_date) : "—"}
+                        {c.hebrew_due && <span style={{ color: "var(--faint)", fontSize: ".8rem" }}> · {c.hebrew_due}</span>}
+                      </td>
+                      <td style={{ padding: "0.6rem 1.25rem", fontWeight: 700, color: BRAND, fontVariantNumeric: "tabular-nums" }}>{ils(Number(c.amount) || 0)}</td>
+                      <td style={{ padding: "0.6rem 1.25rem", color: "var(--muted)" }}>{c.notes || ""}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* בקשת הלוואה חדשה */}
         <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: "var(--r-lg)", boxShadow: "var(--shadow)", padding: "1.1rem 1.25rem", marginBottom: 18, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
