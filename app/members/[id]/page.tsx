@@ -821,8 +821,8 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
             <div style={{ background: "#fef2f2", borderRadius: "var(--r-sm)", padding: "0.55rem 0.6rem 0.45rem", position: "relative", overflow: "hidden" }}>
               <div style={{ position: "absolute", insetInlineStart: 0, insetInlineEnd: 0, top: 0, height: 4, background: "linear-gradient(90deg, #c0392b, #c0392b2e)" }} />
               <div style={{ fontSize: ".72rem", color: "var(--muted)" }}>חוב הלוואות</div>
-              <div style={{ fontWeight: 800, fontVariantNumeric: "tabular-nums", color: (member.loan_balance ?? 0) > 0 ? "#c0392b" : "var(--brand)" }}>{ils(Math.max(0, member.loan_balance ?? 0))}</div>
-              {(member.loan_balance ?? 0) > 0 && (
+              <div style={{ fontWeight: 800, fontVariantNumeric: "tabular-nums", color: amount(member.loan_balance) > 0 ? "#c0392b" : "var(--brand)" }}>{ils(Math.max(0, amount(member.loan_balance)))}</div>
+              {amount(member.loan_balance) > 0 && (
                 <button className="no-print btn btn-primary btn-sm" onClick={downloadShtarChov} style={{ marginTop: 5 }}>
                   📄 שטר חוב
                 </button>
@@ -831,7 +831,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
             <div style={{ background: "#f0faf6", borderRadius: "var(--r-sm)", padding: "0.55rem 0.6rem 0.45rem", position: "relative", overflow: "hidden" }}>
               <div style={{ position: "absolute", insetInlineStart: 0, insetInlineEnd: 0, top: 0, height: 4, background: "linear-gradient(90deg, var(--brand), #107a5e2e)" }} />
               <div style={{ fontSize: ".72rem", color: "var(--muted)" }}>יתרת חיסכון</div>
-              <div style={{ fontWeight: 800, fontVariantNumeric: "tabular-nums", color: "var(--brand)" }}>{ils(member.savings_balance ?? 0)}</div>
+              <div style={{ fontWeight: 800, fontVariantNumeric: "tabular-nums", color: "var(--brand)" }}>{ils(amount(member.savings_balance))}</div>
             </div>
           </div>
           {checkStats.total > 0 && (
@@ -844,6 +844,21 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
             <div style={{ marginTop: 2, fontSize: ".78rem", color: "#5a6b7b", background: "#f0faf6", borderRadius: 8, padding: "0.5rem 0.65rem", lineHeight: 1.7 }}>
               <div><b style={{ color: "var(--text)" }}>שיקים להפקדה:</b> {depositStats.total} במערכת · הופקדו {depositStats.cashedCount} · ממתינים {depositStats.pendCount}</div>
               {depositStats.pendCount > 0 && <div>צפוי להיזקף כזכות: <b style={{ color: "var(--brand)" }}>{ils(depositStats.pendSum)}</b></div>}
+            </div>
+          )}
+          {/* היתרה הצפויה — היתרה בפועל ועוד השיקים שטרם נפדו, מחושבת ומוצגת
+              במפורש כדי שלא יהיה צורך לחבר את שני המספרים ידנית. */}
+          {depositStats.pendCount > 0 && (
+            <div style={{ marginTop: 2, background: "var(--grad-brand)", borderRadius: 10, padding: "0.6rem 0.75rem", color: "#fff", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+              <div style={{ fontSize: ".78rem", opacity: .92, lineHeight: 1.5 }}>
+                יתרה צפויה
+                <div style={{ fontSize: ".72rem", opacity: .8 }}>
+                  {ils(amount(member.balance))} + {ils(depositStats.pendSum)} ({depositStats.pendCount} שיקים)
+                </div>
+              </div>
+              <div className="display" style={{ fontSize: "1.5rem", fontWeight: 800, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
+                {ils(amount(member.balance) + depositStats.pendSum)}
+              </div>
             </div>
           )}
           <div style={{ fontSize: ".78rem", color: "#9aa5b5", marginTop: 2 }}>{member.txn_count} פעולות</div>
