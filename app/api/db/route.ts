@@ -30,6 +30,7 @@ type Body = {
   single?: boolean;
   values?: Record<string, unknown> | Record<string, unknown>[];
   returning?: boolean;
+  onConflict?: string;
 };
 
 /** בונה את מקטע ה-WHERE. כל ערך עובר כפרמטר — אף פעם לא משורשר לטקסט. */
@@ -145,7 +146,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    else if (action === "insert") {
+    else if (action === "insert" || action === "upsert") {
       const rowsIn = Array.isArray(body.values) ? body.values : [body.values ?? {}];
       if (!rowsIn.length) return NextResponse.json({ data: [], error: null });
 
@@ -173,6 +174,20 @@ export async function POST(req: NextRequest) {
       });
 
       sql = `insert into "${table}" (${cols.map((c) => `"${c}"`).join(", ")}) values ${tuples.join(", ")}`;
+
+      // upsert: בהתנגשות על מפתח הייחוד מעדכנים את שאר העמודות במקום להיכשל.
+      // onConflict מגיע מהקליינט ומאומת מול העמודות המותרות, כמו כל עמודה אחרת.
+      if (action === "upsert") {
+        const conflictCols = (body.onConflict ?? "id")
+          .split(",").map((c) => assertColumn(rule, table, c.trim()));
+        const updateCols = cols.filter((c) => !conflictCols.includes(c));
+        sql += ` on conflict (${conflictCols.map((c) => `"${c}"`).join(", ")}) do ${
+          updateCols.length
+            ? `update set ${updateCols.map((c) => `"${c}" = excluded."${c}"`).join(", ")}`
+            : "nothing"
+        }`;
+      }
+
       if (body.returning !== false) sql += " returning *";
     }
 

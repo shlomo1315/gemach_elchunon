@@ -11,7 +11,7 @@
  */
 import type { SessionUser } from "./session";
 
-export type Action = "select" | "insert" | "update" | "delete";
+export type Action = "select" | "insert" | "update" | "delete" | "upsert";
 
 type TableRule = {
   columns: readonly string[];

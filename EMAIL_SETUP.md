@@ -14,7 +14,12 @@
 
 **איך זה בנוי:** השליחה נעשית דרך **Resend** (שירות שליחה בלבד),
 והקבלה דרך **Cloudflare Email Routing** שמעביר כל מייל שמגיע ל-`office@`
-לתיבת הדואר האישית שלך. שני החלקים חינמיים ובלתי תלויים זה בזה.
+לתיבת הדואר האישית שלך. שני החלקים חינמיים ובלתי תלויים זה בזה — ולכן
+ההגדרה של אחד מהם אינה מפעילה את השני.
+
+הקבלה נחוצה גם למי שלא צריך לקרוא מיילים: הקוד מגדיר `reply_to: office@`
+בכל מייל יוצא, ולכן **תשובות של חברים נשלחות לכתובת הזאת**. בלי חלק ב'
+הן נעלמות.
 
 ---
 
@@ -82,30 +87,81 @@ Resend **שולח בלבד** — הוא אינו תיבת דואר. כדי שמ�
 `office@gemach.shlomo4you.com` יגיעו אליך, מגדירים העברה אוטומטית.
 ההגדרה חינמית ולוקחת כ-10 דקות.
 
-1. ב-**Cloudflare** → הדומיין `shlomo4you.com` → בתפריט: **Email** →
-   **Email Routing**.
-2. אם זו הפעם הראשונה — לוחצים **Get started** / **Enable Email Routing**.
-   Cloudflare יציע להוסיף רשומות MX אוטומטית → מאשרים.
-3. **Destination addresses** → **Add destination** → מזינים את כתובת
-   ה-Gmail שלך → Cloudflare שולחת לשם מייל אימות → לוחצים על הקישור שבמייל.
-4. **Routing rules** → **Create address**:
-   - Custom address: `office@gemach.shlomo4you.com`
-   - Action: **Send to an email**
-   - Destination: כתובת ה-Gmail שאימתת → **Save**.
+**נקודת המפתח:** הכתובת יושבת על **תת-דומיין** (`gemach.shlomo4you.com`),
+ו-Email Routing מוגדר על הזון הראשי (`shlomo4you.com`). ה-MX של הזון הראשי
+**אינו חל** על תת-דומיין — לכן צריך להוסיף את התת-דומיין במפורש (שלב 3).
+בלי זה הכתובת לא תופיע כלל ברשימת הדומיינים ביצירת הכלל.
+
+> אין צורך בזון נפרד ל-`gemach.shlomo4you.com` ואין צורך בתוכנית משולמת.
+> Cloudflare דוחה תת-דומיין ב-**Add a domain** (*"provide the root domain"*) —
+> זה תקין; ההוספה נעשית מתוך הגדרות Email Routing של הזון הראשי.
+
+1. ב-**Cloudflare** → הדומיין `shlomo4you.com` → **Email** → **Email Routing**.
+2. **Settings** → קטע **DNS records** → **Add missing records** (מוסיף 3×`MX`
+   של `route*.mx.cloudflare.net`, DKIM ו-SPF על הזון הראשי).
+3. באותו עמוד, קטע **Subdomains** → בטופס מזינים **`gemach`** בלבד → **Add**.
+   Cloudflare משלימה `.shlomo4you.com` לבד ומוסיפה את ה-MX על התת-דומיין.
+4. **Destination Addresses** → **Add destination** → כתובת ה-Gmail שלך →
+   לוחצים על קישור האימות שיישלח לשם.
+5. **Overview** → **Enable Email Routing** (הסטטוס עובר `Syncing` → `Enabled`).
+6. **Routing rules** → **Create routing rule**:
+   - Custom address: `office` + בוחרים `gemach.shlomo4you.com` בשדה הדומיין.
+   - Action: **Send to an email** → Destination: הכתובת שאימתת → **Save**.
 
 מעכשיו כל מייל שיישלח ל-`office@` יגיע לתיבה שלך.
 
-> ⚠️ שים לב לקונפליקט MX: אם Resend ביקש רשומת `MX` על
-> `gemach.shlomo4you.com` ו-Cloudflare Email Routing מוסיף MX משלו —
-> ודא שהם על שמות שונים (Resend בדרך כלל על תת-דומיין כמו `send.`).
-> אם שניהם על אותו שם בדיוק, פנה אליי לפני שאתה מוחק רשומה.
+> ⚠️ בשלב 3 מזינים `gemach` ולא את השם המלא. הזנת `gemach.shlomo4you.com`
+> יוצרת תת-דומיין שגוי בשם `gemach.shlomo4you.com.shlomo4you.com` (עם רשומות
+> MX ו-SPF משלו). הוא לא מזיק אבל חסר תועלת — מוחקים אותו ואת הרשומות שלו.
+
+> ⚠️ **אל תמחק** את `send.gemach.shlomo4you.com` (MX ל-`feedback-smtp...`) —
+> זו רשומת השליחה של Resend. היא על שם אחר מה-MX של הקבלה (`gemach`),
+> ולכן **אין קונפליקט**. אותו דבר לגבי רשומות ה-SPF: `send.gemach` נושאת
+> `include:amazonses.com` (שליחה) ו-`gemach` נושאת `include:_spf.mx.cloudflare.net`
+> (קבלה) — שמות שונים, תפקידים שונים, שתיהן נחוצות.
 
 ### תשובה ישירה מ-Gmail (מומלץ)
 כדי שתוכל **להשיב** מ-Gmail והתשובה תצא מ-`office@` ולא מהכתובת הפרטית:
+
 Gmail → ⚙️ → **See all settings** → **Accounts and Import** →
-**Send mail as** → **Add another email address** → מזינים
-`office@gemach.shlomo4you.com`, מסירים את הסימון "Treat as an alias",
-ומאמתים דרך הקוד שיישלח (יגיע אליך בזכות ההעברה שהגדרת).
+**Send mail as** → **Add another email address**:
+
+1. Name: `גמ"ח זכרון אהרן`, Email: `office@gemach.shlomo4you.com`.
+   **מסירים** את הסימון "Treat as an alias" — אחרת Gmail לא יבחר את הכתובת
+   אוטומטית בתשובות.
+2. בחלון פרטי ה-SMTP מזינים את שרת Resend:
+
+   | שדה | ערך |
+   |----|-----|
+   | SMTP Server | `smtp.resend.com` |
+   | Port | `587` (אם נכשל — `465` עם SSL) |
+   | Username | `resend` — המילה עצמה, לא כתובת מייל |
+   | Password | `RESEND_API_KEY` (מתחיל ב-`re_`) |
+   | אבטחה | TLS |
+
+3. Gmail שולח קוד אימות ל-`office@` — הוא מגיע בזכות ההעברה שהוגדרה למעלה.
+
+> ⚠️ Resend דוחה מיילים **בלי שורת נושא** בשגיאה `550 Missing subject field`.
+> ההודעה שGmail מציג ("ההודעה לא נמסרה… ההגדרות לא מוגדרות כהלכה") מטעה —
+> השגיאה האמיתית מופיעה בתחתית ההודעה. במערכת עצמה זה לא רלוונטי
+> (`subject` תמיד נשלח), רק בשליחה ידנית.
+
+### אימות מיילים (SPF / DKIM / DMARC) — למניעת ספאם
+Gmail מקפיד על אימות מאז 2024, ודומיין ללא **DMARC** נוטה לספאם גם כששאר
+ההגדרות תקינות. רשומה זו אינה חלק מההגדרה של Resend ולא נוספת לבד:
+
+| Type | Name | Content | Proxy |
+|------|------|---------|-------|
+| TXT | `_dmarc.gemach` | `v=DMARC1; p=none; rua=mailto:office@gemach.shlomo4you.com` | DNS only |
+
+`p=none` = דיווח בלבד, לא דוחה מיילים. אחרי שבועיים תקינים אפשר להחמיר
+ל-`p=quarantine`.
+
+**בדיקה:** מייל שהגיע ל-Gmail → **⋮** → **הצג את המקור**. שלוש השורות
+`SPF` / `DKIM` / `DMARC` צריכות להראות `PASS`.
+
+> דומיין חדש נחשד בהתחלה **גם עם שלושה PASS** — המוניטין נבנה תוך שבועות
+> של שליחה סדירה. סימון "לא ספאם" משפר את המצב אצלך בלבד, לא אצל החברים.
 
 ---
 

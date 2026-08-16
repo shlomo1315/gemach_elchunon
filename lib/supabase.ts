@@ -52,7 +52,7 @@ async function post(url: string, body: unknown): Promise<Result> {
  */
 class QueryBuilder implements PromiseLike<Result> {
   private table: string;
-  private action: "select" | "insert" | "update" | "delete" = "select";
+  private action: "select" | "insert" | "update" | "delete" | "upsert" = "select";
   private columns = "*";
   private filters: Filter[] = [];
   private orders: { column: string; ascending: boolean }[] = [];
@@ -61,6 +61,7 @@ class QueryBuilder implements PromiseLike<Result> {
   private singleMode: "none" | "single" | "maybe" = "none";
   private values: unknown = null;
   private actionSet = false;
+  private onConflictCols = "id";
 
   constructor(table: string) {
     this.table = table;
@@ -75,7 +76,14 @@ class QueryBuilder implements PromiseLike<Result> {
   insert(values: unknown) { this.action = "insert"; this.actionSet = true; this.values = values; return this; }
   update(values: unknown) { this.action = "update"; this.actionSet = true; this.values = values; return this; }
   delete()                { this.action = "delete"; this.actionSet = true; return this; }
-  upsert(values: unknown) { return this.insert(values); }
+  /** insert עם on conflict do update — onConflict הוא העמודה/ות של מפתח הייחוד. */
+  upsert(values: unknown, opts?: { onConflict?: string }) {
+    this.action = "upsert";
+    this.actionSet = true;
+    this.values = values;
+    this.onConflictCols = opts?.onConflict ?? "id";
+    return this;
+  }
 
   eq(column: string, value: unknown)    { this.filters.push({ op: "eq", column, value }); return this; }
   neq(column: string, value: unknown)   { this.filters.push({ op: "neq", column, value }); return this; }
@@ -123,6 +131,7 @@ class QueryBuilder implements PromiseLike<Result> {
       offset: this.offsetN,
       single: this.singleMode !== "none",
       values: this.values,
+      onConflict: this.onConflictCols,
     });
 
     if (res.error) return res;
