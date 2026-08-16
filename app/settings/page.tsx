@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/AuthGuard";
 import { PageTitle, Card } from "@/components/ui";
+import BackupPanel from "@/components/BackupPanel";
 import { ils, gdate } from "@/lib/format";
 
 const BRAND = "#107a5e";
@@ -191,7 +192,8 @@ function DeletedTransactionsTab() {
 
 export default function SettingsPage() {
   const { user } = useAuth();
-  const [tab, setTab] = useState<"account" | "trash">("account");
+  const isAdmin = user?.role === "admin";
+  const [tab, setTab] = useState<"account" | "trash" | "backup">("account");
   const [displayName, setDisplayName] = useState(user?.user_metadata?.full_name || "");
   const [savingName, setSavingName] = useState(false);
   const [nameMsg, setNameMsg] = useState("");
@@ -235,10 +237,19 @@ export default function SettingsPage() {
     <div>
       <PageTitle>הגדרות</PageTitle>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
         <TabBtn active={tab === "account"} onClick={() => setTab("account")} label="⚙️ הגדרות חשבון" />
         <TabBtn active={tab === "trash"} onClick={() => setTab("trash")} label="🗑️ פעולות מחוקות" />
+        {isAdmin && <TabBtn active={tab === "backup"} onClick={() => setTab("backup")} label="💾 גיבוי ושחזור" />}
       </div>
+
+      {tab === "backup" && isAdmin && (
+        <div style={{ maxWidth: 720 }}>
+          <Section title="💾 גיבוי ושחזור">
+            <BackupPanel />
+          </Section>
+        </div>
+      )}
 
       {tab === "account" && (
         <div style={{ maxWidth: 560 }}>

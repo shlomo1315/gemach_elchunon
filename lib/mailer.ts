@@ -52,15 +52,31 @@ function getTransporter(): nodemailer.Transporter {
   return transporter;
 }
 
-async function sendViaResend(to: string, subject: string, html: string): Promise<void> {
+/** קובץ מצורף למייל (משמש את הגיבוי היומי). */
+export type MailAttachment = { filename: string; content: Buffer };
+
+async function sendViaResend(
+  to: string, subject: string, html: string, attachments?: MailAttachment[],
+): Promise<void> {
+  const body: Record<string, unknown> = {
+    from: EMAIL_FROM, to: [to], subject, html,
+    // reply_to: תשובות של חברים חוזרות ל-office@ (שמועבר לתיבה דרך Cloudflare)
+    reply_to: OFFICE_EMAIL,
+  };
+  if (attachments?.length) {
+    body.attachments = attachments.map((a) => ({
+      filename: a.filename,
+      content: a.content.toString("base64"),
+    }));
+  }
+
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${RESEND_API_KEY}`,
       "Content-Type": "application/json",
     },
-    // reply_to: תשובות של חברים חוזרות ל-office@ (שמועבר לתיבה דרך Cloudflare)
-    body: JSON.stringify({ from: EMAIL_FROM, to: [to], subject, html, reply_to: OFFICE_EMAIL }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) {
     const text = await res.text().catch(() => "");
@@ -68,12 +84,17 @@ async function sendViaResend(to: string, subject: string, html: string): Promise
   }
 }
 
-export async function sendMail(to: string, subject: string, html: string): Promise<void> {
+export async function sendMail(
+  to: string, subject: string, html: string, attachments?: MailAttachment[],
+): Promise<void> {
   if (!mailConfigured()) throw new Error("not_configured");
   if (RESEND_API_KEY) {
-    await sendViaResend(to, subject, html);
+    await sendViaResend(to, subject, html, attachments);
   } else {
-    await getTransporter().sendMail({ from: EMAIL_FROM, to, subject, html, replyTo: OFFICE_EMAIL });
+    await getTransporter().sendMail({
+      from: EMAIL_FROM, to, subject, html, replyTo: OFFICE_EMAIL,
+      attachments: attachments?.map((a) => ({ filename: a.filename, content: a.content })),
+    });
   }
 }
 
