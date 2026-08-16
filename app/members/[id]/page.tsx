@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Pencil, CheckCircle2 } from "lucide-react";
 import { supabase, fnErrMessage } from "@/lib/supabase";
 import { ils, gdate, toHebrewDate, TXN_TYPES, TXN_METHODS } from "@/lib/format";
+import { amount, sumAmounts, checkKind } from "@/lib/money";
 import { hebTextToGreg } from "@/lib/hebrewParse";
 import { Card, PageTitle, Button, Badge, Loading, Empty } from "@/components/ui";
 import DatePicker from "@/components/DatePicker";
@@ -141,8 +142,9 @@ export default function MemberDetail() {
   const [chkDrafts, setChkDrafts] = useState<ChkDraft[]>([{ amount: "", due_date: "", notes: "" }]);
   const [savingChks, setSavingChks] = useState(false);
 
-  // שיקים ישנים נשמרו ללא kind — הם שיקים לפרעון
-  const kindOf = (c: Check): CheckKind => (c.kind === "deposit" ? "deposit" : "repayment");
+  // שיקים ישנים נשמרו ללא kind — הם שיקים לפרעון.
+  // הסיווג מגיע מ-lib/money כדי שיהיה זהה בכל המסכים ובמיילים.
+  const kindOf = checkKind;
   // השיקים של הטאב הפעיל בלבד
   const tabChecks = useMemo(() => checks.filter(c => kindOf(c) === chkTab), [checks, chkTab]);
   const depositChecks = useMemo(() => checks.filter(c => kindOf(c) === "deposit"), [checks]);
@@ -206,11 +208,12 @@ export default function MemberDetail() {
       if (loanId) {
         const loan = loans.find(l => l.id === loanId);
         if (loan) {
-          const existingSum = checks.filter(c => c.loan_transaction_id === loanId && c.status !== "bounced").reduce((s, c) => s + c.amount, 0);
-          const newSum = valid.reduce((s, d) => s + Number(d.amount), 0);
-          if (existingSum + newSum > loan.amount + 0.001) {
-            const remaining = Math.max(0, loan.amount - existingSum);
-            alert(`סכום השיקים חורג מסכום ההלוואה.\nהלוואה: ${ils(loan.amount)}\nשיקים קיימים להלוואה זו: ${ils(existingSum)}\nניתן להוסיף עוד עד ${ils(remaining)} (ניסית להוסיף ${ils(newSum)}).`);
+          const existingSum = sumAmounts(checks.filter(c => c.loan_transaction_id === loanId && c.status !== "bounced"), c => c.amount);
+          const newSum = sumAmounts(valid, d => d.amount);
+          const loanAmount = amount(loan.amount);
+          if (existingSum + newSum > loanAmount + 0.001) {
+            const remaining = Math.max(0, loanAmount - existingSum);
+            alert(`סכום השיקים חורג מסכום ההלוואה.\nהלוואה: ${ils(loanAmount)}\nשיקים קיימים להלוואה זו: ${ils(existingSum)}\nניתן להוסיף עוד עד ${ils(remaining)} (ניסית להוסיף ${ils(newSum)}).`);
             return;
           }
         }
@@ -263,9 +266,9 @@ export default function MemberDetail() {
     const repay = checks.filter(c => kindOf(c) === "repayment");
     const pend = repay.filter(c => c.status === "pending");
     const cashed = repay.filter(c => c.status === "cashed");
-    const pendSum = pend.reduce((s, c) => s + c.amount, 0);
-    const cashedSum = cashed.reduce((s, c) => s + c.amount, 0);
-    const debt = member ? Math.max(0, member.loan_balance ?? 0) : 0; // חוב הלוואות בפועל
+    const pendSum = sumAmounts(pend, c => c.amount);
+    const cashedSum = sumAmounts(cashed, c => c.amount);
+    const debt = member ? Math.max(0, amount(member.loan_balance)) : 0; // חוב הלוואות בפועל
     const projectedDebt = Math.max(0, debt - pendSum);               // יתרת חוב צפויה אחרי פדיון כל הממתינים
     const planTotal = cashedSum + pendSum;                           // סך תכנית הפירעון בשיקים
     const progressPct = planTotal > 0 ? Math.round((cashedSum / planTotal) * 100) : 0;
@@ -281,8 +284,8 @@ export default function MemberDetail() {
     const cashed = depositChecks.filter(c => c.status === "cashed");
     return {
       total: depositChecks.length,
-      pendCount: pend.length, pendSum: pend.reduce((s, c) => s + c.amount, 0),
-      cashedCount: cashed.length, cashedSum: cashed.reduce((s, c) => s + c.amount, 0),
+      pendCount: pend.length, pendSum: sumAmounts(pend, c => c.amount),
+      cashedCount: cashed.length, cashedSum: sumAmounts(cashed, c => c.amount),
     };
   }, [depositChecks]);
 
@@ -811,7 +814,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
         <Card hover style={{ flex: 1, minWidth: 260, display: "flex", flexDirection: "column", justifyContent: "center", gap: 6, position: "relative", overflow: "hidden" }}>
           <div style={{ position: "absolute", insetInlineStart: 0, insetInlineEnd: 0, top: 0, height: 4, background: "var(--grad-brand)" }} />
           <div style={{ fontSize: ".8rem", color: "var(--muted)", fontWeight: 600 }}>יתרה נוכחית</div>
-          <div className="display" style={{ fontSize: "2.15rem", fontWeight: 800, lineHeight: 1.1, fontVariantNumeric: "tabular-nums", color: member.balance >= 0 ? "var(--brand)" : "#c0392b" }}>
+          <div className="display" style={{ fontSize: "2.15rem", fontWeight: 800, lineHeight: 1.1, fontVariantNumeric: "tabular-nums", color: amount(member.balance) >= 0 ? "var(--brand)" : "#c0392b" }}>
             {ils(member.balance)}
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 4 }}>
@@ -1061,13 +1064,13 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
             if (chkTab === "deposit") return null; // אין תקרה לשיקי הפקדה
             const loan = chkMaster.loan_transaction_id ? loans.find(l => l.id === chkMaster.loan_transaction_id) : null;
             if (!loan) return null;
-            const existingSum = checks.filter(c => c.loan_transaction_id === loan.id && c.status !== "bounced").reduce((s, c) => s + c.amount, 0);
-            const draftsSum = chkDrafts.reduce((s, d) => s + (Number(d.amount) || 0), 0);
-            const remaining = loan.amount - existingSum;
+            const existingSum = sumAmounts(checks.filter(c => c.loan_transaction_id === loan.id && c.status !== "bounced"), c => c.amount);
+            const draftsSum = sumAmounts(chkDrafts, d => d.amount);
+            const remaining = amount(loan.amount) - existingSum;
             const over = draftsSum > remaining + 0.001;
             return (
               <div style={{ fontSize: ".78rem", marginTop: 4, color: over ? "#c0392b" : "#5a6b7b", fontWeight: over ? 700 : 400 }}>
-                הלוואה {ils(loan.amount)} · שויכו כבר {ils(existingSum)} · נותר לשיוך <b>{ils(Math.max(0, remaining))}</b>
+                הלוואה {ils(amount(loan.amount))} · שויכו כבר {ils(existingSum)} · נותר לשיוך <b>{ils(Math.max(0, remaining))}</b>
                 {draftsSum > 0 ? ` · בטיוטה ${ils(draftsSum)}` : ""}{over ? " — חורג מסכום ההלוואה!" : ""}
               </div>
             );

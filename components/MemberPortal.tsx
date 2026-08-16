@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { LogOut, Wallet, ArrowDownCircle, ArrowUpCircle, ListChecks, KeyRound, MessageSquarePlus, Pencil, CheckCircle2, Banknote } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { ils, gdate, toHebrewDate, TXN_TYPES, TXN_METHODS } from "@/lib/format";
+import { amount, sumAmounts, pendingDepositChecks } from "@/lib/money";
 import { hebTextToGreg } from "@/lib/hebrewParse";
 import { Badge, Loading } from "@/components/ui";
 import HebrewInfoBar from "@/components/HebrewInfoBar";
@@ -328,14 +329,15 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
 
   if (loading) return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}><Loading /></div>;
 
-  const dep = txns.filter(t => t.type === "הפקדה").reduce((s, t) => s + (Number(t.amount) || 0), 0);
-  const wit = txns.filter(t => t.type === "משיכה").reduce((s, t) => s + (Number(t.amount) || 0), 0);
-  const balance = Number(member?.balance ?? dep - wit) || 0;
+  const dep = sumAmounts(txns.filter(t => t.type === "הפקדה"), t => t.amount);
+  const wit = sumAmounts(txns.filter(t => t.type === "משיכה"), t => t.amount);
+  const balance = member?.balance != null ? amount(member.balance) : dep - wit;
 
   // שיקים להפקדה שטרם נפדו — הסכום ייזקף לזכות החבר רק לאחר אישור הגבאי,
-  // ולכן הוא מוצג בנפרד מהיתרה בפועל (אותו חישוב כמו בכרטיס הניהול).
-  const pendingDeposits = checks.filter(c => c.kind !== "repayment" && c.status === "pending");
-  const pendingSum = pendingDeposits.reduce((s, c) => s + (Number(c.amount) || 0), 0);
+  // ולכן הוא מוצג בנפרד מהיתרה בפועל. הסיווג נעשה דרך lib/money כדי שיהיה
+  // זהה לכרטיס הניהול: שיק ישן ללא kind הוא שיק פרעון, לא שיק לזכות.
+  const pendingDeposits = pendingDepositChecks(checks);
+  const pendingSum = sumAmounts(pendingDeposits, c => c.amount);
   const projectedBalance = balance + pendingSum;
 
   return (
@@ -421,7 +423,7 @@ body{font-family:Arial,sans-serif;font-size:13px;direction:rtl;padding:22px 30px
                         {c.due_date ? gdate(c.due_date) : "—"}
                         {c.hebrew_due && <span style={{ color: "var(--faint)", fontSize: ".8rem" }}> · {c.hebrew_due}</span>}
                       </td>
-                      <td style={{ padding: "0.6rem 1.25rem", fontWeight: 700, color: BRAND, fontVariantNumeric: "tabular-nums" }}>{ils(Number(c.amount) || 0)}</td>
+                      <td style={{ padding: "0.6rem 1.25rem", fontWeight: 700, color: BRAND, fontVariantNumeric: "tabular-nums" }}>{ils(amount(c.amount))}</td>
                       <td style={{ padding: "0.6rem 1.25rem", color: "var(--muted)" }}>{c.notes || ""}</td>
                     </tr>
                   ))}

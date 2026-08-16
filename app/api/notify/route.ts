@@ -70,11 +70,13 @@ export async function POST(req: Request) {
       memberName = m.name ?? memberName;
       memberEmail = (m.email ?? "").trim() || null;
 
-      // שיקים להפקדה שטרם נפדו — אותו חישוב כמו בפורטל ובכרטיס הניהול
+      // שיקים להפקדה שטרם נפדו. הסיווג זהה ל-checkKind ב-lib/money:
+      // רק kind = 'deposit' הוא שיק לזכות; כל השאר (כולל ריק/null בשיקים
+      // ישנים) הוא שיק לפרעון הלוואה ואינו נספר כאן.
       const pend = await queryOne<{ sum: number | null; cnt: number }>(
         `select coalesce(sum(amount), 0) as sum, count(*)::int as cnt
            from checks
-          where member_id = $1 and status = 'pending' and coalesce(kind, 'repayment') <> 'repayment'`,
+          where member_id = $1 and status = 'pending' and kind = 'deposit'`,
         [body.memberId],
       );
       const balance = Number(m.balance ?? 0) || 0;
