@@ -126,7 +126,8 @@ function LoginPage({ onLogin }: { onLogin: (u: User) => void }) {
   return (
     <div style={{
       minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
-      padding: "1.25rem", position: "relative", overflow: "hidden",
+      // ריווח תחתון נוסף כדי שהכרטיס לא ייחתך מאחורי באנר הקרדיט
+      padding: "1.25rem 1.25rem 4.5rem", position: "relative", overflow: "hidden",
       background: `
         radial-gradient(1100px 560px at 78% -12%, #2fa085 0%, transparent 58%),
         radial-gradient(820px 520px at 10% 114%, rgba(199,154,62,.42) 0%, transparent 56%),
@@ -260,27 +261,34 @@ function LoginPage({ onLogin }: { onLogin: (u: User) => void }) {
           </form>
         )}
 
-        {/* קרדיט אפיון ופיתוח — נוכח וברור, בלי להתחרות בטופס עצמו */}
-        <div style={{ marginTop: "1.6rem", paddingTop: "1.05rem", borderTop: "1px solid #eef2f7", textAlign: "center" }}>
-          <a
-            href="https://r-lavan.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 7,
-              padding: "0.4rem 0.85rem", borderRadius: 999,
-              background: "#f4f7f6", border: "1px solid #e3eae7",
-              textDecoration: "none", transition: "background .15s, border-color .15s",
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = "#eaf3ef"; e.currentTarget.style.borderColor = "#cfe0d8"; }}
-            onMouseLeave={e => { e.currentTarget.style.background = "#f4f7f6"; e.currentTarget.style.borderColor = "#e3eae7"; }}
-          >
-            <span style={{ fontSize: ".74rem", color: "#8b96a5" }}>אפיון ופיתוח</span>
-            <span style={{ width: 3, height: 3, borderRadius: "50%", background: "#c3ccd6" }} />
-            <span style={{ fontSize: ".84rem", fontWeight: 800, color: BRAND_DARK, letterSpacing: ".01em" }}>r-lavan</span>
-          </a>
-        </div>
       </div>
+
+      {/* באנר קרדיט — פרוס על כל רוחב המסך בתחתית, מחוץ לכרטיס ההתחברות */}
+      <a
+        href="https://r-lavan.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          position: "absolute", insetInline: 0, bottom: 0, zIndex: 2,
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+          padding: "0.85rem 1rem",
+          background: "rgba(4, 32, 24, .55)",
+          borderTop: "1px solid rgba(226, 192, 105, .35)",
+          backdropFilter: "blur(6px)",
+          textDecoration: "none",
+          transition: "background .18s",
+        }}
+        onMouseEnter={e => (e.currentTarget.style.background = "rgba(4, 32, 24, .72)")}
+        onMouseLeave={e => (e.currentTarget.style.background = "rgba(4, 32, 24, .55)")}
+      >
+        <span style={{ fontSize: ".82rem", color: "rgba(255,255,255,.72)", letterSpacing: ".02em" }}>
+          אפיון ופיתוח
+        </span>
+        <span style={{ width: 4, height: 4, borderRadius: "50%", background: "var(--gold, #c79a3e)" }} />
+        <span style={{ fontSize: "1rem", fontWeight: 800, color: "#e2c069", letterSpacing: ".03em" }}>
+          r-lavan
+        </span>
+      </a>
     </div>
   );
 }
