@@ -7,13 +7,24 @@
  * ישתנה ← הקלדת מילת אישור. זו הפעולה היחידה במערכת שמוחקת הכל,
  * ולכן היא לא נעשית בלחיצה אחת.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const BRAND = "#107a5e";
 const RED = "#c0392b";
 const CONFIRM_WORD = "שחזר";
 
 type PreviewRow = { table: string; current: number; incoming: number };
+
+type Settings = {
+  enabled: boolean;
+  backup_email: string | null;
+  effective_email: string | null;
+  admin_email: string | null;
+  last_sent_at: string | null;
+  last_status: string | null;
+  last_error: string | null;
+  days_since: number | null;
+};
 
 const TABLE_LABEL: Record<string, string> = {
   members: "חברים",
@@ -30,6 +41,39 @@ const TABLE_LABEL: Record<string, string> = {
 export default function BackupPanel() {
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+
+  // הגדרות
+  const [settings, setSettings] = useState<Settings | null>(null);
+  const [emailInput, setEmailInput] = useState("");
+
+  useEffect(() => {
+    fetch("/api/backup/settings")
+      .then(r => r.json())
+      .then(j => {
+        if (j?.data) { setSettings(j.data); setEmailInput(j.data.backup_email ?? ""); }
+      })
+      .catch(() => { /* ההגדרות אינן קריטיות לשאר הפאנל */ });
+  }, []);
+
+  async function saveSettings(patch: { enabled?: boolean; backup_email?: string | null }) {
+    setBusy("settings"); setMsg(null);
+    try {
+      const res = await fetch("/api/backup/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          enabled: patch.enabled ?? settings?.enabled ?? true,
+          backup_email: patch.backup_email !== undefined ? patch.backup_email : emailInput,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error || "השמירה נכשלה");
+      setSettings(s => (s ? { ...s, ...json.data } : json.data));
+      setMsg({ kind: "ok", text: "✓ ההגדרות נשמרו" });
+    } catch (e) {
+      setMsg({ kind: "err", text: (e as Error).message });
+    } finally { setBusy(null); }
+  }
 
   // שחזור
   const [file, setFile] = useState<File | null>(null);
@@ -69,7 +113,10 @@ export default function BackupPanel() {
       const res = await fetch("/api/backup", { method: "POST" });
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error || "השליחה נכשלה");
-      setMsg({ kind: "ok", text: `✓ הגיבוי נשלח למייל (${json.data.filename})` });
+      setMsg({ kind: "ok", text: `✓ הגיבוי נשלח אל ${json.data.to} (${json.data.filename})` });
+      // רענון הסטטוס כדי שתאריך "גיבוי אחרון" יתעדכן מיד
+      fetch("/api/backup/settings").then(r => r.json())
+        .then(j => { if (j?.data) setSettings(j.data); }).catch(() => {});
     } catch (e) {
       setMsg({ kind: "err", text: (e as Error).message });
     } finally { setBusy(null); }
@@ -135,11 +182,82 @@ export default function BackupPanel() {
         }}>{msg.text}</div>
       )}
 
+      {/* --- הגדרות הגיבוי --- */}
+      <div style={{ marginBottom: 20, background: "#f8fafb", border: "1px solid var(--line)", borderRadius: 12, padding: "1rem 1.1rem" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
+          <div style={{ fontWeight: 800, fontSize: ".92rem" }}>גיבוי יומי אוטומטי</div>
+          <label style={{ display: "inline-flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: ".86rem" }}>
+            <input
+              type="checkbox"
+              checked={settings?.enabled ?? true}
+              disabled={!!busy}
+              onChange={e => saveSettings({ enabled: e.target.checked })}
+              style={{ width: 17, height: 17, accentColor: BRAND, cursor: "pointer" }}
+            />
+            {settings?.enabled === false ? "כבוי" : "פעיל"}
+          </label>
+        </div>
+
+        <label style={{ fontSize: ".82rem", fontWeight: 600, color: "#4a5568", display: "block", marginBottom: 6 }}>
+          כתובת המייל לקבלת הגיבוי
+        </label>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <input
+            value={emailInput}
+            onChange={e => setEmailInput(e.target.value)}
+            placeholder={settings?.admin_email || "name@example.com"}
+            dir="ltr"
+            style={{
+              flex: "1 1 240px", padding: "0.55rem 0.85rem", border: "1.5px solid #dce1e8",
+              borderRadius: 10, fontSize: ".92rem", outline: "none", boxSizing: "border-box",
+            }}
+          />
+          <button
+            onClick={() => saveSettings({ backup_email: emailInput })}
+            disabled={!!busy}
+            style={{ padding: "0.55rem 1.1rem", borderRadius: 10, border: "none", background: BRAND, color: "#fff", fontWeight: 700, fontSize: ".88rem", cursor: "pointer" }}>
+            {busy === "settings" ? "שומר…" : "שמור"}
+          </button>
+        </div>
+        <div style={{ fontSize: ".76rem", color: "var(--muted)", marginTop: 6, lineHeight: 1.6 }}>
+          אם השדה ריק, הגיבוי יישלח למייל המנהל{settings?.admin_email ? ` (${settings.admin_email})` : ""}.
+        </div>
+
+        {/* סטטוס הגיבוי האחרון */}
+        {settings && (
+          <div style={{ marginTop: 12, paddingTop: 10, borderTop: "1px solid var(--line)", fontSize: ".82rem", lineHeight: 1.7 }}>
+            {settings.last_sent_at ? (
+              <div style={{ color: "var(--muted)" }}>
+                גיבוי אחרון נשלח: <b style={{ color: "var(--text)" }}>
+                  {new Date(settings.last_sent_at).toLocaleString("he-IL")}
+                </b>
+                {settings.effective_email ? <> · אל {settings.effective_email}</> : null}
+              </div>
+            ) : (
+              <div style={{ color: "#8a6d1f" }}>עדיין לא נשלח גיבוי מהמערכת.</div>
+            )}
+
+            {settings.last_status === "failed" && settings.last_error && (
+              <div style={{ color: RED, marginTop: 4 }}>
+                הניסיון האחרון נכשל: {settings.last_error}
+              </div>
+            )}
+
+            {settings.days_since != null && settings.days_since >= 3 && (
+              <div style={{ marginTop: 8, background: "#fff8ec", border: "1px solid #f0e0c0", color: "#8a6d1f", borderRadius: 8, padding: "0.5rem 0.7rem" }}>
+                ⚠ עברו {settings.days_since} ימים מאז הגיבוי האחרון. הגיבוי נשלח בכניסה למערכת —
+                אם לא נכנסים במשך כמה ימים, לא נוצר גיבוי. כדאי ללחוץ &quot;שלח גיבוי עכשיו&quot;.
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* --- גיבוי --- */}
       <div style={{ marginBottom: 22 }}>
         <div style={{ fontSize: ".88rem", color: "var(--muted)", lineHeight: 1.75, marginBottom: 12 }}>
-          המערכת שולחת גיבוי מלא למייל המנהל אחת ליום באופן אוטומטי.
-          כאן אפשר להוריד גיבוי או לשלוח אותו למייל באופן מיידי.
+          הגיבוי נבדק אוטומטית בכל כניסה למערכת ונשלח אם עברה יממה מהאחרון.
+          כאן אפשר להוריד גיבוי או לשלוח אותו מיד.
         </div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <button onClick={download} disabled={!!busy}

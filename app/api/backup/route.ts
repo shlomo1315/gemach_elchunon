@@ -9,10 +9,13 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { createBackup } from "@/lib/backup";
-import { ADMIN_EMAIL, mailConfigured, sendMail } from "@/lib/mailer";
+import { mailConfigured, sendMail } from "@/lib/mailer";
 import { buildEmail } from "@/lib/emailTemplate";
 import { currentUser } from "@/lib/session";
 import { query } from "@/lib/db";
+import {
+  backupRecipient, getBackupSettings, isBackupDue, recordBackupResult,
+} from "@/lib/backupSettings";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -56,6 +59,8 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const cron = isCronCall(req);
+  // auto=1 — בדיקה יזומה מהדפדפן בכניסה למערכת: שולחת רק אם הגיע הזמן
+  const auto = req.nextUrl.searchParams.get("auto") === "1";
 
   if (!cron) {
     const user = await currentUser();
@@ -64,15 +69,22 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  if (!mailConfigured() || !ADMIN_EMAIL) {
-    return NextResponse.json(
-      { error: "מערכת המיילים אינה מוגדרת — לא ניתן לשלוח גיבוי" },
-      { status: 400 },
-    );
+  const settings = await getBackupSettings();
+  const to = backupRecipient(settings);
+
+  // בהרצה אוטומטית — לא שולחים אם כבר נשלח היום, או אם הגיבוי כובה
+  if ((auto || cron) && !isBackupDue(settings)) {
+    return NextResponse.json({ data: { ok: true, skipped: "not_due" }, error: null });
+  }
+
+  if (!mailConfigured() || !to) {
+    const msg = "לא הוגדרה כתובת מייל לגיבוי (או שמערכת המיילים אינה מוגדרת)";
+    if (auto || cron) await recordBackupResult("failed", msg);
+    return NextResponse.json({ error: msg }, { status: 400 });
   }
 
   try {
-    const backup = await createBackup(cron ? "daily" : "manual");
+    const backup = await createBackup(cron ? "cron" : auto ? "daily" : "manual");
     const json = Buffer.from(JSON.stringify(backup), "utf8");
     const filename = backupFilename();
 
@@ -98,27 +110,31 @@ export async function POST(req: NextRequest) {
       footnote: "מייל זה נשלח אוטומטית אחת ליום. הגיבוי אינו כולל את יומן המיילים.",
     });
 
-    await sendMail(ADMIN_EMAIL, `גמ"ח זכרון אהרן — גיבוי יומי (${filename})`, html, [
+    await sendMail(to, `גמ"ח זכרון אהרן — גיבוי יומי (${filename})`, html, [
       { filename, content: json },
     ]);
+
+    await recordBackupResult("sent", null);
 
     // רישום ביומן, כדי שאפשר יהיה לראות שהגיבוי אכן נשלח
     try {
       await query(
         `insert into email_log (event, recipient_type, recipient, subject, html, status)
          values ($1, 'admin', $2, $3, $4, 'sent')`,
-        ["backup.daily", ADMIN_EMAIL, `גיבוי יומי (${filename})`, html],
+        ["backup.daily", to, `גיבוי יומי (${filename})`, html],
       );
     } catch {
       /* כשל ברישום לא מפיל את הגיבוי */
     }
 
     return NextResponse.json({
-      data: { ok: true, filename, size: json.length, counts: backup.counts },
+      data: { ok: true, filename, size: json.length, counts: backup.counts, to },
       error: null,
     });
   } catch (e) {
-    console.error("[api/backup]", (e as Error).message);
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    const msg = (e as Error).message;
+    console.error("[api/backup]", msg);
+    await recordBackupResult("failed", msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

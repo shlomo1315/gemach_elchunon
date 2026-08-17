@@ -372,6 +372,28 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
+  /**
+   * גיבוי יומי — נבדק בכניסה למערכת במקום להיות מתוזמן חיצונית.
+   * השרת מחליט אם באמת הגיע הזמן (auto=1 שולח רק אם עברה יממה), ולכן
+   * אין חשש משליחות כפולות גם אם נכנסים כמה פעמים ביום.
+   * רץ ברקע ולא מעכב את טעינת המערכת; כשל אינו מפריע למשתמש.
+   */
+  useEffect(() => {
+    if (!user || user.role !== "admin") return;
+    if (typeof window === "undefined") return;
+    if (sessionStorage.getItem("backup_checked")) return;
+    sessionStorage.setItem("backup_checked", "1");
+
+    fetch("/api/backup?auto=1", { method: "POST" })
+      .then(r => r.json())
+      .then(j => {
+        if (j?.data?.skipped) return;              // כבר נשלח היום
+        if (j?.data?.ok) console.info("[גיבוי] נשלח:", j.data.filename);
+        else if (j?.error) console.warn("[גיבוי] נכשל:", j.error);
+      })
+      .catch(() => { /* לא מפריעים למשתמש בגלל כשל גיבוי */ });
+  }, [user]);
+
   // זיהוי תפקיד: אם המייל של המשתמש משויך לחבר → פורטל חבר (קריאה בלבד), אחרת מנהל
   useEffect(() => {
     let cancelled = false;

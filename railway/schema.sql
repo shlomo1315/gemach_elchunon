@@ -244,6 +244,20 @@ create table if not exists email_settings (
 
 insert into email_settings (id) values (true) on conflict do nothing;
 
+-- ---------- הגדרות גיבוי ----------
+-- שורה יחידה, כמו email_settings. backup_email ריק => נשלח ל-ADMIN_EMAIL.
+create table if not exists backup_settings (
+  id            boolean primary key default true check (id),
+  enabled       boolean not null default true,
+  backup_email  text,
+  last_sent_at  timestamptz,          -- מתי נשלח הגיבוי האחרון בפועל
+  last_status   text,                 -- sent | failed
+  last_error    text,
+  updated_at    timestamptz not null default now()
+);
+
+insert into backup_settings (id) values (true) on conflict do nothing;
+
 -- ---------- שחזור סיסמה: קודים זמניים ----------
 -- הקוד עצמו לעולם לא נשמר כטקסט — רק hash שלו (bcrypt), בדיוק כמו סיסמה.
 -- כך דליפה של המסד לא מאפשרת התחברות. הקוד תקף 15 דקות ולשימוש חד-פעמי.
