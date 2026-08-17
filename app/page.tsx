@@ -117,6 +117,7 @@ export default function Dashboard() {
   const [top, setTop] = useState<MemberBalance[]>([]);
   const [members, setMembers] = useState<MemberBalance[]>([]);
   const [allTxns, setAllTxns] = useState<{ amount: number; type: string; greg_date: string | null; heb_date: string | null; created_at: string }[]>([]);
+  const [txnsError, setTxnsError] = useState<string | null>(null);
   const [period, setPeriod] = useState<"day" | "week" | "month" | "year">("day");
   const [loading, setLoading] = useState(true);
 
@@ -147,7 +148,9 @@ export default function Dashboard() {
       supabase.from("transactions").select("*, members(name)").order("created_at", { ascending: false }).limit(10),
       supabase.from("member_balances").select("*").order("balance", { ascending: false }).limit(6),
       supabase.from("member_balances").select("*").order("name"),
-      supabase.from("transactions").select("amount,type,greg_date,heb_date,created_at").limit(50000),
+      // התקרה המותרת בשרת היא 10,000 (app/api/db/route.ts). ערך גבוה יותר
+      // נדחה, ואז סטטיסטיקות התקופה מציגות אפס פעולות.
+      supabase.from("transactions").select("amount,type,greg_date,heb_date,created_at").limit(10000),
       supabase.from("transaction_change_requests").select("*, members(name)").eq("status", "pending").order("created_at", { ascending: false }),
       supabase.from("member_requests").select("*, members(name)").eq("status", "open").order("created_at", { ascending: false }),
       supabase.from("checks").select("*, members(name)").eq("status", "pending").order("due_date", { ascending: true }).limit(200),
@@ -156,6 +159,14 @@ export default function Dashboard() {
     setRecent((r.data as Recent[]) || []);
     setTop((t.data as MemberBalance[]) || []);
     setMembers((m.data as MemberBalance[]) || []);
+    // כשל בטעינת כלל הפעולות התבטא בעבר כ"אפס פעולות" בסטטיסטיקות, בלי
+    // שום סימן לכך שמשהו נכשל. עדיף להצהיר על התקלה מאשר להציג נתון שגוי.
+    if (a.error) {
+      console.error("[dashboard] טעינת הפעולות נכשלה:", a.error.message);
+      setTxnsError(a.error.message);
+    } else {
+      setTxnsError(null);
+    }
     setAllTxns((a.data as any[]) || []);
     const pcList = (pc.data as ChangeRequest[]) || [];
     const orList = (or.data as MemberRequest[]) || [];
@@ -465,6 +476,11 @@ export default function Dashboard() {
             ))}
           </div>
         </div>
+        {txnsError && (
+          <div style={{ background: "#fdeaea", color: "#c0392b", borderRadius: 10, padding: "0.7rem 0.95rem", fontSize: ".85rem", marginBottom: 12, lineHeight: 1.6 }}>
+            לא הצלחנו לטעון את הפעולות, ולכן המספרים כאן אינם מעודכנים. נסה לרענן את הדף.
+          </div>
+        )}
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           <KpiCard label={`הפקדות ${PERIOD_LABEL[period]}`} value={num(periodStats.depCount)} icon={<ArrowDownCircle size={20} />} color="#16a085"
             sub={ils(periodStats.depSum)} />
